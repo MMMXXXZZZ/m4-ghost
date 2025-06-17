@@ -1,4 +1,4 @@
-<div class="sidebar-subscribe mb-8 text-center shadow-lg p-6 bg-primary rounded-2xl"{{#if @custom.sidebar_newsletter_background}} style="background-color:{{ @custom.sidebar_newsletter_background}}"{{/if}}>
+<div class="sidebar-subscribe mb-8 text-center shadow-lg p-6 bg-primary rounded-2xl" {{#if @custom.sidebar_newsletter_background}} style="background-color:{{ @custom.sidebar_newsletter_background}}" {{/if}}>
     <svg xmlns="http://www.w3.org/2000/svg" width="45" viewBox="0 0 48 24.33" class="fill-current mb-4 mx-auto text-white"><path data-name="Trazado 79132" d="M47.16 24.31h.2l.06-.06V24.13a.17.17 0 0 1 0-.05v-.05a.17.17 0 0 1 0-.05.11.11 0 0 1 0-.05V1a1 1 0 0 0-1-1H13.27V6.7a1 1 0 0 0 2.08 0V3.35l9.25 8.2-.14.11-9.11 9.12v-6.84a1 1 0 0 0-2.08 0v1.27H7.76a1 1 0 0 0 0 2.08h5.38v6a1 1 0 0 0 1 1h32.97Zm-1.24-3.53-9.12-9.11 6.86-5.82a1 1 0 1 0-1.35-1.58l-11.73 9.91-13.67-12.1h29v18.7ZM25.8 13.13a1.08 1.08 0 0 0 .18-.24l3.9 3.45a1 1 0 0 0 1.36 0l4-3.37a.44.44 0 0 0 .12.15l9.12 9.12h-27.8Z"/><path data-name="Trazado 79133" d="M1 11.86h17.62a1 1 0 0 0 0-2.09H1a1 1 0 0 0 0 2.09Z"/><path data-name="Trazado 79134" d="M2.86 6.12h7.9a1 1 0 0 0 0-2.08h-7.9a1 1 0 0 0 0 2.08Z"/><path data-name="Trazado 79135" d="M8.68 19.61H1a1 1 0 0 0 0 2.08h7.68a1 1 0 1 0 0-2.08Z"/></svg>
     <h2 class="text-3xl text-white mb-4 font-bold">{{t "Newsletter"}}</h2>
     <div class="text-base mb-5 text-white opacity-80">{{t "Stay up to date! Get all the latest & greatest posts delivered straight to your inbox"}}</div>
@@ -14,6 +14,26 @@
                 autocomplete="off"
                 required
             />
+                <script>
+                    document.addEventListener('DOMContentLoaded', function () {
+                        var isEnglish = window.location.pathname.startsWith('/en/');
+                        var checkbox = document.getElementById('in-english-checkbox');
+                        var labelWrapper = document.getElementById('in-english-label-wrapper');
+                        if (isEnglish) {
+                            checkbox.checked = true;
+                            labelWrapper.style.display = 'block';
+                        } else {
+                            checkbox.checked = false;
+                            labelWrapper.style.display = 'none';
+                        }
+                    });
+                </script>
+            <span id="in-english-label-wrapper" style="display:none;">
+                <label>
+                    <input type="checkbox" name="in-english" id="in-english-checkbox" data-members-label value="english">
+                    Receive posts in English only
+                </label>
+            </span>
             <button id="sidebar-subscribe-btn" class="button bg-white text-primary w-full border-none font-medium" type="submit" {{#if @custom.sidebar_newsletter_background}} style="color:{{ @custom.sidebar_newsletter_background}}"{{/if}}>
                 <span>{{t "Subscribe"}}</span>
                 {{!-- {{> "icons/loader"}} --}}
