@@ -1,0 +1,35 @@
+{{!-- Layout --}}
+{{!< default }}
+
+{{#contentFor "M4_class_body"}}is-article{{/contentFor}}
+
+{{#post}}
+
+<section class="post container mx-auto my-10">
+    <div class="col s12 flex-none w-full">
+        {{!-- Article Header - partials/article/article-header.hbs --}}
+        {{> "article/article-header"}}
+
+        {{!-- Article Author - partials/components/author-meta.hbs --}}
+        {{> "components/author-meta"}}
+    </div>
+    <div class="flex flex-col lg:flex-row">
+        <div class="min-w-0 flex-auto">
+            {{!-- Featured Image - partials/article/article-media.hbs --}}
+            {{> "article/article-media"}}
+
+            {{!-- Article Content - partials/article/article-body.hbs --}}
+            {{> "article/article-body"}}
+
+            {{!-- Comments Section --}}
+            {{> "article/article-comments"}}
+        </div>
+{{/post}}
+
+        {{!-- Sidebar - partials/sidebar.hbs --}}
+        {{> "sidebar"}}
+    </div>
+</section>
+
+{{!-- Comments partials/article/article-related.hbs --}}
+{{> "article/article-related"}}

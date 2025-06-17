@@ -1,0 +1,28 @@
+{{!-- Layout --}}
+{{!< default }}
+
+{{#contentFor "M4_class_body"}}is-single-post{{/contentFor}}
+
+{{#post}}
+<article class="post my-10">
+
+    <div class="container mx-auto max-w-3xl">
+        {{!-- Article Header - partials/article/article-header.hbs --}}
+        {{> "article/article-header"}}
+
+        {{!-- Article Author - partials/components/author-meta.hbs --}}
+        {{> "components/author-meta"}}
+    </div>
+
+    {{!-- Featured Image - partials/article/article-media.hbs --}}
+    {{> "article/article-media"}}
+
+    <div class="post container mx-auto max-w-3xl">
+        {{!-- Article Content - partials/article/article-body.hbs --}}
+        {{> "article/article-body"}}
+    </div>
+</article>
+{{/post}}
+
+{{!-- Related Articles - partials/article/article-related.hbs --}}
+{{> "article/article-related"}}

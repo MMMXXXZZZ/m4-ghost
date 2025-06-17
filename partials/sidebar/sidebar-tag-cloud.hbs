@@ -1,0 +1,14 @@
+{{!-- Tag Cloud --}}
+{{#get "tags" limit="12" filter="visibility:public" include="count.posts" order="count.posts desc"}}
+<div class="mt-12 mb-8">
+    <h3 class="uppercase mb-5 border-b pb-2 font-bold text-sm">{{t "Tag Cloud"}}</h3>
+    <div class="buttons">
+        {{#foreach tags}}
+        <a href="{{url}}" class="button is-primary text-sm capitalize" {{#if accent_color}}style="background:{{accent_color}}"{{/if}}>
+            <span>{{name}}</span>
+            <span class="ml-2 text-white text-opacity-80">({{count.posts}})</span>
+        </a>
+        {{/foreach}}
+    </div>
+</div>
+{{/get}}

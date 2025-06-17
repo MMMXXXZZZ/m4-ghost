@@ -1,0 +1,25 @@
+{{!-- Layout --}}
+{{!< default }}
+
+{{#contentFor "M4_class_body"}}is-single-post{{/contentFor}}
+
+{{#post}}
+<article class="post my-10">
+
+    <header class="container mx-auto max-w-3xl">
+        {{!-- Article Header - partials/article/article-header.hbs --}}
+        {{> "article/article-header"}}
+
+        {{!-- Article Author - partials/components/author-meta.hbs --}}
+        {{> "components/author-meta"}}
+    </header>
+
+    <div class="post container mx-auto max-w-3xl">
+        {{!-- Article Content - partials/article/article-body.hbs --}}
+        {{> "article/article-body"}}
+    </div>
+</article>
+{{/post}}
+
+{{!-- Related Articles - partials/article/article-related.hbs --}}
+{{> "article/article-related"}}

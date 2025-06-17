@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<!--
+    Design by:
+    ——————————
+        GODO FREDO
+        ✉ https://godofredo.ninja
+        ✎ @GodoFredoNinja
+        ✈ Lima - Perú
+-->
+<html lang="{{@site.locale}}"{{#match @custom.color_scheme "Dark"}} class="dark"{{/match}}>
+<head>
+    {{!-- Document Settings --}}
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    {{!-- Base Meta --}}
+    <title>{{meta_title}}</title>
+    <meta name="HandheldFriendly" content="True" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <script>
+    {{#match @custom.color_scheme "Auto"}}
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.querySelector('html').classList.add('dark');
+        } else {
+            document.querySelector('html').classList.remove('dark');
+        }
+    {{else}}
+        if (localStorage.theme === 'dark') {
+            document.querySelector('html').classList.add('dark');
+        } else if (localStorage.theme === 'light') {
+            document.querySelector('html').classList.remove('dark');
+        }
+    {{/match}}
+    </script>
+
+    {{!-- Fonts -> Space Grotesk=variable; JetBrains Mono=variable (for code) --}}
+    {{!-- Remove Google Fonts for Public Sans and Atkinson --}}
+    <link rel="preload" href="/assets/fonts/SpaceGrotesk-VariableFont_wght.ttf" as="font" type="font/ttf" crossorigin>
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'"/>
+    <noscript><link rel="preconnect" href="https://fonts.gstatic.com"><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap" rel="stylesheet"></noscript>
+
+    {{!-- Styles --}}
+    <link rel="stylesheet" type="text/css" href="{{asset "styles/main.css"}}"/>
+
+    <style>
+        :root {
+            {{#if @custom.header_has_color}}
+            --header-logo-color: #fff;
+            --header-bg: {{@custom.header_background}};
+            --header-color: {{@custom.header_text_color}};
+            --header-color-hover: {{@custom.header_text_color_hover}};
+            {{/if}}
+            --logo-width: {{#if @custom.logo_width}}{{@custom.logo_width}}{{else}}11.25rem{{/if}};
+        }
+    </style>
+
+    {{!-- Ghost outputs important style and meta data with this tag --}}
+    {{ghost_head}}
+</head>
+<body class="{{{block "M4_class_body"}}}">
+
+    <div class="site-wrapper flex flex-col justify-start min-h-screen">
+        {{!-- Header - partials/layout/header.hbs --}}
+        {{> "layout/header"}}
+
+        {{!-- All the main content gets inserted here, index.hbs, post.hbs, etc --}}
+        <main class="site-main">{{{body}}}</main>
+
+        {{!-- Footer - partials/layout/footer.hbs --}}
+        {{> "layout/footer"}}
+
+        {{!-- Mobile Menu - partials/layout/footer.hbs --}}
+        {{> "layout/mobile-menu"}}
+    </div>
+
+    {{!-- Search - partials/search.hbs --}}
+    {{>"search"}}
+
+    {{!-- Site URL --}}
+    <script>
+        var siteUrl = '{{@site.url}}';
+        var siteSearch = '{{asset "scripts/search.js"}}';
+        var prismJs = '{{asset "scripts/prismjs.js"}}';
+        var prismJsComponents = 'https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/';
+        var M4Gallery = {{@custom.gallery}};
+    </script>
+
+    {{!-- Icons --}}
+    {{> "icons/icons-symbol-defs"}}
+
+    {{!-- Ghost outputs important scripts and data with this tag - it should always be the very last thing before the closing body tag --}}
+    {{ghost_foot}}
+
+    {{!-- The main JavaScript --}}
+    <script src="{{#is "post, page"}}{{asset "scripts/post.js"}}{{else}}{{asset "scripts/main.js"}}{{/is}}"></script>
+
+    {{#if pagination.pages}}<script src="{{asset "scripts/pagination.js"}}" async defer></script>{{/if}}
+
+    {{!-- The #block helper will pull in data from the #contentFor other template files. --}}
+    {{{block "scripts"}}}
+</body>
+</html>

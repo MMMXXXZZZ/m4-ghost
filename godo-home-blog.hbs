@@ -1,0 +1,49 @@
+{{!-- Layouts --}}
+{{!< default}}
+
+{{#contentFor "M4_class_body"}}is-blog{{/contentFor}}
+
+<div class="max-w-4xl mx-auto my-10">
+    <div class="js-post-feed">
+        <div class="js-story">
+
+            {{#foreach posts}}
+
+            <article class="entry">
+                <header class="entry-header max-w-2xl mx-auto mb-8">
+                    {{!-- Category and Datetime partials/components/primary-tag.hbs --}}
+                    {{> "components/primary-tag"}}
+
+                    <h2 class="entry-title text-title hover:text-primary mb-5 text-4xl md:text-5xl"><a href="{{url}}" class="block">{{title}}</a></h2>
+
+                    {{!-- Article Author - partials/components/author-meta.hbs --}}
+                    {{> "components/author-meta"}}
+                </header>
+
+                {{#if feature_image}}
+                <figure class="entry-image relative mb-8 overflow-hidden rounded img-hover shadow-xl bg-gray-100" style="padding-top:50%">
+                    {{!-- Featured Image ./partials/components/featured-image.hbs --}}
+                    <a href="{{url}}">{{> "components/featured-image"}}</a>
+                </figure>
+                {{/if}}
+
+                <div class="entry-body max-w-2xl mx-auto">
+                    <p class="story-excerpt leading-relaxed mb-8{{#match @custom.post_font "=" "font-serif"}} font-serif{{else}} font-sans{{/match}}{{#match @custom.post_font_size "=" "20px"}} text-xl{{else}} text-lg{{/match}}">{{excerpt words="60"}}</p>
+
+                    <a href="{{url}}" class="more-link button is-primary">
+                        <span>{{t "Continue reading"}}</span>
+                        <svg class="icon is-stroke is-small"><use xlink:href="#icon-next"></use></svg>
+                    </a>
+                </div>
+            </article>
+
+            <div class="entry-divider max-w-2xl mx-auto"><hr class="md:my-14"></div>
+
+            {{/foreach}}
+
+        </div>
+    </div>
+
+    <div class="max-w-2xl mx-auto">{{pagination}}</div>
+
+</div>

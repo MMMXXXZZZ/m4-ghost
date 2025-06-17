@@ -1,0 +1,25 @@
+{{!-- Layout --}}
+{{!< default }}
+
+{{#contentFor "M4_class_body"}}is-image has-cover is-head-transparent{{/contentFor}}
+
+{{#post}}
+{{!-- Article Header Cover - partials/article/article-header-cover.hbs --}}
+{{> "article/article-header-cover"}}
+
+<div class="extreme-container container mx-auto flex flex-col lg:flex-row my-10">
+    <article class="post min-w-0 flex-auto">
+        {{!-- Article Author - partials/components/author-meta.hbs --}}
+        {{> "components/author-meta" class="lg:ml-20"}}
+
+        {{!-- Article Content - partials/article/article-body.hbs --}}
+        {{> "article/article-body"}}
+    </article>
+{{/post}}
+
+    {{!-- Sidebar - partials/sidebar.hbs --}}
+    {{> "sidebar"}}
+</div>
+
+{{!-- Related Articles - partials/article/article-related.hbs --}}
+{{> "article/article-related"}}

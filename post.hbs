@@ -1,0 +1,39 @@
+{{!-- Layout --}}
+{{!< default }}
+
+{{#contentFor "M4_class_body"}}is-article{{/contentFor}}
+
+<div class="container mx-auto flex flex-col lg:flex-row my-10">
+        {{#post}}
+        <article class="post min-w-0 flex-auto">
+            {{#unless feature_image}}
+                <div class="lg:pl-20">
+                {{!-- Article Header - partials/article/article-header.hbs --}}
+                {{> "article/article-header"}}
+                {{!-- Article Author - partials/components/author-meta.hbs --}}
+                {{> "components/author-meta"}}
+                </div>
+            {{else}}
+                {{!-- Article Header - partials/article/article-header.hbs --}}
+                {{> "article/article-header"}}
+                {{!-- Article Author - partials/components/author-meta.hbs --}}
+                {{> "components/author-meta"}}
+            {{/unless}}
+
+            {{!-- Featured Image - partials/article/article-media.hbs --}}
+            {{> "article/article-media"}}
+
+            {{!-- Article Content - partials/article/article-body.hbs --}}
+            {{> "article/article-body"}}
+
+            {{!-- Comments Section --}}
+            {{> "article/article-comments"}}
+        </article>
+        {{/post}}
+
+        {{!-- Sidebar - partials/sidebar.hbs --}}
+        {{> "sidebar"}}
+</div>
+
+{{!-- Related Articles - partials/article/article-related.hbs --}}
+{{> "article/article-related"}}

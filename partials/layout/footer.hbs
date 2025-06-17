@@ -1,0 +1,19 @@
+<footer class="footer py-14">
+    <div class="container mx-auto text-center">
+        {{!-- Social Media - ./partials/components/social-media.hbs --}}
+        {{> "components/social-media" class="footer-social-media"}}
+        {{!-- Secondary Navigation --}}
+        {{#if @site.secondary_navigation}}{{navigation type="secondary"}}{{/if}}
+        {{!-- Copyright  --}}
+        <div class="text-sm mt-5 opacity-80">
+            <span class="block mb-2">
+                Salvo que se indique lo contrario, todo el contenido de este blog es de dominio público bajo la licencia 
+                <a href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank" rel="noopener">Creative Commons Zero (CC0)</a>.
+                Sin derechos reservados.
+            </span>
+            <span class="block mb-2">
+                El contenido no incluido en esta dedicatoria se indicará claramente en la página o publicación correspondiente.
+            </span>
+        </div>
+    </div>
+</footer>

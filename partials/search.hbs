@@ -1,0 +1,17 @@
+<div class="js-search search w-full fixed z-20 top-0 left-0 mt-16 hidden">
+    <div class="">
+        <form class="px-4 flex items-center pt-5 pb-4 text-xl border-b">
+            <svg class="icon is-large flex-none mr-1"><use xlink:href="#icon-search"></use></svg>
+
+            <input id="search-bar" class="flex-grow border-none text-xl bg-transparent text-gray-900" type="text" placeholder="{{t "Search"}}">
+
+            <div class="js-toggle-search flex-none text-gray-400 ml-2 cursor-pointer"><svg class="icon is-small"><use xlink:href="#icon-close"></use></svg></div>
+        </form>
+
+        <div class="pt-6 pb-5">
+            <h5 class="js-search-suggestion uppercase px-4 text-xs tracking-wide font-light mb-3">{{t "Search suggestions"}}</h5>
+            <ul id="search-results"></ul>
+        </div>
+
+    </div>
+</div>

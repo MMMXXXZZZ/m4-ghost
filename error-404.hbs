@@ -1,0 +1,24 @@
+{{!-- Layout --}}
+{{!< default }}
+
+
+<section class="page-error-wrap container mx-auto px-4 max-w-4xl text-center py-vw4">
+    <h1 class="page-error-title text-title text-7xl lg:text-9xl">404</h1>
+    <h2 class="mt-4 text-2xl text-title lg:text-4xl">{{t "Oops... Page Not Found!"}}</h2>
+    <p class="my-10 text-xl text-gray-500">{{t "The page you are looking for does not exist. It might have been moved or deleted."}}</p>
+    <a href="{{@site.url}}" class="button is-large is-black">{{t "Go to home"}}</a>
+</section>
+
+{{#get "posts" limit="4" include="tags" as |recents| }}
+
+<section class="py-10">
+    <div class="container mx-auto">
+        <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+        {{#foreach recents}}
+            {{> "story/story-grid" classTitle='text-xl'}}
+        {{/foreach}}
+        </div>
+    </div>
+</section>
+
+{{/get}}

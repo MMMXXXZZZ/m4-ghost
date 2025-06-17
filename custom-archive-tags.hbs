@@ -1,0 +1,38 @@
+{{!-- Layout --}}
+{{!< default}}
+
+{{#post}}
+<div class="max-w-5xl px-4 mx-auto py-8 text-center">
+    <h1 class="text-title lg:text-5xl mt-12 mb-10">{{title}}</h1>
+    <div class="font-normal mx-auto text-xl max-w-2xl">{{content}}</div>
+</div>
+{{/post}}
+
+<div class="topic container pt-8 mx-auto">
+    {{#get "tags" limit="18" filter="visibility:public"}}
+    <div class="grid gap-8 mb-10 md:grid-cols-2 lg:grid-cols-3">
+
+        {{#foreach tags}}
+
+        <article class="relative flex overflow-hidden h-52 rounded img-hover {{#if feature_image}}bg-dark{{else}}u-primaryGradient{{/if}}" {{#if accent_color}}style="background:{{accent_color}}"{{/if}}>
+            <a href="{{url}}" class="flex flex-grow items-center justify-center p-6 flex-col">
+                <div class="relative z-3 text-center text-white">
+                    <h2 class="topic-title uppercase text-22 font-semibold">{{name}}</h2>
+                </div>
+                {{#if feature_image}}
+                    <img class="image-inset absolute img-hover-here blur-up lazyload"
+                        src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
+                        data-srcset="{{img_url feature_image size="s"}} 300w, {{img_url feature_image size="m"}} 600w, {{img_url feature_image size="l"}} 1000w"
+                        data-sizes="auto"
+                        alt="{{name}}"
+                    />
+                    <div class="bg-dark bg-opacity-40 inset-0 absolute z-2"></div>
+                {{/if}}
+            </a>
+        </article>
+
+        {{/foreach}}
+
+    </div>
+{{/get}}
+</div>

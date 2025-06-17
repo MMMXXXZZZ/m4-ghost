@@ -1,0 +1,34 @@
+{{!< default}}
+
+{{!-- custom Styles For tag <body> --}}
+{{#contentFor "M4_class_body"}}is-tag{{/contentFor}}
+
+{{#tag}}
+
+{{#if accent_color}}<style>.u-primaryGradient{background: linear-gradient(135deg, #222, {{accent_color}})}</style>{{/if}}
+
+<div class="relative text-center mb-12 text-white flex items-center lg:text-left {{#unless feature_image}}u-primaryGradient{{else}}bg-dark{{/unless}}">
+    <div class="relative z-3 container text-xl lg:flex items-center mx-auto py-12">
+        <div class="flex-grow">
+            <h1 class="text-4xl lg:text-5xl capitalize">{{name}}</h1>
+            {{#if description}}<p class="mx-auto lg:ml-0 mt-5 max-w-2xl">{{description}}</p>{{/if}}
+        </div>
+        <div class="text-center leading-tight mt-8 lg:mt-0">
+            <span class="text-3xl lg:text-4xl font-semibold block">{{../pagination.total}}</span>
+            <span>{{t "Articles"}}</span>
+        </div>
+    </div>
+
+    {{#if feature_image}}
+        {{!-- Featured Media - partials/components/media-cover.hbs --}}
+        {{> "components/media-cover" background=feature_image alt_title=name}}
+        <div class="inset-0 absolute z-2 bg-cover-gradient"></div>
+    {{else}}
+        <img class="image-inset z-2" src="{{asset "images/tag-bg.svg"}}" alt="">
+    {{/if}}
+</div>
+
+{{/tag}}
+
+{{!-- lates post - partials/loop.hbs --}}
+{{> "loop"}}
