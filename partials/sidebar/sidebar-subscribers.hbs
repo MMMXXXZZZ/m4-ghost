@@ -28,12 +28,6 @@
                         }
                     });
                 </script>
-            <span id="in-english-label-wrapper" style="display:none;">
-                <label>
-                    <input type="checkbox" name="in-english" id="in-english-checkbox" data-members-label value="english">
-                    Receive posts in English only
-                </label>
-            </span>
             <button id="sidebar-subscribe-btn" class="button bg-white text-primary w-full border-none font-medium" type="submit" {{#if @custom.sidebar_newsletter_background}} style="color:{{ @custom.sidebar_newsletter_background}}"{{/if}}>
                 <span>{{t "Subscribe"}}</span>
                 {{!-- {{> "icons/loader"}} --}}

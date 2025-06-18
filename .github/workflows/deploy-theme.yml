@@ -6,6 +6,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 5  # Cancels the job after 3 minutes
     steps:
       - uses: actions/checkout@v4
       - name: Deploy Ghost Theme
