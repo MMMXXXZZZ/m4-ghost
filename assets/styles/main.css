@@ -1151,6 +1151,8 @@ table th {
   width: 100vw;
 }
 .is-single-post .kg-width-full .kg-image {
+  min-width: 100vw;
+  width: 100vw;
   max-width: 100vw;
 }
 .is-single-post .kg-header-card {
@@ -2451,10 +2453,10 @@ a > code[class*="language-"] {
   color: rgba(191, 50, 168, var(--tw-text-opacity));
 }
 .text-opacity-60 {
-  --tw-text-opacity: 0.6;
+  --tw-bg-opacity: 0.6;
 }
 .text-opacity-80 {
-  --tw-text-opacity: 0.8;
+  --tw-bg-opacity: 0.8;
 }
 .opacity-20 {
   opacity: 0.2;
@@ -2791,4 +2793,12 @@ a > code[class*="language-"] {
 /* Comments box styles from source theme */
 .gh-comments {
     margin-top: 48px;
+}
+
+/* Custom styles for Ghost signup card with accent style */
+.kg-signup-card.kg-style-accent {
+    min-width: 100vw;
+    padding-left: 100px;
+    justify-content: center;
+    display: flex;
 }
