@@ -68,7 +68,7 @@
             </li>
 
             {{!-- This is a language drop-down --}}
-            <li class="header-dropdown-menu dropdown is-right is-hoverable h-16 hidden lg:flex items-center cursor-pointer">
+            <li class="header-dropdown-menu dropdown is-right is-hoverable h-16 hidden lg:flex items-center cursor-pointer px-2">
                 <span class="hla">{{> "icons/lang"}}</span>
                 <div class="dropdown-menu is-right whitespace-normal">
                     <div class="dropdown-content p-5 text-white">
@@ -80,7 +80,7 @@
 
             {{!-- Member Login --}}
             {{#if @custom.disable_member_subscriptions}}
-            <li class="header-dropdown-menu dropdown is-right is-hoverable h-16 hidden lg:flex items-center cursor-pointer">
+            <li class="header-dropdown-menu dropdown is-right is-hoverable h-16 hidden lg:flex items-center cursor-pointer px-2">
                 <span class="hla"><svg class="icon is-large"><use xlink:href="#icon-user"></use></svg></span>
 
                 <div class="dropdown-menu is-right whitespace-normal">
