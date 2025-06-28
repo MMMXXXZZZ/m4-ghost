@@ -2107,7 +2107,7 @@ a > code[class*="language-"] {
 }
 .bg-dark {
   --tw-bg-opacity: 1;
-  background-color: rgba(17, 15, 22, var(--tw-bg-opacity));
+  background-color: rgba(15, 15, 15, var(--tw-bg-opacity));
 }
 .bg-white {
   --tw-bg-opacity: 1;
