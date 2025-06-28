@@ -1154,12 +1154,14 @@ table th {
   min-width: 100vw;
   width: 100vw;
   max-width: 100vw;
+  flex-direction: row;
 }
 .is-single-post .kg-header-card {
   width: 100vw;
 }
 .is-single-post .kg-width-wide .kg-image {
   max-width: 1000px;
+  flex-direction: row;
 }
 @media only screen and (max-width: 47.9375rem) {
   .kg-width-wide .kg-image {
