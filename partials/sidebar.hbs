@@ -1,24 +1,28 @@
 <aside class="sidebar flex-none flex-grow-0 relative pt-14 pb-8 lg:w-80 lg:pt-0 lg:ml-16">
-    <div class="mb-10">
-      <h3 class="uppercase mb-5 border-b pb-2 font-bold text-sm">Artículos más leídos</h3>
-      <div id="most-read-list"></div>
-    </div>
-    <script>
-      fetch('/content/data/most-read.json')
-        .then(res => res.json())
-        .then(articles => {
-          const container = document.getElementById('most-read-list');
-          container.innerHTML = articles.map((article, idx) => `
-            <div class="sidebar-post${idx < articles.length - 1 ? ' mb-4' : ''}">
-              <a href="${article.url}" class="flex items-center">
-                <div class="py-2">
-                  <h3 class="text-base text-title lineClamp-2 leading-tight hover:text-primary">${article.label}</h3>
-                </div>
-              </a>
+<div class="mb-10">
+  <h3 class="uppercase mb-5 border-b pb-2 font-bold text-sm">Artículos más leídos</h3>
+  <div id="most-read-list"></div>
+</div>
+<script>
+  fetch('/content/data/most-read.json')
+    .then(res => res.json())
+    .then(articles => {
+      const container = document.getElementById('most-read-list');
+      container.innerHTML = articles.map((article, idx) => `
+        <div class="sidebar-post${idx < articles.length - 1 ? ' mb-4' : ''}">
+          <a href="${article.url}" class="flex items-center">
+            <figure class="h-20 w-28 relative mr-4 flex-none bg-gray-100 rounded overflow-hidden img-hover">
+                <img class="image-inset absolute img-hover-here blur-up lazyloaded" src="${article.feature_image}" data-src="${article.feature_image}" width="112" height="80" alt="${article.title}">
+            </figure>
+            <div class="py-2">
+              <h3 class="text-base text-title lineClamp-2 leading-tight hover:text-primary">${article.title}</h3>
+              <div class="text-sm text-gray-500 mt-1"><time class="datetime" datetime="${article.published_at}">${new Date(article.published_at).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}</time></div>
             </div>
-          `).join('');
-        });
-    </script>
+          </a>
+        </div>
+      `).join('');
+    });
+</script>
     {{#is "post"}}
         {{#post}}
             {{#has tag="in-english"}}
