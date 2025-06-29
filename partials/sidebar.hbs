@@ -28,4 +28,23 @@
 
     {{!-- Tag Cloud - partials/sidebar/sidebar-tag-cloud.hbs --}}
     <div class="sticky top-24">{{> "sidebar/sidebar-tag-cloud"}}</div>
+
+    <div class="sidebar-widget mb-8 text-center shadow-lg p-6 bg-primary rounded-2xl" id="most-read">
+      <h3 class="text-lg font-semibold mb-4">Artículos más leídos</h3>
+      <ul id="most-read-list" class="list-none p-0 m-0"></ul>
+    </div>
+    <script>
+      fetch('/content/data/most-read.json')
+        .then(res => res.json())
+        .then(articles => {
+          const container = document.getElementById('most-read-list');
+          articles.forEach(article => {
+            container.innerHTML += `
+              <li class='mb-2'>
+                <a href="${article.url}" class="text-white hover:underline">${article.label}</a>
+              </li>
+            `;
+          });
+        });
+    </script>
 </aside>
