@@ -1,15 +1,32 @@
 <aside class="sidebar flex-none flex-grow-0 relative pt-14 pb-8 lg:w-80 lg:pt-0 lg:ml-16">
+{{! Widget Most Read - partials/sidebar/sidebar-most-read.hbs }}
+<style>
+    #most-read-list {
+        max-height: 0;
+        opacity: 0;
+        overflow: hidden;
+        transition: max-height 0.5s ease-out, opacity 0.5s ease-out;
+    }
+</style>
 <div class="mb-10">
   <h3 class="uppercase mb-5 border-b pb-2 font-bold text-sm">Artículos más leídos</h3>
   <div id="most-read-list"></div>
+  <div id="most-read-timestamp" class="text-xs text-gray-500 mt-2 text-right"></div>
 </div>
 <script>
   fetch('/content/data/most-read.json')
     .then(res => res.json())
-    .then(articles => {
+    .then(data => {
+      if (!data || !data.articles || data.articles.length === 0) {
+        return; // Don't do anything if there's no data
+      }
+
       const container = document.getElementById('most-read-list');
-      container.innerHTML = articles.map((article, idx) => `
-        <div class="sidebar-post${idx < articles.length - 1 ? ' mb-4' : ''}">
+      const timestampContainer = document.getElementById('most-read-timestamp');
+      
+      // Build the HTML for the articles
+      container.innerHTML = data.articles.map((article, idx) => `
+        <div class="sidebar-post${idx < data.articles.length - 1 ? ' mb-4' : ''}">
           <a href="${article.url}" class="flex items-center">
             ${article.feature_image ? `
             <figure class="h-20 w-28 relative mr-4 flex-none bg-gray-100 rounded overflow-hidden img-hover">
@@ -23,7 +40,22 @@
           </a>
         </div>
       `).join('');
-    });
+
+      // Display the timestamp
+      if (data.last_updated) {
+        const lastUpdated = new Date(data.last_updated);
+        timestampContainer.textContent = `Actualizado: ${lastUpdated.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })} ${lastUpdated.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`;
+      }
+
+      // Trigger the animation
+      // We use a small timeout to allow the browser to apply the initial state before transitioning
+      setTimeout(() => {
+        container.style.maxHeight = container.scrollHeight + "px";
+        container.style.opacity = 1;
+      }, 10);
+
+    })
+    .catch(error => console.error('Error fetching most-read articles:', error));
 </script>
     {{#is "post"}}
         {{#post}}
