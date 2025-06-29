@@ -11,9 +11,11 @@
       container.innerHTML = articles.map((article, idx) => `
         <div class="sidebar-post${idx < articles.length - 1 ? ' mb-4' : ''}">
           <a href="${article.url}" class="flex items-center">
+            ${article.feature_image ? `
             <figure class="h-20 w-28 relative mr-4 flex-none bg-gray-100 rounded overflow-hidden img-hover">
                 <img class="image-inset absolute img-hover-here blur-up lazyloaded" src="${article.feature_image}" data-src="${article.feature_image}" width="112" height="80" alt="${article.title}">
             </figure>
+            ` : ''}
             <div class="py-2">
               <h3 class="text-base text-title lineClamp-2 leading-tight hover:text-primary">${article.title}</h3>
               <div class="text-sm text-gray-500 mt-1"><time class="datetime" datetime="${article.published_at}">${new Date(article.published_at).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}</time></div>
