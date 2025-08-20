@@ -5,8 +5,8 @@
  */
 @charset "UTF-8";
 @font-face {
-  font-family: 'Space Grotesk';
-  src: url('../fonts/SpaceGrotesk-VariableFont_wght.ttf') format('truetype');
+  font-family: "Space Grotesk";
+  src: url("../fonts/SpaceGrotesk-VariableFont_wght.ttf") format("truetype");
   font-weight: 100 900;
   font-display: swap;
 }
@@ -37,8 +37,14 @@
   --gray-800: #424242;
   --gray-900: #111827;
   --dropdown-bg: #000;
-  --gh-font-body: 'Space Grotesk', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
-  --gh-font-heading: 'Space Grotesk', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  --gh-font-body: "Space Grotesk", ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans",
+    sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
+    "Noto Color Emoji";
+  --gh-font-heading: "Space Grotesk", ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans",
+    sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
+    "Noto Color Emoji";
 }
 html.dark {
   --bg: #222;
@@ -247,10 +253,10 @@ ul {
   list-style: none;
 }
 html {
-  font-family: var(--gh-font-body), Public Sans,
-    ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif,
-    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  font-family: var(--gh-font-body), Public Sans, ui-sans-serif, system-ui,
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
+    "Segoe UI Symbol", "Noto Color Emoji";
   line-height: 1.5;
 }
 body {
@@ -2781,24 +2787,23 @@ a > code[class*="language-"] {
   }
 }
 @media (min-width: 75rem) {
- 
   .xl\:text-2xl {
     font-size: 1.5rem;
   }
- 
+
   .xl\:text-5xl {
     font-size: 3rem;
   }
 }
 /* Comments box styles from source theme */
 .gh-comments {
-    margin-top: 48px;
+  margin-top: 48px;
 }
 
 /* Custom styles for Ghost signup card with accent style */
 .kg-signup-card.kg-style-accent {
-    min-width: 100vw;
-    padding-left: 100px;
-    justify-content: center;
-    display: flex;
+  min-width: 100vw;
+  padding-left: 100px;
+  justify-content: center;
+  display: flex;
 }

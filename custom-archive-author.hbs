@@ -11,7 +11,7 @@
 <div class="archive-author-inner container mx-auto my-10">
     <div class="grid gap-12 max-w-5xl mx-auto md:grid-cols-2 lg:grid-cols-3">
 
-        {{#get "authors" limit="all"}}{{#foreach authors}}
+    {{#get "authors" limit="30"}}{{#foreach authors}}
 
         <article class="author-card relative flex flex-col">
             <a href="{{url}}" class="author-card-avatar relative bg-gray-100 h-72">
