@@ -10,6 +10,7 @@ const CHECK_INTERVAL = 30000; // 30 seconds
 
 let checkInterval = null;
 let twitchIframe = null;
+let isStreamLive = false; // Track stream status
 
 // CORS proxies with fallback
 const CORS_PROXIES = [
@@ -19,6 +20,16 @@ const CORS_PROXIES = [
 ];
 
 async function checkStreamStatus() {
+  // Stop checking if stream is already live
+  if (isStreamLive) {
+    console.log('🛑 Stream already live, stopping further checks');
+    if (checkInterval) {
+      clearInterval(checkInterval);
+      checkInterval = null;
+    }
+    return;
+  }
+
   console.log(`🔍 Checking stream status for ${TWITCH_CHANNEL}...`);
   
   for (let i = 0; i < CORS_PROXIES.length; i++) {
@@ -49,11 +60,18 @@ async function checkStreamStatus() {
                      content.includes('broadcasting');
       
       if (isLive) {
-        console.log(`✅ ${TWITCH_CHANNEL} is LIVE! Creating iframe...`);
+        console.log(`✅ ${TWITCH_CHANNEL} is LIVE! Creating iframe and stopping checks...`);
         showStream();
+        
+        // Mark as live and stop checking
+        isStreamLive = true;
+        if (checkInterval) {
+          clearInterval(checkInterval);
+          checkInterval = null;
+          console.log('🎯 Monitoring stopped - stream is live. Iframe will persist until page reload.');
+        }
       } else {
-        console.log(`❌ ${TWITCH_CHANNEL} is offline. Removing iframe...`);
-        hideStream();
+        console.log(`❌ ${TWITCH_CHANNEL} is offline. Will check again in ${CHECK_INTERVAL/1000} seconds...`);
       }
       
       return; // Success, exit loop
@@ -62,8 +80,7 @@ async function checkStreamStatus() {
       console.warn(`⚠️ Proxy ${i + 1} failed: ${error.message}`);
       
       if (i === CORS_PROXIES.length - 1) {
-        console.error('❌ All proxies failed, assuming offline');
-        hideStream();
+        console.error('❌ All proxies failed, will retry in next interval');
       }
     }
   }
@@ -78,54 +95,41 @@ function showStream() {
     
     // Create iframe element
     twitchIframe = document.createElement('iframe');
-    twitchIframe.width = '854';
-    twitchIframe.height = '480';
+    twitchIframe.width = '1280';
+    twitchIframe.height = '720';
     twitchIframe.frameBorder = '0';
     twitchIframe.scrolling = 'no';
     twitchIframe.allowFullscreen = true;
     
     // Set the src with proper parent domain
     const hostname = window.location.hostname;
-    twitchIframe.src = `https://player.twitch.tv/?channel=${TWITCH_CHANNEL}&parent=${hostname}&autoplay=false&muted=true`;
+    twitchIframe.src = `https://player.twitch.tv/?channel=${TWITCH_CHANNEL}&parent=${hostname}&autoplay=true&muted=false`;
     
     // Add responsive styling
     twitchIframe.style.width = '100%';
-    twitchIframe.style.maxWidth = '854px';
-    twitchIframe.style.height = '480px';
-    twitchIframe.style.borderRadius = '8px';
+    twitchIframe.style.maxWidth = '1280px';
+    twitchIframe.style.height = '720px';
+    twitchIframe.style.borderRadius = '10px';
     
     // Append to container
     container.appendChild(twitchIframe);
     
-    console.log(`🎮 Iframe created with src: ${twitchIframe.src}`);
-  }
-}
-
-function hideStream() {
-  // Remove iframe if it exists
-  if (twitchIframe) {
-    console.log('🗑️ Removing Twitch iframe...');
-    
-    // Remove from DOM
-    twitchIframe.remove();
-    
-    // Clear reference
-    twitchIframe = null;
-    
-    console.log('✅ Iframe removed from DOM');
+    console.log(`🎮 Iframe created and will persist until page reload`);
   }
 }
 
 // Start monitoring immediately
 async function startMonitoring() {
   console.log('🚀 Starting Twitch stream monitoring...');
-  console.log(`⏱️ Will check every ${CHECK_INTERVAL/1000} seconds`);
+  console.log(`⏱️ Will check every ${CHECK_INTERVAL/1000} seconds until stream is found live`);
   
   // Immediate check
   await checkStreamStatus();
   
-  // Set up interval
-  checkInterval = setInterval(checkStreamStatus, CHECK_INTERVAL);
+  // Set up interval only if stream is not live
+  if (!isStreamLive) {
+    checkInterval = setInterval(checkStreamStatus, CHECK_INTERVAL);
+  }
 }
 
 // Initialize based on document state
@@ -140,7 +144,7 @@ if (document.readyState === 'loading') {
 window.addEventListener('beforeunload', () => {
   if (checkInterval) {
     clearInterval(checkInterval);
-    console.log('🛑 Monitoring stopped');
+    console.log('🛑 Page unloading - monitoring stopped');
   }
 });
 
@@ -148,13 +152,13 @@ window.addEventListener('beforeunload', () => {
 const style = document.createElement('style');
 style.textContent = `
   #twitch-container {
-    max-width: 854px;
+    max-width: 1280px;
     margin: 20px auto;
     text-align: center;
   }
   
   #twitch-container iframe {
-    border: 3px solid #9146ff;
+    border: 0px solid #000000;
   }
   
   @media (max-width: 900px) {
