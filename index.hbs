@@ -36,9 +36,9 @@ async function checkStreamStatus() {
     try {
       const proxyUrl = CORS_PROXIES[i];
       
-      // Try both TwitchTracker and direct Twitch page
+      // Try SullyGnome first (most reliable for small channels), then direct Twitch
       const urls = [
-        `https://twitchtracker.com/${TWITCH_CHANNEL}`,
+        `https://sullygnome.com/channel/${TWITCH_CHANNEL}`,
         `https://www.twitch.tv/${TWITCH_CHANNEL}`
       ];
       
@@ -46,7 +46,7 @@ async function checkStreamStatus() {
         const targetUrl = urls[urlIndex];
         const requestUrl = proxyUrl + encodeURIComponent(targetUrl);
         
-        console.log(`📡 Trying proxy ${i + 1} with ${urlIndex === 0 ? 'TwitchTracker' : 'Twitch'}: ${targetUrl}`);
+        console.log(`📡 Trying proxy ${i + 1} with ${urlIndex === 0 ? 'SullyGnome' : 'Twitch'}: ${targetUrl}`);
         
         try {
           const response = await fetch(requestUrl, {
@@ -64,26 +64,38 @@ async function checkStreamStatus() {
           let isLive = false;
           
           if (urlIndex === 0) {
-            // TwitchTracker check
-            isLive = content.includes('LIVE</span>') || 
-                     content.includes('stream-status-live') ||
-                     content.includes('Live for');
+            // SullyGnome check - look for "Online now" text
+            isLive = content.includes('Online now') || 
+                     content.includes('Last online: <a href="https://www.twitch.tv/' + TWITCH_CHANNEL + '">Online now</a>') ||
+                     content.includes('href="https://www.twitch.tv/' + TWITCH_CHANNEL + '">Online now</a>') ||
+                     content.includes('>Online now<') ||
+                     // Alternative patterns for live status
+                     content.includes('Live for ') ||
+                     content.includes('streaming for ');
+            
+            console.log(`📊 SullyGnome content check - contains "Online now": ${content.includes('Online now')}`);
+            console.log(`📊 SullyGnome content check - contains live patterns: ${content.includes('Live for ') || content.includes('streaming for ')}`);
+            
           } else {
             // Direct Twitch page check - look for absence of "Offline" text
             const isOffline = content.includes('Offline') || 
                               content.includes('offline') ||
                               content.includes('Check out this') ||
-                              content.includes('from ') && content.includes('ago.');
+                              (content.includes('from ') && content.includes('ago.'));
             
             // Also check for live indicators
             const hasLiveIndicators = content.includes('isLiveBroadcast') ||
                                       content.includes('"isLive":true') ||
-                                      content.includes('stream-type-live');
+                                      content.includes('stream-type-live') ||
+                                      content.includes('"type":"live"');
             
             isLive = hasLiveIndicators && !isOffline;
+            
+            console.log(`📊 Twitch page - offline indicators: ${isOffline}`);
+            console.log(`📊 Twitch page - live indicators: ${hasLiveIndicators}`);
           }
           
-          console.log(`📊 Source: ${urlIndex === 0 ? 'TwitchTracker' : 'Twitch'}, Live: ${isLive}`);
+          console.log(`📊 Source: ${urlIndex === 0 ? 'SullyGnome' : 'Twitch'}, Live: ${isLive}`);
           
           if (isLive) {
             console.log(`✅ ${TWITCH_CHANNEL} is LIVE! Creating iframe and stopping checks...`);
@@ -98,18 +110,23 @@ async function checkStreamStatus() {
             }
             return; // Exit all loops
           } else {
-            console.log(`❌ ${TWITCH_CHANNEL} is offline on ${urlIndex === 0 ? 'TwitchTracker' : 'Twitch'}`);
+            console.log(`❌ ${TWITCH_CHANNEL} is offline on ${urlIndex === 0 ? 'SullyGnome' : 'Twitch'}`);
           }
           
-          // If we got a successful response, break from URL loop
-          break;
+          // If SullyGnome worked (got response), don't try Twitch - prioritize SullyGnome result
+          if (urlIndex === 0) {
+            break;
+          }
           
         } catch (urlError) {
-          console.warn(`⚠️ Failed to check ${urlIndex === 0 ? 'TwitchTracker' : 'Twitch'}: ${urlError.message}`);
+          console.warn(`⚠️ Failed to check ${urlIndex === 0 ? 'SullyGnome' : 'Twitch'}: ${urlError.message}`);
           
-          // If this was the last URL for this proxy, we'll try the next proxy
-          if (urlIndex === urls.length - 1) {
-            throw new Error('All URLs failed for this proxy');
+          // If SullyGnome failed, try Twitch as fallback
+          if (urlIndex === 0) {
+            console.log('📡 SullyGnome failed, trying Twitch as fallback...');
+            continue;
+          } else {
+            throw new Error('Both SullyGnome and Twitch failed for this proxy');
           }
         }
       }
@@ -149,8 +166,8 @@ function showStream() {
     // Add responsive styling
     twitchIframe.style.width = '100%';
     twitchIframe.style.maxWidth = '1280px';
-    twitchIframe.style.height = '720px';
-    twitchIframe.style.borderRadius = '10px';
+    twitchIframe.style.height = '710px';
+    twitchIframe.style.borderRadius = '12px';
     
     // Append to container
     container.appendChild(twitchIframe);
@@ -164,6 +181,7 @@ function showStream() {
 async function startMonitoring() {
   console.log('🚀 Starting Twitch stream monitoring...');
   console.log(`⏱️ Will check every ${CHECK_INTERVAL/1000} seconds until stream is found live`);
+  console.log(`📊 Using SullyGnome as primary source (better for small channels)`);
   
   // Immediate check
   await checkStreamStatus();
