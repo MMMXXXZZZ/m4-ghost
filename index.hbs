@@ -2,6 +2,89 @@
 {{!< default}}
 
 {{#contentFor "M4_class_body"}}is-home{{/contentFor}}
+<div id="twitch-container">
+  <div id="twitch-embed" style="display: none;">
+    <iframe
+      id="twitch-iframe"
+      src=""
+      height="480"
+      width="854"
+      allowfullscreen="true"
+      scrolling="no"
+      frameborder="0">
+    </iframe>
+  </div>
+  <div id="offline-message">
+    <p>Stream is currently offline. Checking for live status...</p>
+  </div>
+</div>
+
+<script>
+// Configuration
+const TWITCH_CHANNEL = 'mmmaxxx__'; // Replace with your channel
+const CHECK_INTERVAL = 30000; // Check every 45 seconds
+
+let checkInterval = null;
+
+// Check if channel is live using a proxy service
+async function checkStreamStatus() {
+  try {
+    // Using a CORS proxy to check Twitch page content
+    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://www.twitch.tv/${TWITCH_CHANNEL}`)}`;
+    const response = await fetch(proxyUrl);
+    const data = await response.json();
+    
+    // Check if the page content indicates a live stream
+    if (data.contents.includes('isLiveBroadcast')) {
+      showStream();
+      console.log(`${TWITCH_CHANNEL} is live!`);
+    } else {
+      hideStream();
+      console.log(`${TWITCH_CHANNEL} is offline`);
+    }
+  } catch (error) {
+    console.error('Error checking stream status:', error);
+    hideStream();
+  }
+}
+
+// Same show/hide functions as Method 1
+function showStream() {
+  const twitchEmbed = document.getElementById('twitch-embed');
+  const offlineMessage = document.getElementById('offline-message');
+  const twitchIframe = document.getElementById('twitch-iframe');
+  
+  if (!twitchIframe.src) {
+    twitchIframe.src = `https://player.twitch.tv/?channel=${TWITCH_CHANNEL}&parent=${window.location.hostname}&autoplay=true&muted=true`;
+  }
+  
+  twitchEmbed.style.display = 'block';
+  offlineMessage.style.display = 'none';
+}
+
+function hideStream() {
+  const twitchEmbed = document.getElementById('twitch-embed');
+  const offlineMessage = document.getElementById('offline-message');
+  
+  twitchEmbed.style.display = 'none';
+  offlineMessage.style.display = 'block';
+}
+
+// Start monitoring
+async function startMonitoring() {
+  console.log('Starting Twitch stream monitoring...');
+  await checkStreamStatus();
+  checkInterval = setInterval(checkStreamStatus, CHECK_INTERVAL);
+}
+
+document.addEventListener('DOMContentLoaded', startMonitoring);
+
+window.addEventListener('beforeunload', () => {
+  if (checkInterval) {
+    clearInterval(checkInterval);
+  }
+});
+</script>
 
 {{#is "paged"}}
     {{!-- lates post - partials/loop.hbs --}}
