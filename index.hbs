@@ -15,47 +15,93 @@
     </iframe>
   </div>
   <div id="offline-message">
-    <p>Stream is currently offline. Checking for live status...</p>
+    <p>Checking stream status...</p>
   </div>
 </div>
 
 <script>
-// Configuration
-const TWITCH_CHANNEL = 'mmmaxxx__'; // Replace with your channel
-const CHECK_INTERVAL = 30000; // Check every 45 seconds
+const TWITCH_CHANNEL = 'mmmaxxx__'; // Your channel name
+const CHECK_INTERVAL = 30000; // Check every 30 seconds
 
 let checkInterval = null;
+let currentProxyIndex = 0;
 
-// Check if channel is live using a proxy service
+// List of CORS proxies to try (in order of reliability)
+const CORS_PROXIES = [
+  'https://cors.x2u.in/proxy?email=anonymous&apiKey=anonymous&url=',
+  'https://codetabs.com/v1/proxy?quest=',
+  'https://cors-anywhere.herokuapp.com/',
+  'https://api.allorigins.win/get?url='
+];
+
+// Check stream status using multiple proxy fallbacks
 async function checkStreamStatus() {
-  try {
-    // Using a CORS proxy to check Twitch page content
-    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://www.twitch.tv/${TWITCH_CHANNEL}`)}`;
-    const response = await fetch(proxyUrl);
-    const data = await response.json();
-    
-    // Check if the page content indicates a live stream
-    if (data.contents.includes('isLiveBroadcast')) {
-      showStream();
-      console.log(`${TWITCH_CHANNEL} is live!`);
-    } else {
-      hideStream();
-      console.log(`${TWITCH_CHANNEL} is offline`);
+  console.log(`Checking stream status for ${TWITCH_CHANNEL}...`);
+  
+  for (let i = 0; i < CORS_PROXIES.length; i++) {
+    try {
+      const proxyUrl = CORS_PROXIES[i];
+      const targetUrl = `https://twitchtracker.com/${TWITCH_CHANNEL}`;
+      const requestUrl = proxyUrl + encodeURIComponent(targetUrl);
+      
+      console.log(`Trying proxy ${i + 1}: ${proxyUrl}`);
+      
+      const response = await fetch(requestUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'text/html,application/json',
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
+      let content;
+      if (proxyUrl.includes('allorigins')) {
+        const data = await response.json();
+        content = data.contents;
+      } else if (proxyUrl.includes('codetabs')) {
+        content = await response.text();
+      } else {
+        content = await response.text();
+      }
+      
+      // Check for live indicators
+      const isLive = content.includes('LIVE</span>') || 
+                     content.includes('isLiveBroadcast') || 
+                     content.includes('stream-status-live') ||
+                     content.includes('"live":true');
+      
+      if (isLive) {
+        showStream();
+        console.log(`✅ ${TWITCH_CHANNEL} is LIVE!`);
+      } else {
+        hideStream();
+        console.log(`❌ ${TWITCH_CHANNEL} is offline`);
+      }
+      
+      return; // Success, exit the loop
+      
+    } catch (error) {
+      console.warn(`Proxy ${i + 1} failed:`, error.message);
+      
+      if (i === CORS_PROXIES.length - 1) {
+        // All proxies failed
+        console.error('All proxy methods failed, assuming offline');
+        hideStream();
+      }
     }
-  } catch (error) {
-    console.error('Error checking stream status:', error);
-    hideStream();
   }
 }
 
-// Same show/hide functions as Method 1
 function showStream() {
   const twitchEmbed = document.getElementById('twitch-embed');
   const offlineMessage = document.getElementById('offline-message');
   const twitchIframe = document.getElementById('twitch-iframe');
   
-  if (!twitchIframe.src) {
-    twitchIframe.src = `https://player.twitch.tv/?channel=${TWITCH_CHANNEL}&parent=${window.location.hostname}&autoplay=true&muted=true`;
+  if (!twitchIframe.src || twitchIframe.src === '') {
+    twitchIframe.src = `https://player.twitch.tv/?channel=${TWITCH_CHANNEL}&parent=${window.location.hostname}&autoplay=false&muted=true`;
   }
   
   twitchEmbed.style.display = 'block';
@@ -68,23 +114,73 @@ function hideStream() {
   
   twitchEmbed.style.display = 'none';
   offlineMessage.style.display = 'block';
+  offlineMessage.innerHTML = '<p>Stream is currently offline. Next check in 30 seconds...</p>';
 }
 
-// Start monitoring
+// Start monitoring immediately and then set interval
 async function startMonitoring() {
-  console.log('Starting Twitch stream monitoring...');
+  console.log('🚀 Starting Twitch stream monitoring...');
+  
+  // IMMEDIATE check on page load
   await checkStreamStatus();
+  
+  // Set up interval for continuous checking
   checkInterval = setInterval(checkStreamStatus, CHECK_INTERVAL);
+  console.log(`⏱️ Set up checking every ${CHECK_INTERVAL/1000} seconds`);
 }
 
-document.addEventListener('DOMContentLoaded', startMonitoring);
+// Initialize immediately when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', startMonitoring);
+} else {
+  // Document already loaded
+  startMonitoring();
+}
 
+// Clean up on page unload
 window.addEventListener('beforeunload', () => {
   if (checkInterval) {
     clearInterval(checkInterval);
   }
 });
 </script>
+
+<style>
+#twitch-container {
+  max-width: 854px;
+  margin: 20px auto;
+  text-align: center;
+}
+
+#offline-message {
+  padding: 40px 20px;
+  background: linear-gradient(135deg, #9146ff, #6441a4);
+  color: white;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+#twitch-iframe {
+  width: 100%;
+  max-width: 854px;
+  height: 480px;
+  border-radius: 8px;
+  border: 3px solid #9146ff;
+}
+
+@media (max-width: 900px) {
+  #twitch-iframe {
+    height: 360px;
+  }
+}
+
+@media (max-width: 600px) {
+  #twitch-iframe {
+    height: 240px;
+  }
+}
+</style>
 
 {{#is "paged"}}
     {{!-- lates post - partials/loop.hbs --}}
