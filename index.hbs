@@ -2,41 +2,24 @@
 {{!< default}}
 
 {{#contentFor "M4_class_body"}}is-home{{/contentFor}}
-<div id="twitch-container">
-  <div id="twitch-embed" style="display: none;">
-    <iframe
-      id="twitch-iframe"
-      src=""
-      height="480"
-      width="854"
-      allowfullscreen="true"
-      scrolling="no"
-      frameborder="0">
-    </iframe>
-  </div>
-  <div id="offline-message">
-    <p>Checking stream status...</p>
-  </div>
-</div>
+<div id="twitch-container"></div>
 
 <script>
-const TWITCH_CHANNEL = 'mmmaxxx__'; // Your channel name
-const CHECK_INTERVAL = 30000; // Check every 30 seconds
+const TWITCH_CHANNEL = 'mmmaxxx__';
+const CHECK_INTERVAL = 30000; // 30 seconds
 
 let checkInterval = null;
-let currentProxyIndex = 0;
+let twitchIframe = null;
 
-// List of CORS proxies to try (in order of reliability)
+// CORS proxies with fallback
 const CORS_PROXIES = [
+  'https://corsproxy.io/?',
   'https://cors.x2u.in/proxy?email=anonymous&apiKey=anonymous&url=',
-  'https://codetabs.com/v1/proxy?quest=',
-  'https://cors-anywhere.herokuapp.com/',
-  'https://api.allorigins.win/get?url='
+  'https://api.codetabs.com/v1/proxy?quest='
 ];
 
-// Check stream status using multiple proxy fallbacks
 async function checkStreamStatus() {
-  console.log(`Checking stream status for ${TWITCH_CHANNEL}...`);
+  console.log(`🔍 Checking stream status for ${TWITCH_CHANNEL}...`);
   
   for (let i = 0; i < CORS_PROXIES.length; i++) {
     try {
@@ -44,12 +27,12 @@ async function checkStreamStatus() {
       const targetUrl = `https://twitchtracker.com/${TWITCH_CHANNEL}`;
       const requestUrl = proxyUrl + encodeURIComponent(targetUrl);
       
-      console.log(`Trying proxy ${i + 1}: ${proxyUrl}`);
+      console.log(`📡 Trying proxy ${i + 1}...`);
       
       const response = await fetch(requestUrl, {
         method: 'GET',
         headers: {
-          'Accept': 'text/html,application/json',
+          'Accept': 'text/html',
         }
       });
       
@@ -57,38 +40,29 @@ async function checkStreamStatus() {
         throw new Error(`HTTP ${response.status}`);
       }
       
-      let content;
-      if (proxyUrl.includes('allorigins')) {
-        const data = await response.json();
-        content = data.contents;
-      } else if (proxyUrl.includes('codetabs')) {
-        content = await response.text();
-      } else {
-        content = await response.text();
-      }
+      const content = await response.text();
       
-      // Check for live indicators
+      // Check for live indicators in the HTML
       const isLive = content.includes('LIVE</span>') || 
-                     content.includes('isLiveBroadcast') || 
-                     content.includes('stream-status-live') ||
-                     content.includes('"live":true');
+                     content.includes('stream-status-live') || 
+                     content.includes('Live for') ||
+                     content.includes('broadcasting');
       
       if (isLive) {
+        console.log(`✅ ${TWITCH_CHANNEL} is LIVE! Creating iframe...`);
         showStream();
-        console.log(`✅ ${TWITCH_CHANNEL} is LIVE!`);
       } else {
+        console.log(`❌ ${TWITCH_CHANNEL} is offline. Removing iframe...`);
         hideStream();
-        console.log(`❌ ${TWITCH_CHANNEL} is offline`);
       }
       
-      return; // Success, exit the loop
+      return; // Success, exit loop
       
     } catch (error) {
-      console.warn(`Proxy ${i + 1} failed:`, error.message);
+      console.warn(`⚠️ Proxy ${i + 1} failed: ${error.message}`);
       
       if (i === CORS_PROXIES.length - 1) {
-        // All proxies failed
-        console.error('All proxy methods failed, assuming offline');
+        console.error('❌ All proxies failed, assuming offline');
         hideStream();
       }
     }
@@ -96,91 +70,107 @@ async function checkStreamStatus() {
 }
 
 function showStream() {
-  const twitchEmbed = document.getElementById('twitch-embed');
-  const offlineMessage = document.getElementById('offline-message');
-  const twitchIframe = document.getElementById('twitch-iframe');
-  
-  if (!twitchIframe.src || twitchIframe.src === '') {
-    twitchIframe.src = `https://player.twitch.tv/?channel=${TWITCH_CHANNEL}&parent=${window.location.hostname}&autoplay=false&muted=true`;
+  // Create iframe only if it doesn't exist
+  if (!twitchIframe) {
+    console.log('🎬 Creating Twitch iframe...');
+    
+    const container = document.getElementById('twitch-container');
+    
+    // Create iframe element
+    twitchIframe = document.createElement('iframe');
+    twitchIframe.width = '854';
+    twitchIframe.height = '480';
+    twitchIframe.frameBorder = '0';
+    twitchIframe.scrolling = 'no';
+    twitchIframe.allowFullscreen = true;
+    
+    // Set the src with proper parent domain
+    const hostname = window.location.hostname;
+    twitchIframe.src = `https://player.twitch.tv/?channel=${TWITCH_CHANNEL}&parent=${hostname}&autoplay=false&muted=true`;
+    
+    // Add responsive styling
+    twitchIframe.style.width = '100%';
+    twitchIframe.style.maxWidth = '854px';
+    twitchIframe.style.height = '480px';
+    twitchIframe.style.borderRadius = '8px';
+    
+    // Append to container
+    container.appendChild(twitchIframe);
+    
+    console.log(`🎮 Iframe created with src: ${twitchIframe.src}`);
   }
-  
-  twitchEmbed.style.display = 'block';
-  offlineMessage.style.display = 'none';
 }
 
 function hideStream() {
-  const twitchEmbed = document.getElementById('twitch-embed');
-  const offlineMessage = document.getElementById('offline-message');
-  
-  twitchEmbed.style.display = 'none';
-  offlineMessage.style.display = 'block';
-  offlineMessage.innerHTML = '<p>Stream is currently offline. Next check in 30 seconds...</p>';
+  // Remove iframe if it exists
+  if (twitchIframe) {
+    console.log('🗑️ Removing Twitch iframe...');
+    
+    // Remove from DOM
+    twitchIframe.remove();
+    
+    // Clear reference
+    twitchIframe = null;
+    
+    console.log('✅ Iframe removed from DOM');
+  }
 }
 
-// Start monitoring immediately and then set interval
+// Start monitoring immediately
 async function startMonitoring() {
   console.log('🚀 Starting Twitch stream monitoring...');
+  console.log(`⏱️ Will check every ${CHECK_INTERVAL/1000} seconds`);
   
-  // IMMEDIATE check on page load
+  // Immediate check
   await checkStreamStatus();
   
-  // Set up interval for continuous checking
+  // Set up interval
   checkInterval = setInterval(checkStreamStatus, CHECK_INTERVAL);
-  console.log(`⏱️ Set up checking every ${CHECK_INTERVAL/1000} seconds`);
 }
 
-// Initialize immediately when DOM is ready
+// Initialize based on document state
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', startMonitoring);
 } else {
-  // Document already loaded
+  // Document already loaded, start immediately
   startMonitoring();
 }
 
-// Clean up on page unload
+// Cleanup on page unload
 window.addEventListener('beforeunload', () => {
   if (checkInterval) {
     clearInterval(checkInterval);
+    console.log('🛑 Monitoring stopped');
   }
 });
+
+// Add responsive CSS
+const style = document.createElement('style');
+style.textContent = `
+  #twitch-container {
+    max-width: 854px;
+    margin: 20px auto;
+    text-align: center;
+  }
+  
+  #twitch-container iframe {
+    border: 3px solid #9146ff;
+  }
+  
+  @media (max-width: 900px) {
+    #twitch-container iframe {
+      height: 360px !important;
+    }
+  }
+  
+  @media (max-width: 600px) {
+    #twitch-container iframe {
+      height: 240px !important;
+    }
+  }
+`;
+document.head.appendChild(style);
 </script>
-
-<style>
-#twitch-container {
-  max-width: 854px;
-  margin: 20px auto;
-  text-align: center;
-}
-
-#offline-message {
-  padding: 40px 20px;
-  background: linear-gradient(135deg, #9146ff, #6441a4);
-  color: white;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 500;
-}
-
-#twitch-iframe {
-  width: 100%;
-  max-width: 854px;
-  height: 480px;
-  border-radius: 8px;
-  border: 3px solid #9146ff;
-}
-
-@media (max-width: 900px) {
-  #twitch-iframe {
-    height: 360px;
-  }
-}
-
-@media (max-width: 600px) {
-  #twitch-iframe {
-    height: 240px;
-  }
-}
-</style>
 
 {{#is "paged"}}
     {{!-- lates post - partials/loop.hbs --}}
