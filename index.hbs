@@ -5,240 +5,64 @@
 <div id="twitch-container"></div>
 
 <script>
-const TWITCH_CHANNEL = 'mmmaxxx__';
-const CHECK_INTERVAL = 30000; // 30 seconds
+const LOOKBACK_MS = 24 * 60 * 60 * 1000; // 24h
+let twitchIframe = null, isStreamLive = false;
 
-let checkInterval = null;
-let twitchIframe = null;
-let isStreamLive = false;
-
-// CORS proxies with fallback
-const CORS_PROXIES = [
-  'https://corsproxy.io/?',
-  'https://cors.x2u.in/proxy?email=anonymous&apiKey=anonymous&url=',
-  'https://api.codetabs.com/v1/proxy?quest='
-];
-
-async function checkStreamStatus() {
-  // Stop checking if stream is already live
-  if (isStreamLive) {
-    console.log('🛑 Stream already live, stopping further checks');
-    if (checkInterval) {
-      clearInterval(checkInterval);
-      checkInterval = null;
-    }
-    return;
-  }
-
-  console.log(`🔍 Checking stream status for ${TWITCH_CHANNEL}...`);
-  
-  for (let i = 0; i < CORS_PROXIES.length; i++) {
-    try {
-      const proxyUrl = CORS_PROXIES[i];
-      
-      // Try SullyGnome first (most reliable for small channels), then direct Twitch
-      const urls = [
-        `https://sullygnome.com/channel/${TWITCH_CHANNEL}`,
-        `https://www.twitch.tv/${TWITCH_CHANNEL}`
-      ];
-      
-      for (let urlIndex = 0; urlIndex < urls.length; urlIndex++) {
-        const targetUrl = urls[urlIndex];
-        const requestUrl = proxyUrl + encodeURIComponent(targetUrl);
-        
-        console.log(`📡 Trying proxy ${i + 1} with ${urlIndex === 0 ? 'SullyGnome' : 'Twitch'}: ${targetUrl}`);
-        
-        try {
-          const response = await fetch(requestUrl, {
-            method: 'GET',
-            headers: {
-              'Accept': 'text/html',
-            }
-          });
-          
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-          }
-          
-          const content = await response.text();
-          let isLive = false;
-          
-          if (urlIndex === 0) {
-            // SullyGnome check - look for "Online now" text
-            isLive = content.includes('Online now') || 
-                     content.includes('Last online: <a href="https://www.twitch.tv/' + TWITCH_CHANNEL + '">Online now</a>') ||
-                     content.includes('href="https://www.twitch.tv/' + TWITCH_CHANNEL + '">Online now</a>') ||
-                     content.includes('>Online now<') ||
-                     // Alternative patterns for live status
-                     content.includes('Live for ') ||
-                     content.includes('streaming for ');
-            
-            console.log(`📊 SullyGnome content check - contains "Online now": ${content.includes('Online now')}`);
-            console.log(`📊 SullyGnome content check - contains live patterns: ${content.includes('Live for ') || content.includes('streaming for ')}`);
-            
-          } else {
-            // Direct Twitch page check - look for absence of "Offline" text
-            const isOffline = content.includes('Offline') || 
-                              content.includes('offline') ||
-                              content.includes('Check out this') ||
-                              (content.includes('from ') && content.includes('ago.'));
-            
-            // Also check for live indicators
-            const hasLiveIndicators = content.includes('isLiveBroadcast') ||
-                                      content.includes('"isLive":true') ||
-                                      content.includes('stream-type-live') ||
-                                      content.includes('"type":"live"');
-            
-            isLive = hasLiveIndicators && !isOffline;
-            
-            console.log(`📊 Twitch page - offline indicators: ${isOffline}`);
-            console.log(`📊 Twitch page - live indicators: ${hasLiveIndicators}`);
-          }
-          
-          console.log(`📊 Source: ${urlIndex === 0 ? 'SullyGnome' : 'Twitch'}, Live: ${isLive}`);
-          
-          if (isLive) {
-            console.log(`✅ ${TWITCH_CHANNEL} is LIVE! Creating iframe and stopping checks...`);
-            showStream();
-            
-            // Mark as live and stop checking
-            isStreamLive = true;
-            if (checkInterval) {
-              clearInterval(checkInterval);
-              checkInterval = null;
-              console.log('🎯 Monitoring stopped - stream is live. Iframe will persist until page reload.');
-            }
-            return; // Exit all loops
-          } else {
-            console.log(`❌ ${TWITCH_CHANNEL} is offline on ${urlIndex === 0 ? 'SullyGnome' : 'Twitch'}`);
-          }
-          
-          // If SullyGnome worked (got response), don't try Twitch - prioritize SullyGnome result
-          if (urlIndex === 0) {
-            break;
-          }
-          
-        } catch (urlError) {
-          console.warn(`⚠️ Failed to check ${urlIndex === 0 ? 'SullyGnome' : 'Twitch'}: ${urlError.message}`);
-          
-          // If SullyGnome failed, try Twitch as fallback
-          if (urlIndex === 0) {
-            console.log('📡 SullyGnome failed, trying Twitch as fallback...');
-            continue;
-          } else {
-            throw new Error('Both SullyGnome and Twitch failed for this proxy');
-          }
-        }
-      }
-      
-      // If we reach here, we got a response (offline) - exit proxy loop
-      return;
-      
-    } catch (error) {
-      console.warn(`⚠️ Proxy ${i + 1} failed completely: ${error.message}`);
-      
-      if (i === CORS_PROXIES.length - 1) {
-        console.error('❌ All proxies failed, will retry in next interval');
-      }
-    }
-  }
-}
+// Secure WS only
+const WS_URL = 'wss://' + location.host + '/ws/twitch';
 
 function showStream() {
-  // Create iframe only if it doesn't exist
-  if (!twitchIframe) {
-    console.log('🎬 Creating Twitch iframe...');
-    
-    const container = document.getElementById('twitch-container');
-    
-    // Create iframe element
-    twitchIframe = document.createElement('iframe');
-    twitchIframe.width = '1280';
-    twitchIframe.height = '720';
-    twitchIframe.frameBorder = '0';
-    twitchIframe.scrolling = 'no';
-    twitchIframe.allowFullscreen = true;
-    
-    // Set the src with proper parent domain
-    const hostname = window.location.hostname;
-    twitchIframe.src = `https://player.twitch.tv/?channel=${TWITCH_CHANNEL}&parent=${hostname}&autoplay=true&muted=false`;
-    
-    // Add responsive styling
-    twitchIframe.style.width = '100%';
-    twitchIframe.style.maxWidth = '1280px';
-    twitchIframe.style.height = '710px';
-    twitchIframe.style.borderRadius = '12px';
-    
-    // Append to container
-    container.appendChild(twitchIframe);
-    
-    console.log(`🎮 Iframe created and will persist until page reload`);
-    console.log(`🔗 Iframe src: ${twitchIframe.src}`);
-  }
+  if (twitchIframe) return;
+  const container = document.getElementById('twitch-container');
+  if (!container) { console.warn('#twitch-container not found'); return; }
+  const hostname = window.location.hostname;
+  twitchIframe = document.createElement('iframe');
+  twitchIframe.src = `https://player.twitch.tv/?channel=mmmaxxx__&parent=${hostname}&autoplay=true&muted=false`;
+  twitchIframe.allowFullscreen = true;
+  Object.assign(twitchIframe.style, {width:'100%',maxWidth:'1280px',height:'710px',border:'0',borderRadius:'12px'});
+  container.appendChild(twitchIframe);
 }
 
-// Start monitoring immediately
-async function startMonitoring() {
-  console.log('🚀 Starting Twitch stream monitoring...');
-  console.log(`⏱️ Will check every ${CHECK_INTERVAL/1000} seconds until stream is found live`);
-  console.log(`📊 Using SullyGnome as primary source (better for small channels)`);
-  
-  // Immediate check
-  await checkStreamStatus();
-  
-  // Set up interval only if stream is not live
-  if (!isStreamLive) {
-    checkInterval = setInterval(checkStreamStatus, CHECK_INTERVAL);
-  }
+function parseTs(s) {
+  if (!s) return null;
+  const t = Date.parse(s);
+  return Number.isFinite(t) ? t : null;
 }
 
-// Initialize based on document state
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', startMonitoring);
-} else {
-  // Document already loaded, start immediately
-  startMonitoring();
+let ws, backoff = 1000;
+function connectWS() {
+  try {
+    ws = new WebSocket(WS_URL);
+    ws.onopen = () => { backoff = 1000; };
+    ws.onmessage = (ev) => {
+      try {
+        const p = JSON.parse(ev.data); // expected: { live, started_at/last_live_at/updated_at }
+        if (isStreamLive) return;
+        const live = !!p.live;
+        const lastLiveAt =
+          parseTs(p.last_live_at || p.lastLiveAt || p.started_at || p.startedAt || p.updated_at || p.updatedAt);
+        const within24h = lastLiveAt && (Date.now() - lastLiveAt <= LOOKBACK_MS);
+        if (live || within24h) { isStreamLive = true; showStream(); }
+      } catch {}
+    };
+    ws.onerror = () => { try { ws.close(); } catch {} };
+    ws.onclose = () => { setTimeout(connectWS, backoff); backoff = Math.min(backoff * 2, 30000); };
+  } catch { setTimeout(connectWS, backoff); backoff = Math.min(backoff * 2, 30000); }
 }
 
-// Cleanup on page unload
-window.addEventListener('beforeunload', () => {
-  if (checkInterval) {
-    clearInterval(checkInterval);
-    console.log('🛑 Page unloading - monitoring stopped');
-  }
-});
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', connectWS);
+else connectWS();
 
-// Add responsive CSS
+// Optional responsive CSS
 const style = document.createElement('style');
 style.textContent = `
-  #twitch-container {
-    max-width: 1280px;
-    margin: 20px auto;
-    text-align: center;
-  }
-  
-  #twitch-container iframe {
-    border: 0px solid #000000;
-  }
-  
-  @media (max-width: 900px) {
-    #twitch-container iframe {
-      height: 360px !important;
-    }
-  }
-  
-  @media (max-width: 600px) {
-    #twitch-container iframe {
-      height: 240px !important;
-    }
-  }
+  #twitch-container{max-width:1280px;margin:20px auto;text-align:center}
+  #twitch-container iframe{border:0}
+  @media (max-width:900px){#twitch-container iframe{height:360px!important}}
+  @media (max-width:600px){#twitch-container iframe{height:240px!important}}`;
+}
 `;
-document.head.appendChild(style);
-</script>
-
-{{#is "paged"}}
-    {{!-- lates post - partials/loop.hbs --}}
-    {{> "loop"}}
+p"}}
 {{else}}
 
 {{!-- Home Top Section --}}
