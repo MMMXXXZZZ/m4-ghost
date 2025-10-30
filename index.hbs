@@ -3,8 +3,8 @@
 
 {{#contentFor "M4_class_body"}}is-home{{/contentFor}}
 <div id="twitch-container"></div>
-
 <script>
+const TWITCH_CHANNEL = 'mmmaxxx__';
 const LOOKBACK_MS = 24 * 60 * 60 * 1000; // 24h
 let twitchIframe = null, isStreamLive = false;
 
@@ -17,7 +17,7 @@ function showStream() {
   if (!container) { console.warn('#twitch-container not found'); return; }
   const hostname = window.location.hostname;
   twitchIframe = document.createElement('iframe');
-  twitchIframe.src = `https://player.twitch.tv/?channel=mmmaxxx__&parent=${hostname}&autoplay=true&muted=false`;
+  twitchIframe.src = `https://player.twitch.tv/?channel=${TWITCH_CHANNEL}&parent=${hostname}&autoplay=true&muted=false`;
   twitchIframe.allowFullscreen = true;
   Object.assign(twitchIframe.style, {width:'100%',maxWidth:'1280px',height:'710px',border:'0',borderRadius:'12px'});
   container.appendChild(twitchIframe);
@@ -60,12 +60,8 @@ style.textContent = `
   #twitch-container iframe{border:0}
   @media (max-width:900px){#twitch-container iframe{height:360px!important}}
   @media (max-width:600px){#twitch-container iframe{height:240px!important}}`;
-}
-`;
-p"}}
-{{else}}
-
-{{!-- Home Top Section --}}
+document.head.appendChild(style);
+</script>
 <div class="h-cover home-banner mx-auto mb-10 p-2 grid gap-2 lg:grid-cols-5">
     {{#foreach posts visibility="all" from="1" to="3"}}
         {{!-- Home Top Section -> 3 first Articles - partials/story/story-cover.hbs --}}
