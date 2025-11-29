@@ -8,7 +8,6 @@ const TWITCH_CHANNEL = 'mmmaxxx__';
 const LOOKBACK_MS = 24 * 60 * 60 * 1000; // 24h
 let twitchIframe = null, isStreamLive = false;
 
-// Secure WS only
 const WS_URL = 'wss://' + location.host + '/ws/twitch';
 
 function showStream() {
@@ -53,7 +52,6 @@ function connectWS() {
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', connectWS);
 else connectWS();
 
-// Optional responsive CSS
 const style = document.createElement('style');
 style.textContent = `
   #twitch-container{max-width:1280px;margin:20px auto;text-align:center}
@@ -63,11 +61,20 @@ style.textContent = `
 document.head.appendChild(style);
 </script>
 <div class="h-cover home-banner mx-auto mb-10 p-2 grid gap-2 lg:grid-cols-5">
-    {{#foreach posts visibility="all" from="1" to="3"}}
-        {{!-- Home Top Section -> 3 first Articles - partials/story/story-cover.hbs --}}
-        {{> "story/story-cover" }}
-    {{/foreach}}
+    {{#get "posts" filter="featured:true" limit="3" as |featured_posts|}}
+
+      {{#if featured_posts}}
+        {{#foreach featured_posts visibility="all"}}
+            {{!-- Home Top Section -> Featured Articles - partials/story/story-cover.hbs --}}
+            {{> "story/story-cover" }}
+        {{/foreach}}
+      {{else}}
+        <p>No featured posts found. Please feature a post in the admin panel.</p>
+      {{/if}}
+
+    {{/get}}
 </div>
+
 
 {{!-- Post Grid - 8 lates article --}}
 <div class="container mx-auto mb-16">
