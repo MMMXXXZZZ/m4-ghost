@@ -9,9 +9,14 @@
     }
 </style>
 <div class="mb-10">
-  <h3 class="uppercase mb-5 border-b pb-2 font-bold text-sm group">
+  <style>
+    /* Scope: hide timestamp by default, show when hovering the title */
+    .most-read-title .most-read-timestamp { opacity: 0; transition: opacity .15s ease-out; }
+    .most-read-title:hover .most-read-timestamp { opacity: 1; }
+  </style>
+  <h3 class="most-read-title uppercase mb-5 border-b pb-2 font-bold text-sm">
     Artículos más leídos
-    <span id="most-read-timestamp" class="text-xs text-gray-500 ml-2 opacity-0 transition-opacity duration-200 ease-out group-hover:opacity-100"></span>
+    <span id="most-read-timestamp" class="most-read-timestamp text-xs text-gray-500 ml-2"></span>
   </h3>
   <div id="most-read-list"></div>
 </div>
