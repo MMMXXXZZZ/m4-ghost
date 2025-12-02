@@ -63,15 +63,12 @@ const M4Setup = () => {
    */
   scrollHideHeader('.js-hide-header')
 
-  /**
+/**
    * Promo Popup
-   * Populates an empty container and animates it vertically
+   * @param {String} selector - The container ID
+   * @param {Number} delay - Delay in ms before showing
    */
-  promoPopup({
-    selector: '#js-promo-popup',
-    delay: 2000, // 2 second delay as requested
-    storageKey: 'm4_promo_session_v1'
-  })
+  promoPopup('#js-promo-popup', 2000)
 
   // End M4Setup
 }
