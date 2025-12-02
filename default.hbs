@@ -77,7 +77,7 @@
     </div>
 
     {{!-- Search DISABLED - partials/search.hbs --}}
-    {{!-- disabled: {{> "search"}} --}}
+    {{> "search"}}
 
     {{!-- Site URL --}}
     <script>
@@ -101,6 +101,6 @@
 
     {{!-- The #block helper will pull in data from the #contentFor other template files. --}}
     {{{block "scripts"}}}
-    {{> "integrations/meili-search"}}
+    {{!-- {{> "integrations/meili-search"}} --}}
 </body>
 </html>
