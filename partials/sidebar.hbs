@@ -10,13 +10,10 @@
 </style>
 <div class="mb-10">
   <style>
-    /* Scope: hide timestamp by default, show when hovering the title */
-    .most-read-title .most-read-timestamp { opacity: 0; transition: opacity .15s ease-out; }
-    .most-read-title:hover .most-read-timestamp { opacity: 1; }
+    /* Timestamp moved to native title attribute to avoid layout shifts. */
   </style>
   <h3 class="most-read-title uppercase mb-5 border-b pb-2 font-bold text-sm">
     Artículos más leídos
-    <span id="most-read-timestamp" class="most-read-timestamp text-xs text-gray-500 ml-2"></span>
   </h3>
   <div id="most-read-list"></div>
 </div>
@@ -28,8 +25,8 @@
         return; // Don't do anything if there's no data
       }
 
-      const container = document.getElementById('most-read-list');
-  const timestampContainer = document.getElementById('most-read-timestamp');
+  const container = document.getElementById('most-read-list');
+  const titleEl = document.querySelector('.most-read-title');
       
       // Build the HTML for the articles
       container.innerHTML = data.articles.map((article, idx) => `
@@ -48,10 +45,13 @@
         </div>
       `).join('');
 
-      // Display the timestamp inside the title span (visible on title hover)
-      if (data.last_updated) {
+      // Put the timestamp into the title attribute (native tooltip) to avoid affecting layout
+      if (data.last_updated && titleEl) {
         const lastUpdated = new Date(data.last_updated);
-        timestampContainer.textContent = `Actualizado: ${lastUpdated.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })} ${lastUpdated.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`;
+        const ts = `Actualizado: ${lastUpdated.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })} ${lastUpdated.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`;
+        titleEl.setAttribute('title', ts);
+        // also set an accessible label combining heading + timestamp
+        titleEl.setAttribute('aria-label', `Artículos más leídos — ${ts}`);
       }
 
       // Trigger the animation
