@@ -8,6 +8,7 @@ import darkMode from './app/dark-mode'
 import headerTransparency from './app/header-transparency'
 import loadScript from './components/load-script'
 import scrollHideHeader from './components/scroll-hide-header'
+import promoPopup from './components/promo-popup'
 
 const M4Setup = () => {
   /**
@@ -62,6 +63,16 @@ const M4Setup = () => {
    */
   scrollHideHeader('.js-hide-header')
 
+  /**
+   * Promo Popup
+   * Populates an empty container and animates it vertically
+   */
+  promoPopup({
+    selector: '#js-promo-popup',
+    delay: 2000, // 2 second delay as requested
+    storageKey: 'm4_promo_session_v1'
+  });
+  
   // End M4Setup
 }
 

@@ -1,0 +1,53 @@
+// src/sass/components/_promo.sass
+
+.promo-popup
+  background-color: $gray-900 // Using variable from variables.scss
+  color: $white
+  font-family: $font-sans
+  overflow: hidden
+  max-height: 0
+  opacity: 0
+  transition: max-height 0.5s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.5s ease-in-out
+  will-change: max-height, opacity
+
+  // State to trigger animation
+  &.is-visible
+    max-height: 200px // Arbitrary large height to allow content to fit
+    opacity: 1
+
+  // Inner wrapper for layout (simulating your .container behavior)
+  &__content
+    display: flex
+    flex-direction: column
+    align-items: center
+    justify-content: center
+    padding: 1rem
+    text-align: center
+    
+    @media (min-width: $desktop)
+      flex-direction: row
+      justify-content: space-between
+      padding: 1rem 2rem // Horizontal padding
+
+  &__message
+    margin-bottom: 0.5rem
+    font-size: 0.9rem
+    
+    @media (min-width: $desktop)
+      margin-bottom: 0
+      margin-right: 1rem
+
+  &__btn
+    background-color: transparent
+    border: 1px solid $gray-500
+    color: $gray-300
+    cursor: pointer
+    padding: 0.25rem 0.75rem
+    border-radius: $radius
+    font-size: 0.8rem
+    transition: all 0.2s ease
+
+    &:hover
+      background-color: $white
+      color: $black
+      border-color: $white
