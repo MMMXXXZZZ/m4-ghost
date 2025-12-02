@@ -1,10 +1,8 @@
-// src/js/components/promo-popup.js
-
-const promoPopup = (settings) => {
+export default settings => {
   const defaults = {
     selector: '#js-promo-popup',
     storageKey: 'm4-promo-hidden',
-    delay: 1000, // 1 second delay
+    delay: 1000,
     content: `
       <div class="promo-popup__content">
         <span class="promo-popup__message">
@@ -15,43 +13,41 @@ const promoPopup = (settings) => {
         </button>
       </div>
     `
-  };
+  }
 
-  const options = { ...defaults, ...settings };
-  const element = document.querySelector(options.selector);
+  const options = { ...defaults, ...settings }
+  const element = document.querySelector(options.selector)
 
-  if (!element) return;
+  if (!element) return
 
   // Check Session Storage
-  if (sessionStorage.getItem(options.storageKey) === 'true') {
-    return;
+  if (window.sessionStorage.getItem(options.storageKey) === 'true') {
+    return
   }
 
   // Populate HTML
-  element.innerHTML = options.content;
+  element.innerHTML = options.content
 
   // Animate In (Enlarge Vertically)
-  setTimeout(() => {
-    element.classList.add('is-visible');
-  }, options.delay);
+  window.setTimeout(() => {
+    element.classList.add('is-visible')
+  }, options.delay)
 
   // Handle Close
   element.addEventListener('click', (e) => {
     if (e.target.classList.contains('js-promo-close')) {
-      e.preventDefault();
-      
-      // Animate Out
-      element.classList.remove('is-visible');
-      
-      // Set Session Storage
-      sessionStorage.setItem(options.storageKey, 'true');
-      
-      // Optional: Remove from DOM after transition matches CSS duration
-      setTimeout(() => {
-        element.innerHTML = '';
-      }, 500);
-    }
-  });
-};
+      e.preventDefault()
 
-export default promoPopup;
+      // Animate Out
+      element.classList.remove('is-visible')
+
+      // Set Session Storage
+      window.sessionStorage.setItem(options.storageKey, 'true')
+
+      // Remove from DOM after transition
+      window.setTimeout(() => {
+        element.innerHTML = ''
+      }, 500)
+    }
+  })
+}

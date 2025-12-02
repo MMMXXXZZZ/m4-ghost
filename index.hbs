@@ -60,6 +60,7 @@ style.textContent = `
   @media (max-width:600px){#twitch-container iframe{height:240px!important}}`;
 document.head.appendChild(style);
 </script>
+<div id="js-promo-popup" class="promo-popup"></div>
 <div class="h-cover home-banner mx-auto mb-10 p-2 grid gap-2 lg:grid-cols-5">
     {{#get "posts" filter="featured:true" limit="3" as |featured_posts|}}
 
