@@ -9,13 +9,9 @@
     }
 </style>
 <div class="mb-10">
-  <style>
-    /* Timestamp moved to native title attribute to avoid layout shifts. */
-  </style>
-  <h3 class="most-read-title uppercase mb-5 border-b pb-2 font-bold text-sm">
-    Artículos más leídos
-  </h3>
+  <h3 class="uppercase mb-5 border-b pb-2 font-bold text-sm">Artículos más leídos</h3>
   <div id="most-read-list"></div>
+  <div id="most-read-timestamp" class="text-xs text-gray-500 mt-2 text-right"></div>
 </div>
 <script>
   fetch('/content/data/most-read.json')
@@ -25,8 +21,8 @@
         return; // Don't do anything if there's no data
       }
 
-  const container = document.getElementById('most-read-list');
-  const titleEl = document.querySelector('.most-read-title');
+      const container = document.getElementById('most-read-list');
+      const timestampContainer = document.getElementById('most-read-timestamp');
       
       // Build the HTML for the articles
       container.innerHTML = data.articles.map((article, idx) => `
@@ -45,13 +41,10 @@
         </div>
       `).join('');
 
-      // Put the timestamp into the title attribute (native tooltip) to avoid affecting layout
-      if (data.last_updated && titleEl) {
+      // Display the timestamp
+      if (data.last_updated) {
         const lastUpdated = new Date(data.last_updated);
-        const ts = `Actualizado: ${lastUpdated.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })} ${lastUpdated.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`;
-        titleEl.setAttribute('title', ts);
-        // also set an accessible label combining heading + timestamp
-        titleEl.setAttribute('aria-label', `Artículos más leídos — ${ts}`);
+        timestampContainer.textContent = `Actualizado: ${lastUpdated.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })} ${lastUpdated.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`;
       }
 
       // Trigger the animation
