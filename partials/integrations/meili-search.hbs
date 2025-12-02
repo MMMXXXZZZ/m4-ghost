@@ -1,0 +1,43 @@
+{{!-- Meilisearch UI integration (no secrets committed) --}}
+{{!--
+  Runtime config precedence (highest first):
+  1) window.__MS_SEARCH_CONFIG__ (set in Ghost Admin → Code injection → Site Footer)
+  2) <script id="meili-config" data-* attributes (fallbacks below)
+--}}
+
+<script id="meili-config"
+        data-host="{{@site.url}}/search"
+        data-index="ghost_posts"
+        data-key="">
+</script>
+
+<script>
+  (function () {
+    if (!window.__MS_SEARCH_CONFIG__) {
+      var s = document.getElementById('meili-config');
+      window.__MS_SEARCH_CONFIG__ = {
+        meilisearchHost: (s && s.dataset && s.dataset.host) || (window.location.origin + '/search'),
+        indexName: (s && s.dataset && s.dataset.index) || 'ghost_posts',
+        apiKey: (s && s.dataset && s.dataset.key) || ''
+      };
+    }
+  })();
+</script>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fanyangmeng/ghost-meilisearch-search-ui@1.2.3/dist/styles.css">
+<script defer src="https://cdn.jsdelivr.net/npm/@fanyangmeng/ghost-meilisearch-search-ui@1.2.3/dist/search.min.js"></script>
+
+{{!-- Hard-stop the theme’s old listener from firing (capture phase) --}}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('[data-ghost-search]').forEach(function (el) {
+      el.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        if (window.ghostMeilisearchSearch && typeof window.ghostMeilisearchSearch.open === 'function') {
+          window.ghostMeilisearchSearch.open();
+        }
+      }, true); // capture
+    });
+  });
+</script>
