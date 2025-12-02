@@ -9,9 +9,11 @@
     }
 </style>
 <div class="mb-10">
-  <h3 class="uppercase mb-5 border-b pb-2 font-bold text-sm">Artículos más leídos</h3>
+  <h3 class="uppercase mb-5 border-b pb-2 font-bold text-sm group">
+    Artículos más leídos
+    <span id="most-read-timestamp" class="text-xs text-gray-500 ml-2 opacity-0 transition-opacity duration-200 ease-out group-hover:opacity-100"></span>
+  </h3>
   <div id="most-read-list"></div>
-  <div id="most-read-timestamp" class="text-xs text-gray-500 mt-2 text-right"></div>
 </div>
 <script>
   fetch('/content/data/most-read.json')
@@ -22,7 +24,7 @@
       }
 
       const container = document.getElementById('most-read-list');
-      const timestampContainer = document.getElementById('most-read-timestamp');
+  const timestampContainer = document.getElementById('most-read-timestamp');
       
       // Build the HTML for the articles
       container.innerHTML = data.articles.map((article, idx) => `
@@ -41,7 +43,7 @@
         </div>
       `).join('');
 
-      // Display the timestamp
+      // Display the timestamp inside the title span (visible on title hover)
       if (data.last_updated) {
         const lastUpdated = new Date(data.last_updated);
         timestampContainer.textContent = `Actualizado: ${lastUpdated.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })} ${lastUpdated.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`;
