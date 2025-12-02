@@ -71,8 +71,8 @@ const M4Setup = () => {
     selector: '#js-promo-popup',
     delay: 2000, // 2 second delay as requested
     storageKey: 'm4_promo_session_v1'
-  });
-  
+  })
+
   // End M4Setup
 }
 
