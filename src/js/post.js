@@ -5,32 +5,21 @@ import videoResponsive from './components/video-responsive'
 import resizeImagesInGalleries from './components/resize-images-galleries'
 import highlightPrism from './components/highlight-prismjs'
 import M4Gallery from './components/gallery'
-
-// Post
 import isSinglePost from './post/is-singgle-post'
 
+// Import Infinite Scroll Manager
+import initInfiniteScroll from './post-infinite'
+
 const M4PostSetup = () => {
-  /* All Video Responsive
-  /* ---------------------------------------------------------- */
+  /* Standard Initializers */
   videoResponsive()
-
-  /* Gallery Card
-  /* ---------------------------------------------------------- */
   resizeImagesInGalleries()
-
-  /* highlight prismjs
-  /* ---------------------------------------------------------- */
   highlightPrism('code[class*=language-]')
-
-  /* Is single post
-  /* ---------------------------------------------------------- */
   isSinglePost()
-
-  /* M4 Gallery
-  /* ---------------------------------------------------------- */
   M4Gallery()
 
-  // End M4Setup
+  /* Initialize Infinite Scroll */
+  initInfiniteScroll()
 }
 
 document.addEventListener('DOMContentLoaded', M4PostSetup)

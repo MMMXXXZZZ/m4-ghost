@@ -35,13 +35,13 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: 22 # Standard port; update if your server uses a custom one
+          port: 22
           script: |
             cd /var/www/ghost
             ghost restart
 
       - name: Purge Cloudflare Cache
-        if: success() # Only run if deployment succeeded
+        if: success()
         run: |
           curl -X POST "https://api.cloudflare.com/client/v4/zones/${{ secrets.CF_ZONE_ID }}/purge_cache" \
           -H "Authorization: Bearer ${{ secrets.CF_PURGE }}" \

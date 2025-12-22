@@ -3,39 +3,52 @@
 
 {{#contentFor "M4_class_body"}}is-article{{/contentFor}}
 
-<div class="container mx-auto flex flex-col lg:flex-row my-10">
-    {{#post}}
-    <div class="js-infinite-container">
-    <article class="post min-w-0 flex-auto js-post-article" data-title="{{title}}" data-url="{{url}}">
+{{!-- Main Container for Infinite Scroll --}}
+<div class="container mx-auto flex flex-col lg:flex-row my-10 js-infinite-container">
+
+    {{!-- WRAPPER: This div is what gets cloned. We store metadata here. --}}
+    <div class="js-post-article min-w-0 flex-auto post-wrapper" data-url="{{url}}" data-title="{{title}}">
+        {{#post}}
+        <article class="post">
             {{#unless feature_image}}
                 <div class="lg:pl-20">
-                {{!-- Article Header - partials/article/article-header.hbs --}}
-                {{> "article/article-header"}}
-                {{!-- Article Author - partials/components/author-meta.hbs --}}
-                {{> "components/author-meta"}}
+                    {{> "article/article-header"}}
+                    {{> "components/author-meta"}}
                 </div>
             {{else}}
-                {{!-- Article Header - partials/article/article-header.hbs --}}
                 {{> "article/article-header"}}
-                {{!-- Article Author - partials/components/author-meta.hbs --}}
                 {{> "components/author-meta"}}
             {{/unless}}
 
-            {{!-- Featured Image - partials/article/article-media.hbs --}}
             {{> "article/article-media"}}
-
-            {{!-- Article Content - partials/article/article-body.hbs --}}
             {{> "article/article-body"}}
 
-            {{!-- Comments Section --}}
-            {{> "article/article-comments"}}
-    </article>
-    </div>
-    {{/post}}
+            <div class="article-comments">
+                {{> "article/article-comments"}}
+            </div>
+        </article>
+        
+        {{!-- Data for the NEXT-NEXT prefetch (hidden inside the loaded content) --}}
+        {{#next_post}}
+             <div class="js-next-post-data hidden" data-url="{{url}}"></div>
+        {{/next_post}}
 
-        {{!-- Sidebar - partials/sidebar.hbs --}}
-        {{> "sidebar"}}
+        {{/post}}
+    </div>
+
+    {{!-- Sidebar --}}
+    {{> "sidebar"}}
+
+    {{!-- NAVIGATION / FALLBACK --}}
+    {{#next_post}}
+        <div class="w-full text-center py-8 pagination-fallback">
+             <a href="{{url}}" class="js-next-post-link inline-block px-6 py-3 border border-gray-200 rounded-full hover:bg-gray-50 transition-colors">
+                {{t "Read next"}}: <strong>{{title}}</strong>
+             </a>
+        </div>
+    {{/next_post}}
+
 </div>
 
-{{!-- Related Articles - partials/article/article-related.hbs --}}
+{{!-- Related Articles --}}
 {{> "article/article-related"}}
