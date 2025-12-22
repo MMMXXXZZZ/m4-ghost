@@ -38,6 +38,28 @@ jobs:
             cd /var/www/ghost
             ghost restart
 
+      - name: Inspect deployed asset on server
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo "Checking for deployed post.js under /var/www/ghost/content/themes/*/assets/scripts/"
+            set -e
+            FILES=(/var/www/ghost/content/themes/*/assets/scripts/post.js)
+            if [ -e "${FILES[0]}" ]; then
+              for f in /var/www/ghost/content/themes/*/assets/scripts/post.js; do
+                echo "--- $f ---"
+                sha256sum "$f" || true
+                echo "--- head ---"
+                sed -n '1,40p' "$f" || true
+              done
+            else
+              echo "No post.js found under themes; listing themes dir:"
+              ls -la /var/www/ghost/content/themes || true
+            fi
+
       - name: Purge Cloudflare cache for updated assets
         env:
           CF_ZONE_ID: ${{ secrets.CF_ZONE_ID }}
