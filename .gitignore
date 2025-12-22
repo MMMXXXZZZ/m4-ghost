@@ -20,7 +20,7 @@ results
 
 npm-debug.log
 node_modules
-package-lock.json
+# package-lock.json
 
 .idea/*
 *.iml
@@ -37,4 +37,4 @@ changelog.md.bk
 .sass-lint.yml
 .cache-loader
 yarn-error.log
-yarn.lock
+
