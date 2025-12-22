@@ -1,25 +1,37 @@
-name: Deploy Ghost Theme
+name: Deploy Theme
 on:
   push:
     branches:
+      - master
       - main
 jobs:
   deploy:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5  # Cancels the job after 3 minutes
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-      - name: Deploy Ghost Theme
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Theme
+        run: npm run build
+
+      - name: Deploy to Ghost
         uses: TryGhost/action-deploy-theme@v1
         with:
           api-url: ${{ secrets.GHOST_ADMIN_API_URL }}
           api-key: ${{ secrets.GHOST_ADMIN_API_KEY }}
-      - name: Restart Ghost via SSH
-        uses: appleboy/ssh-action@v0.1.10
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            cd /var/www/ghost
-            ghost restart
+
+      - name: Purge Cloudflare Cache
+        if: success() # Only run if deployment succeeded
+        run: |
+          curl -X POST "https://api.cloudflare.com/client/v4/zones/${{ secrets.CF_ZONE_ID }}/purge_cache" \
+          -H "Authorization: Bearer ${{ secrets.CF_PURGE }}" \
+          -H "Content-Type: application/json" \
+          --data '{"purge_everything":true}'
