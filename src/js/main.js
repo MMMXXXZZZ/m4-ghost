@@ -63,7 +63,7 @@ const M4Setup = () => {
    */
   scrollHideHeader('.js-hide-header')
 
-/**
+  /**
    * Promo Popup
    * @param {String} selector - The container ID
    * @param {Number} delay - Delay in ms before showing

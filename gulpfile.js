@@ -45,9 +45,14 @@ const BuildComments = `/*!
  */`
 
 // clean assets
+// NOTE: we intentionally avoid deleting `assets/fonts` so locally bundled fonts
+// are preserved. Remove generated scripts, styles and images instead of the
+// whole `assets` folder.
 const clean = () => {
   return del([
-    'assets',
+    'assets/scripts/**',
+    'assets/styles/**',
+    'assets/images/**',
     'partials/main-styles.hbs',
     'dist'
   ], { force: true })
