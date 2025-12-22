@@ -47,7 +47,7 @@ jobs:
           RESPONSE=$(curl -sS -X POST "https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/purge_cache" \
             -H "Authorization: Bearer $CF_PURGE" \
             -H "Content-Type: application/json" \
-            --data '{"prefixes":["/assets/scripts/"]}')
+            --data '{"prefixes":["m44.cl/assets/scripts/"]}')
           echo "$RESPONSE"
           if ! echo "$RESPONSE" | grep -q '"success":true'; then
             echo "Cloudflare purge did not report success" >&2
