@@ -12,6 +12,7 @@ import promoPopup from './components/promo-popup'
 import postInfinite from './post-infinite'
 
 const M4Setup = () => {
+  console.debug('[main] M4Setup starting')
   /**
    * Links to social media
    *
@@ -73,7 +74,10 @@ const M4Setup = () => {
 
   // Initialize infinite scroll orchestration if present
   if (document.querySelector('.js-infinite-container')) {
+    console.info('[main] .js-infinite-container detected — initializing postInfinite')
     postInfinite()
+  } else {
+    console.debug('[main] .js-infinite-container not found — skipping postInfinite')
   }
 
   // End M4Setup
