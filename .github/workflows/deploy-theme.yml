@@ -38,16 +38,16 @@ jobs:
             cd /var/www/ghost
             ghost restart
 
-      - name: Purge Cloudflare cache for updated asset
+      - name: Purge Cloudflare cache for updated assets
         env:
-          CF_ZONE: ${{ secrets.CF_ZONE_ID }}
-          CF_TOKEN: ${{ secrets.CF_PURGE }}
+          CF_ZONE_ID: ${{ secrets.CF_ZONE_ID }}
+          CF_PURGE: ${{ secrets.CF_PURGE }}
         run: |
-          echo "Purging Cloudflare cache for /assets/scripts/post.js"
-          RESPONSE=$(curl -sS -X POST "https://api.cloudflare.com/client/v4/zones/$CF_ZONE/purge_cache" \
-            -H "Authorization: Bearer $CF_TOKEN" \
+          echo "Purging Cloudflare cache for assets/scripts/ (all JS)"
+          RESPONSE=$(curl -sS -X POST "https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/purge_cache" \
+            -H "Authorization: Bearer $CF_PURGE" \
             -H "Content-Type: application/json" \
-            --data '{"files":["https://m44.cl/assets/scripts/post.js"]}')
+            --data '{"prefixes":["https://m44.cl/assets/scripts/"]}')
           echo "$RESPONSE"
           if ! echo "$RESPONSE" | grep -q '"success":true'; then
             echo "Cloudflare purge did not report success" >&2
