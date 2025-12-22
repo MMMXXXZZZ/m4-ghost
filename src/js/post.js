@@ -11,14 +11,16 @@ import isSinglePost from './post/is-singgle-post'
 import initInfiniteScroll from './post-infinite'
 
 const M4PostSetup = () => {
-  /* Standard Initializers */
+  console.log('M4PostSetup: Starting initialization...'); // Debug Log
+  
   videoResponsive()
   resizeImagesInGalleries()
   highlightPrism('code[class*=language-]')
   isSinglePost()
   M4Gallery()
 
-  /* Initialize Infinite Scroll */
+  // Initialize Infinite Scroll
+  console.log('M4PostSetup: Initializing Infinite Scroll...'); // Debug Log
   initInfiniteScroll()
 }
 

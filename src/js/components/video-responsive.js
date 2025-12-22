@@ -9,7 +9,7 @@ export default (root = document) => {
     'iframe[src*="kickstarter.com"][src*="video.html"]'
   ]
 
-  // Use root.querySelectorAll
+  // Use root.querySelectorAll to scope the search
   const iframes = root.querySelectorAll(selectors.join(','))
 
   if (!iframes.length) return
