@@ -14,27 +14,50 @@ jobs:
           sudo apt-get update -y
           sudo apt-get install -y unzip jq
 
-      - name: Fetch latest deploy-theme workflow run and download logs
+      - name: Fetch latest deploy-theme workflow run and download logs (diagnostics)
         env:
           REPO: MMMXXXZZZ/m4-ghost
           TOKEN: ${{ secrets.GITHUBCOPILOT_ACTIONS }}
         run: |
           set -euo pipefail
           echo "Fetching latest workflow runs for deploy-theme.yml"
-          curl -sS -H "Authorization: token $TOKEN" "https://api.github.com/repos/$REPO/actions/workflows/deploy-theme.yml/runs?per_page=5" -o runs.json
-          cat runs.json | jq -r '.workflow_runs[0] | {id: .id, conclusion: .conclusion, head_commit: .head_commit.message, html_url: .html_url}' || true
-          RUN_ID=$(jq -r '.workflow_runs[0].id' runs.json)
+          # get runs json
+          curl -sS -H "Authorization: token $TOKEN" "https://api.github.com/repos/$REPO/actions/workflows/deploy-theme.yml/runs?per_page=5" -o runs.json || true
+          echo 'runs.json head:'
+          sed -n '1,120p' runs.json || true
+          # extract run id (best-effort)
+          RUN_ID=$(grep -o '"id": [0-9]*' runs.json | head -n1 | sed -E 's/"id": //') || true
           echo "Latest run id: $RUN_ID"
-          echo "Downloading logs archive for run $RUN_ID"
-          curl -L -sS -H "Authorization: token $TOKEN" "https://api.github.com/repos/$REPO/actions/runs/$RUN_ID/logs" -o logs.zip
-          echo "Archive contents:"
-          unzip -l logs.zip | sed -n '1,200p' || true
-          echo "Searching for Deploy Ghost Theme step logs"
-          FILE=$(unzip -Z1 logs.zip | grep -i 'deploy' | head -n1 || true)
-          if [ -n "$FILE" ]; then
-            echo "Printing $FILE"
-            unzip -p logs.zip "$FILE" | sed -n '1,400p' || true
+          if [ -z "$RUN_ID" ] || [ "$RUN_ID" = "null" ]; then
+            echo "No run id found in runs.json; aborting download step."; exit 0
+          fi
+          echo "Downloading logs archive for run $RUN_ID with diagnostics"
+          LOGS_URL="https://api.github.com/repos/$REPO/actions/runs/$RUN_ID/logs"
+          # Save headers and body to inspect what we got (if HTML error page, show first bytes)
+          HTTP_OUT=$(mktemp)
+          HTTP_HDR=$(mktemp)
+          echo "Curling $LOGS_URL"
+          # -w to capture status; save headers
+          STATUS=$(curl -sS -D "$HTTP_HDR" -w "%{http_code}" -H "Authorization: token $TOKEN" -L "$LOGS_URL" -o "$HTTP_OUT" || true)
+          echo "HTTP status: $STATUS"
+          echo "Response headers (first 200 lines):"
+          sed -n '1,200p' "$HTTP_HDR" || true
+          echo "Downloaded file type and first bytes (hex/utf):"
+          file "$HTTP_OUT" || true
+          echo '---- first 512 bytes (utf-8, may be HTML error) ----'
+          head -c 512 "$HTTP_OUT" | sed -n '1,200p' || true
+          # attempt to unzip if it appears to be a valid zip
+          if file "$HTTP_OUT" | grep -qi zip; then
+            mv "$HTTP_OUT" logs.zip
+            echo "Archive contents:"; unzip -l logs.zip | sed -n '1,200p' || true
+            FILE=$(unzip -Z1 logs.zip | grep -i 'deploy' | head -n1 || true)
+            if [ -n "$FILE" ]; then
+              echo "Printing $FILE"
+              unzip -p logs.zip "$FILE" | sed -n '1,400p' || true
+            else
+              echo "No matching deploy file entry found in logs archive; listing all files:"; unzip -Z1 logs.zip | sed -n '1,200p'
+            fi
           else
-            echo "No matching deploy file entry found in logs archive; listing all files:"
-            unzip -Z1 logs.zip | sed -n '1,200p'
+            echo "Downloaded content is not a zip file; saved to $HTTP_OUT. See headers above and first bytes for diagnosis."
+            exit 0
           fi
