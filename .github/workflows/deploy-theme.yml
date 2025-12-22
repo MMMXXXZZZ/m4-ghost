@@ -19,6 +19,13 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
+      # DEBUG STEP: Print the source file content to logs
+      - name: DEBUG - Show src/js/post.js
+        run: |
+          echo ">>> CONTENT OF src/js/post.js <<<"
+          cat src/js/post.js
+          echo ">>> END OF CONTENT <<<"
+
       - name: Build Theme
         run: npm run build
 
@@ -38,7 +45,6 @@ jobs:
           port: 22
           script: |
             cd /var/www/ghost
-            # Fix permissions so Ghost can overwrite files next time
             sudo chown -R ghost:ghost content/themes/m4-ghost
             ghost restart
 
