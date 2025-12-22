@@ -38,6 +38,46 @@ jobs:
             cd /var/www/ghost
             ghost restart
 
+      - name: Sync built JS assets to all themes on origin (backup & copy)
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          echo "Uploading built JS to server and copying into theme folders (backing up existing JS)."
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          TS=$(date +%s)
+          # Ensure remote script creates backup dirs and copies files
+          scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa assets/scripts/*.js $SERVER_USER@$SERVER_HOST:/tmp/ || true
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa $SERVER_USER@$SERVER_HOST bash -s <<'REMOTE'
+          set -e
+          TS_REMOTE="$(date +%s)"
+          for theme in /var/www/ghost/content/themes/*; do
+            ASSETS_DIR="$theme/assets/scripts"
+            if [ -d "$ASSETS_DIR" ]; then
+              BACKUP_DIR="$ASSETS_DIR/backup_$TS_REMOTE"
+              mkdir -p "$BACKUP_DIR"
+              # copy existing js files to backup (ignore errors if none)
+              cp -a "$ASSETS_DIR"/*.js "$BACKUP_DIR/" 2>/dev/null || true
+            else
+              mkdir -p "$ASSETS_DIR"
+            fi
+            # copy uploaded files into theme assets
+            for f in /tmp/*.js; do
+              if [ -f "$f" ]; then
+                cp -a "$f" "$ASSETS_DIR/"
+              fi
+            done
+          done
+          rm -f /tmp/*.js || true
+          # best-effort fix permissions
+          chown -R www-data:www-data /var/www/ghost/content/themes || true
+          echo "Sync complete"
+          REMOTE
+
       - name: Inspect deployed asset on server
         uses: appleboy/ssh-action@v0.1.10
         with:
