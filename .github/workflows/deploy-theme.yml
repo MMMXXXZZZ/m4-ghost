@@ -5,15 +5,29 @@ on:
       - main
 jobs:
   deploy:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5  # Cancels the job after 3 minutes
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build theme assets
+        run: npm run build
+
       - name: Deploy Ghost Theme
         uses: TryGhost/action-deploy-theme@v1
         with:
           api-url: ${{ secrets.GHOST_ADMIN_API_URL }}
           api-key: ${{ secrets.GHOST_ADMIN_API_KEY }}
+
       - name: Restart Ghost via SSH
         uses: appleboy/ssh-action@v0.1.10
         with:
