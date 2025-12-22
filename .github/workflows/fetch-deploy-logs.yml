@@ -1,0 +1,40 @@
+name: Fetch Deploy Theme Logs
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: {}
+
+jobs:
+  fetch-logs:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Install tools
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y unzip jq
+
+      - name: Fetch latest deploy-theme workflow run and download logs
+        env:
+          REPO: MMMXXXZZZ/m4-ghost
+          TOKEN: ${{ secrets.GITHUBCOPILOT_ACTIONS }}
+        run: |
+          set -euo pipefail
+          echo "Fetching latest workflow runs for deploy-theme.yml"
+          curl -sS -H "Authorization: token $TOKEN" "https://api.github.com/repos/$REPO/actions/workflows/deploy-theme.yml/runs?per_page=5" -o runs.json
+          cat runs.json | jq -r '.workflow_runs[0] | {id: .id, conclusion: .conclusion, head_commit: .head_commit.message, html_url: .html_url}' || true
+          RUN_ID=$(jq -r '.workflow_runs[0].id' runs.json)
+          echo "Latest run id: $RUN_ID"
+          echo "Downloading logs archive for run $RUN_ID"
+          curl -L -sS -H "Authorization: token $TOKEN" "https://api.github.com/repos/$REPO/actions/runs/$RUN_ID/logs" -o logs.zip
+          echo "Archive contents:"
+          unzip -l logs.zip | sed -n '1,200p' || true
+          echo "Searching for Deploy Ghost Theme step logs"
+          FILE=$(unzip -Z1 logs.zip | grep -i 'deploy' | head -n1 || true)
+          if [ -n "$FILE" ]; then
+            echo "Printing $FILE"
+            unzip -p logs.zip "$FILE" | sed -n '1,400p' || true
+          else
+            echo "No matching deploy file entry found in logs archive; listing all files:"
+            unzip -Z1 logs.zip | sed -n '1,200p'
+          fi
