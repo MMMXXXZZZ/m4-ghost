@@ -9,6 +9,7 @@ import headerTransparency from './app/header-transparency'
 import loadScript from './components/load-script'
 import scrollHideHeader from './components/scroll-hide-header'
 import promoPopup from './components/promo-popup'
+import postInfinite from './post-infinite'
 
 const M4Setup = () => {
   /**
@@ -69,6 +70,11 @@ const M4Setup = () => {
    * @param {Number} delay - Delay in ms before showing
    */
   promoPopup('#js-promo-popup', 2000)
+
+  // Initialize infinite scroll orchestration if present
+  if (document.querySelector('.js-infinite-container')) {
+    postInfinite()
+  }
 
   // End M4Setup
 }
