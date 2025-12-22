@@ -23,7 +23,7 @@
     {{!-- Next Post --}}
     <div class="w-1/2 pl-4">
         {{#next_post}}
-    <a href="{{url}}" class="prev-next-right flex items-center justify-end js-next-post-link">
+        <a href="{{url}}" class="prev-next-right flex items-center justify-end">
             <div class="text-right">
                 <span class="block text-sm mb-1 text-gray-500">{{t "Next article"}}</span>
                 <h3 class="prev-next-title text-title text-base hover:text-primary leading-tight lineClamp-2 flex-grow md:text-lg">{{title}}</h3>
@@ -38,11 +38,6 @@
                 alt="{{title}}">
             {{/if}}
         </a>
-    {{/next_post}}
-
-    {{!-- data hook for prefetching next-next article when appended via infinite scroll --}}
-    {{#if next_post}}
-    <div class="hidden js-next-post-data" data-url="{{next_post.url}}"></div>
-    {{/if}}
+        {{/next_post}}
     </div>
 </div>

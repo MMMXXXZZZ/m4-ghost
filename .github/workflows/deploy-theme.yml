@@ -5,29 +5,15 @@ on:
       - main
 jobs:
   deploy:
-    runs-on: ubuntu-22.04
-    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    timeout-minutes: 5  # Cancels the job after 3 minutes
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build theme assets
-        run: npm run build
-
       - name: Deploy Ghost Theme
         uses: TryGhost/action-deploy-theme@v1
         with:
           api-url: ${{ secrets.GHOST_ADMIN_API_URL }}
           api-key: ${{ secrets.GHOST_ADMIN_API_KEY }}
-
       - name: Restart Ghost via SSH
         uses: appleboy/ssh-action@v0.1.10
         with:
@@ -37,81 +23,3 @@ jobs:
           script: |
             cd /var/www/ghost
             ghost restart
-
-      - name: Sync built JS assets to all themes on origin (backup & copy)
-        env:
-          SERVER_HOST: ${{ secrets.SERVER_HOST }}
-          SERVER_USER: ${{ secrets.SERVER_USER }}
-          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-        run: |
-          set -euo pipefail
-          echo "Uploading built JS to server and copying into theme folders (backing up existing JS)."
-          mkdir -p ~/.ssh
-          echo "$SSH_KEY" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          TS=$(date +%s)
-          # Ensure remote script creates backup dirs and copies files
-          scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa assets/scripts/*.js $SERVER_USER@$SERVER_HOST:/tmp/ || true
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa $SERVER_USER@$SERVER_HOST bash -s <<'REMOTE'
-          set -e
-          TS_REMOTE="$(date +%s)"
-          for theme in /var/www/ghost/content/themes/*; do
-            ASSETS_DIR="$theme/assets/scripts"
-            if [ -d "$ASSETS_DIR" ]; then
-              BACKUP_DIR="$ASSETS_DIR/backup_$TS_REMOTE"
-              mkdir -p "$BACKUP_DIR"
-              # copy existing js files to backup (ignore errors if none)
-              cp -a "$ASSETS_DIR"/*.js "$BACKUP_DIR/" 2>/dev/null || true
-            else
-              mkdir -p "$ASSETS_DIR"
-            fi
-            # copy uploaded files into theme assets
-            for f in /tmp/*.js; do
-              if [ -f "$f" ]; then
-                cp -a "$f" "$ASSETS_DIR/"
-              fi
-            done
-          done
-          rm -f /tmp/*.js || true
-          # best-effort fix permissions
-          chown -R www-data:www-data /var/www/ghost/content/themes || true
-          echo "Sync complete"
-          REMOTE
-
-      - name: Inspect deployed asset on server
-        uses: appleboy/ssh-action@v0.1.10
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            echo "Checking for deployed post.js under /var/www/ghost/content/themes/*/assets/scripts/"
-            set -e
-            FILES=(/var/www/ghost/content/themes/*/assets/scripts/post.js)
-            if [ -e "${FILES[0]}" ]; then
-              for f in /var/www/ghost/content/themes/*/assets/scripts/post.js; do
-                echo "--- $f ---"
-                sha256sum "$f" || true
-                echo "--- head ---"
-                sed -n '1,40p' "$f" || true
-              done
-            else
-              echo "No post.js found under themes; listing themes dir:"
-              ls -la /var/www/ghost/content/themes || true
-            fi
-
-      - name: Purge Cloudflare cache for updated assets
-        env:
-          CF_ZONE_ID: ${{ secrets.CF_ZONE_ID }}
-          CF_PURGE: ${{ secrets.CF_PURGE }}
-        run: |
-          echo "Purging Cloudflare cache for assets/scripts/ (all JS)"
-          RESPONSE=$(curl -sS -X POST "https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/purge_cache" \
-            -H "Authorization: Bearer $CF_PURGE" \
-            -H "Content-Type: application/json" \
-            --data '{"prefixes":["m44.cl/assets/scripts/"]}')
-          echo "$RESPONSE"
-          if ! echo "$RESPONSE" | grep -q '"success":true'; then
-            echo "Cloudflare purge did not report success" >&2
-            exit 1
-          fi

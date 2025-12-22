@@ -4,9 +4,8 @@
 {{#contentFor "M4_class_body"}}is-article{{/contentFor}}
 
 <div class="container mx-auto flex flex-col lg:flex-row my-10">
-    {{#post}}
-    <div class="js-infinite-container">
-    <article class="post min-w-0 flex-auto js-post-article" data-title="{{title}}" data-url="{{url}}">
+        {{#post}}
+        <article class="post min-w-0 flex-auto">
             {{#unless feature_image}}
                 <div class="lg:pl-20">
                 {{!-- Article Header - partials/article/article-header.hbs --}}
@@ -29,9 +28,8 @@
 
             {{!-- Comments Section --}}
             {{> "article/article-comments"}}
-    </article>
-    </div>
-    {{/post}}
+        </article>
+        {{/post}}
 
         {{!-- Sidebar - partials/sidebar.hbs --}}
         {{> "sidebar"}}
