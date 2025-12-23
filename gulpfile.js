@@ -45,9 +45,6 @@ const BuildComments = `/*!
  */`
 
 // clean assets
-// NOTE: we intentionally avoid deleting `assets/fonts` so locally bundled fonts
-// are preserved. Remove generated scripts, styles and images instead of the
-// whole `assets` folder.
 const clean = () => {
   return del([
     'assets/scripts/**',
@@ -157,14 +154,14 @@ function copyMainStyle (done) {
 
 // ZIP
 function zipper (done) {
-  const filename = `${name}-v${version}.zip`
+  const filename = `m4-ghost.zip` // Fixed name
 
   pump([
     src([
       '**',
       '!node_modules', '!node_modules/**',
       '!dist', '!dist/**',
-      '!src', '!src/**',
+      // '!src', '!src/**',  <--- COMMENTED OUT TO INCLUDE SRC
       '!docs', '!docs/**',
       '!gulpfile.js',
       '!.stylelintrc.json',
@@ -185,11 +182,10 @@ const imgWatcher = () => watch('src/img/**', images)
 const hbsWatcher = () => watch(['*.hbs', 'partials/**/*.hbs'], hbs)
 
 const compile = parallel(styles, scripts, images)
-// const watcher = parallel(cssWatcher, jsWatcher, imgWatcher)
 const watcher = parallel(cssWatcher, jsWatcher, imgWatcher, hbsWatcher)
 
 const build = series(clean, compile)
 const production = series(build, copyAmpStyle, copyMainStyle, zipper)
 const development = series(build, serve, watcher)
 
-module.exports = { build, development, production }
+module.exports = { build, development, production, zipper }
