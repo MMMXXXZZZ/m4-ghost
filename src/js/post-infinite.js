@@ -10,11 +10,16 @@ export default () => {
   const container = document.querySelector('.js-infinite-container');
   const nextLink = document.querySelector('.js-next-post-link');
 
+  console.log('[InfiniteScroll] Init attempt:', {
+    containerFound: !!container,
+    nextLinkFound: !!nextLink,
+    nextUrl: nextLink ? nextLink.getAttribute('href') : null
+  });
+
   if (!container || !nextLink) {
+    console.log('[InfiniteScroll] Missing elements. Scroller will not start.');
     return;
   }
-
-  console.log('[InfiniteScroll] Initializing engine on container...');
 
   const analytics = new AnalyticsManager();
   const firstArticle = container.querySelector('.js-post-article');
@@ -36,7 +41,7 @@ export default () => {
     const newArticle = items[0];
     if (!newArticle) return;
 
-    console.log('[InfiniteScroll] Appended:', newArticle.dataset.title);
+    console.log('[InfiniteScroll] Appended post:', newArticle.dataset.title);
 
     const newTitle = newArticle.dataset.title;
     const newUrl = newArticle.dataset.url;
@@ -51,11 +56,9 @@ export default () => {
     analytics.trackPageView(newUrl, newTitle, referrer);
     analytics.observeArticle(newArticle, newTitle);
 
-    // Update the pagination link for the NEXT scroll operation
+    // Manual prefetch for the NEXT chronological post
     const nextData = newArticle.querySelector('.js-next-post-data');
     if (nextData && nextData.dataset.url) {
-        nextLink.href = nextData.dataset.url;
-        
         const prefetch = document.createElement('link');
         prefetch.rel = 'prefetch';
         prefetch.href = nextData.dataset.url;
@@ -63,5 +66,5 @@ export default () => {
     }
   });
 
-  console.log('[InfiniteScroll] Engine Ready.');
+  console.log('[InfiniteScroll] Engine is active.');
 };

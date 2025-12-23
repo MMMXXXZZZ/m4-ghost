@@ -3,11 +3,11 @@
 
 {{#contentFor "M4_class_body"}}is-article{{/contentFor}}
 
-{{!-- js-infinite-container added to the existing flex parent --}}
+{{!-- The main flex container is our scroll target --}}
 <div class="container mx-auto flex flex-col lg:flex-row my-10 js-infinite-container">
 
     {{#post}}
-    {{!-- js-post-article added to the existing article tag to keep CSS selectors working --}}
+    {{!-- article tag gets the hook to keep CSS hierarchy intact --}}
     <article class="post min-w-0 flex-auto js-post-article" data-url="{{url}}" data-title="{{title}}">
         {{#unless feature_image}}
             <div class="lg:pl-20">
@@ -26,20 +26,20 @@
             {{> "article/article-comments"}}
         </div>
 
-        {{!-- Metadata for the infinite scroll engine --}}
+        {{!-- Prefetching metadata --}}
         {{#next_post}}
             <div class="js-next-post-data hidden" data-url="{{url}}"></div>
         {{/next_post}}
     </article>
     {{/post}}
 
-    {{!-- Sidebar --}}
+    {{!-- Sidebar stays outside the scroll-appending articles --}}
     {{> "sidebar"}}
 
-    {{!-- Hidden fallback link for the engine to follow --}}
+    {{!-- Hidden navigation link for the engine --}}
     {{#next_post}}
         <div class="pagination-fallback hidden">
-             <a href="{{url}}" class="js-next-post-link">Next</a>
+             <a href="{{url}}" class="js-next-post-link">Next Post</a>
         </div>
     {{/next_post}}
 
