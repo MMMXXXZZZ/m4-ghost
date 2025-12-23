@@ -20,10 +20,8 @@ jobs:
         run: npm ci
 
       - name: Build Production Theme
+        # Using the correct 'prod' script from package.json
         run: npm run prod
-
-      - name: Rename Zip
-        run: mv dist/*.zip dist/m4.zip
 
       - name: Copy Theme to Server via SCP
         uses: appleboy/scp-action@v0.1.7
@@ -47,15 +45,22 @@ jobs:
             sudo systemctl stop ghost_m44-cl || true
             
             cd content/themes
-            sudo rm -rf m4-ghost
-            sudo unzip -o /tmp/dist/m4.zip -d m4-ghost
             
+            # Wipe existing folder
+            sudo rm -rf m4-ghost
+            
+            # Unzip new version
+            sudo unzip -o /tmp/dist/m4.zip -d m4-ghost
             echo ">>> VERIFYING post.hbs ON SERVER <<<"
             grep -C 5 "js-infinite-container" m4-ghost/post.hbs || echo "CLASS NOT FOUND IN FILE"
             
+            # Cleanup tmp
             sudo rm -rf /tmp/dist
+            
+            # Reset ownership
             sudo chown -R ghost:ghost m4-ghost
             
+            # Restart service
             cd /var/www/ghost
             sudo systemctl start ghost_m44-cl || true
             ghost restart
