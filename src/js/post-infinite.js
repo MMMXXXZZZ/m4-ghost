@@ -7,26 +7,45 @@ import highlightPrism from './components/highlight-prismjs';
 import M4Gallery from './components/gallery';
 
 export default () => {
-  const container = document.querySelector('.js-infinite-container');
-  const nextLink = document.querySelector('.js-next-post-link');
-  const bodyClasses = document.body.className;
+  console.log('[Forensics] Starting DOM Interrogation...');
 
-  console.log('[InfiniteScroll] Diagnostic:', {
-    url: window.location.pathname,
-    bodyClasses: bodyClasses,
-    containerFound: !!container,
-    nextLinkFound: !!nextLink
+  const byClass = document.querySelector('.js-infinite-container');
+  const byId = document.getElementById('diagnostic-container');
+  const nextLink = document.querySelector('.js-next-post-link');
+  
+  // LOGGING: Detailed status
+  console.log('[Forensics] Results:', {
+    foundByClass: !!byClass,
+    foundById: !!byId,
+    foundNextLink: !!nextLink,
+    bodyClasses: document.body.className
   });
 
-  if (!container || !nextLink) {
-    if (bodyClasses.includes('post-template')) {
-      console.warn('[InfiniteScroll] Warning: This is a post page, but required hooks are missing. Check custom templates.');
+  if (!byClass && !byId) {
+    console.error('[Forensics] CRITICAL: Content container not found. Inspecting parent structure...');
+    const mainContainer = document.querySelector('.container.mx-auto.flex');
+    if (mainContainer) {
+        console.log('[Forensics] Parent flex container found. Children classes:');
+        Array.from(mainContainer.children).forEach((child, i) => {
+            console.log(`  Child ${i}: <${child.tagName.toLowerCase()}> Classes: "${child.className}"`);
+        });
+    } else {
+        console.log('[Forensics] Main flex container ".container.mx-auto.flex" not found either.');
     }
     return;
   }
 
+  const container = byClass || byId;
+
+  if (!nextLink) {
+    console.warn('[Forensics] Container exists but ".js-next-post-link" is missing. Is this the latest post?');
+    return;
+  }
+
+  console.log('[Forensics] Success. Initializing Infinite Scroll.');
+
   const analytics = new AnalyticsManager();
-  const firstArticle = container.querySelector('.js-post-article');
+  const firstArticle = container.querySelector('.js-post-article') || container.querySelector('article');
   
   if (firstArticle) {
     analytics.observeArticle(firstArticle, document.title);
@@ -45,25 +64,19 @@ export default () => {
     const newArticle = items[0];
     if (!newArticle) return;
 
-    console.log('[InfiniteScroll] New article loaded:', newArticle.dataset.title);
-
-    const newTitle = newArticle.dataset.title;
-    const newUrl = newArticle.dataset.url;
-    const referrer = window.location.pathname; 
+    console.log('[Forensics] Content Appended:', newArticle.dataset.title || 'Untitled');
 
     videoResponsive(newArticle);
     resizeImagesInGalleries(newArticle);
     highlightPrism(newArticle);
     M4Gallery();
 
-    analytics.trackPageView(newUrl, newTitle, referrer);
-    analytics.observeArticle(newArticle, newTitle);
+    analytics.trackPageView(newArticle.dataset.url, newArticle.dataset.title, window.location.pathname);
+    analytics.observeArticle(newArticle, newArticle.dataset.title);
 
     const nextData = newArticle.querySelector('.js-next-post-data');
     if (nextData && nextData.dataset.url) {
         nextLink.href = nextData.dataset.url;
     }
   });
-
-  console.log('[InfiniteScroll] Active.');
 };

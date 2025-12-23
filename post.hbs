@@ -5,10 +5,9 @@
 
 <div class="container mx-auto flex flex-col lg:flex-row my-10">
 
-    {{!-- This column is the target. 'flex-auto' is preserved for layout. --}}
-    <div class="min-w-0 flex-auto js-infinite-container">
+    {{!-- Column target with both Class and ID for redundant detection --}}
+    <div id="diagnostic-container" class="min-w-0 flex-auto js-infinite-container">
         {{#post}}
-        {{!-- 'js-post-article' added to the existing article tag --}}
         <article class="post js-post-article" data-url="{{url}}" data-title="{{title}}">
             {{#unless feature_image}}
                 <div class="lg:pl-20">
@@ -27,7 +26,6 @@
                 {{> "article/article-comments"}}
             </div>
 
-            {{!-- Prefetch metadata --}}
             {{#next_post}}
                 <div class="js-next-post-data hidden" data-url="{{url}}"></div>
             {{/next_post}}
@@ -35,10 +33,8 @@
         {{/post}}
     </div>
 
-    {{!-- Sidebar stays outside the scroll zone to keep it fixed --}}
     {{> "sidebar"}}
 
-    {{!-- Navigation fallback --}}
     {{#next_post}}
         <div class="pagination-fallback hidden">
              <a href="{{url}}" class="js-next-post-link">Next</a>
