@@ -1,20 +1,42 @@
 {{!-- Layout --}}
 {{!< default }}
 
-{{#contentFor "M4_class_body"}}is-single-post has-cover is-head-transparent{{/contentFor}}
+{{#contentFor "M4_class_body"}}is-article{{/contentFor}}
 
 {{#post}}
-{{!-- Article Header Cover - partials/article/article-header-cover.hbs --}}
-{{> "article/article-header-cover"}}
+<article class="js-post-article {{post_class}}" data-url="{{url}}" data-title="{{title}}" data-id="{{id}}">
+    <section class="post container mx-auto my-10">
+        <div class="col s12 flex-none w-full">
+            {{!-- Article Header --}}
+            {{> "article/article-header"}}
+        </div>
+        <div class="flex flex-col">
+            <div class="min-w-0 flex-auto">
+                {{!-- Featured Image --}}
+                {{> "article/article-media"}}
 
-<div class="post container mx-auto max-w-3xl my-8">
-    {{!-- Article Author - partials/components/author-meta.hbs --}}
-    {{> "components/author-meta"}}
+                {{!-- Article Content --}}
+                {{> "article/article-body"}}
 
-    {{!-- Article Content - partials/article/article-body.hbs --}}
-    {{> "article/article-body"}}
-</div>
+                {{!-- Article Author --}}
+                {{> "components/author-meta"}}
+
+                {{!-- Comments Section --}}
+                {{> "article/article-comments"}}
+            </div>
+        </div>
+    </section>
+
+    {{!-- Related Section --}}
+    {{> "article/article-related"}}
+
+    {{!-- Data for Infinite Scroll --}}
+    <div class="js-next-post-data" style="display:none;">
+        {{#prev_post}}
+            <input type="hidden" class="js-next-post-url" value="{{url}}">
+            <input type="hidden" class="js-next-post-title" value="{{title}}">
+            <input type="hidden" class="js-next-post-id" value="{{id}}">
+        {{/prev_post}}
+    </div>
+</article>
 {{/post}}
-
-{{!-- Related Articles - partials/article/article-related.hbs --}}
-{{> "article/article-related"}}
