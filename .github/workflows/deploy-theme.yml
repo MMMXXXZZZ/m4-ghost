@@ -20,10 +20,8 @@ jobs:
         run: npm ci
 
       - name: Build Production Theme
+        # Now valid because we added "production" script to package.json
         run: npm run production -- --production
-
-      - name: Rename Zip
-        run: mv dist/*.zip dist/theme.zip
 
       - name: Copy Theme to Server via SCP
         uses: appleboy/scp-action@v0.1.7
@@ -32,7 +30,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
-          source: "dist/theme.zip"
+          source: "dist/m4-ghost.zip" # Using static name from gulpfile
           target: "/tmp/"
 
       - name: Install Theme on Server
@@ -43,30 +41,26 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
           script: |
-            # 1. Stop Ghost to release file locks
             cd /var/www/ghost
-            sudo systemctl stop ghost_m44-cl || echo "Ghost not running or name different"
-
-            # 2. Go to themes directory
-            cd content/themes
-
-            # 3. Force remove old assets explicitly to ensure update
-            sudo rm -rf m4-ghost/assets/scripts/post.js
-
-            # 4. Unzip the new theme OVER existing folder
-            sudo unzip -o /tmp/dist/theme.zip -d m4-ghost
-
-            # 5. Cleanup tmp file
-            sudo rm -rf /tmp/dist
-
-            # 6. Fix permissions
-            sudo chown -R ghost:ghost m4-ghost
-
-            # 7. Start Ghost
-            cd /var/www/ghost
-            sudo systemctl start ghost_m44-cl
+            sudo systemctl stop ghost_m44-cl || true
             
-            # 8. Force restart just in case
+            cd content/themes
+            
+            # Remove old folder completely
+            sudo rm -rf m4-ghost
+            
+            # Unzip new theme (using the path from scp)
+            sudo unzip -o /tmp/dist/m4-ghost.zip -d m4-ghost
+            
+            # Cleanup tmp file
+            sudo rm -rf /tmp/dist
+            
+            # Fix permissions
+            sudo chown -R ghost:ghost m4-ghost
+            
+            # Restart Ghost
+            cd /var/www/ghost
+            sudo systemctl start ghost_m44-cl || true
             ghost restart
 
       - name: Purge Cloudflare Cache

@@ -154,14 +154,15 @@ function copyMainStyle (done) {
 
 // ZIP
 function zipper (done) {
-  const filename = `m4-ghost.zip` // Fixed name
+  // Static filename for CI reliability
+  const filename = `m4-ghost.zip`
 
   pump([
     src([
       '**',
       '!node_modules', '!node_modules/**',
       '!dist', '!dist/**',
-      // '!src', '!src/**',  <--- COMMENTED OUT TO INCLUDE SRC
+      // '!src', '!src/**', // Commented out so src IS included in zip for verification
       '!docs', '!docs/**',
       '!gulpfile.js',
       '!.stylelintrc.json',
