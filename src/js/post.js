@@ -11,7 +11,7 @@ import isSinglePost from './post/is-singgle-post'
 import initInfiniteScroll from './post-infinite'
 
 const M4PostSetup = () => {
-  console.log("M4PostSetup: Starting initialization...");
+  console.log('M4PostSetup: Starting initialization...');
   
   videoResponsive()
   resizeImagesInGalleries()
@@ -20,7 +20,7 @@ const M4PostSetup = () => {
   M4Gallery()
 
   // Initialize Infinite Scroll
-  console.log("M4PostSetup: Initializing Infinite Scroll...");
+  console.log('M4PostSetup: Initializing Infinite Scroll...');
   initInfiniteScroll()
 }
 
