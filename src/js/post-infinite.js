@@ -10,80 +10,65 @@ export default () => {
   if (window.M4InfiniteScrollActive) return;
 
   const container = document.querySelector('.js-infinite-container');
-  const initialLink = document.querySelector('.js-next-post-link');
+  const initialNextLink = document.querySelector('.js-next-post-link');
+  
+  // Mobile Menu Diagnostic
+  const menuToggle = document.querySelector('.js-menu-toggle');
+  console.log('[InfiniteScroll] DOM Check:', { 
+    container: !!container, 
+    nextLink: !!initialNextLink,
+    menuToggle: !!menuToggle 
+  });
 
-  if (!container || !initialLink) {
-    console.warn('[InfiniteScroll] Scroller aborted. Container or initial link missing.');
-    return;
-  }
+  if (!container || !initialNextLink) return;
 
   const analytics = new AnalyticsManager();
   const firstArticle = container.querySelector('.js-post-article');
-  if (firstArticle) analytics.observeArticle(firstArticle, document.title);
-
-  let nextFetchUrl = initialLink.getAttribute('href');
+  if (firstArticle) {
+    analytics.observeArticle(firstArticle, document.title);
+  }
 
   const infScroll = new InfiniteScroll(container, {
-    path: () => nextFetchUrl,
+    // The path function is evaluated before every fetch
+    path: function() {
+      const articles = document.querySelectorAll('.js-post-article');
+      const lastArticle = articles[articles.length - 1];
+      if (!lastArticle) return null;
+      
+      const nextData = lastArticle.querySelector('.js-next-post-data');
+      const nextUrl = nextData ? nextData.dataset.url : null;
+      
+      if (nextUrl) {
+        console.log('[InfiniteScroll] Next target identified:', nextUrl);
+      }
+      return nextUrl;
+    },
     append: '.js-post-article',
     history: 'push',
     historyTitle: true,
-    scrollThreshold: 1000, // Increased threshold for smoother triggering
-    loadOnScroll: true,
-    checkLastPage: '.js-next-post-link'
+    scrollThreshold: 800,
+    loadOnScroll: true
   });
 
-  // Track the request start
-  infScroll.on('request', (path) => {
-    console.log(`[InfiniteScroll] Fetching next post: ${path}`);
-  });
-
-  // 'load' fires when the HTML is received
-  infScroll.on('load', (body, path) => {
-    console.group(`[InfiniteScroll] Loading Page: ${path}`);
-    
-    const nextData = body.querySelector('.js-next-post-data');
-    const hasArticle = !!body.querySelector('.js-post-article');
-    
-    console.log('Target article found in response:', hasArticle);
-    
-    if (nextData) {
-      nextFetchUrl = nextData.dataset.url;
-      console.log('Next URL discovered in response:', nextFetchUrl);
-    } else {
-      nextFetchUrl = null;
-      console.log('No next link found in response. This is the last post.');
-      infScroll.options.loadOnScroll = false;
-    }
-    
-    console.groupEnd();
-  });
-
-  // 'append' fires after the HTML is added to the DOM
   infScroll.on('append', (response, path, items) => {
     const newArticle = items[0];
-    if (!newArticle) {
-        console.error('[InfiniteScroll] Append failed: No items found in response matching ".js-post-article"');
-        return;
-    }
+    if (!newArticle) return;
 
-    const title = newArticle.dataset.title || 'Unknown Title';
-    console.log(`[InfiniteScroll] Successfully appended: ${title}`);
+    console.log('[InfiniteScroll] Appended:', newArticle.dataset.title);
 
-    // Re-initialize theme logic
+    // Re-initialize theme logic for the newly added post content
     videoResponsive(newArticle);
     resizeImagesInGalleries(newArticle);
     highlightPrism(newArticle);
     M4Gallery();
 
-    analytics.trackPageView(newArticle.dataset.url, title, window.location.pathname);
-    analytics.observeArticle(newArticle, title);
+    analytics.trackPageView(newArticle.dataset.url, newArticle.dataset.title, window.location.pathname);
+    analytics.observeArticle(newArticle, newArticle.dataset.title);
   });
 
   infScroll.on('error', (error, path) => {
-    console.error(`[InfiniteScroll] Error loading ${path}:`, error);
+    console.error('[InfiniteScroll] Fetch failed:', error, path);
   });
 
   window.M4InfiniteScrollActive = true;
-  console.log('[InfiniteScroll] Engine active.');
 };
