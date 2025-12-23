@@ -3,11 +3,11 @@
 
 {{#contentFor "M4_class_body"}}is-article{{/contentFor}}
 
-{{!-- The container remains the flex parent, but we manage the infinite loading inside --}}
+{{!-- js-infinite-container added to the existing flex parent --}}
 <div class="container mx-auto flex flex-col lg:flex-row my-10 js-infinite-container">
 
     {{#post}}
-    {{!-- js-post-article added directly to the article tag to preserve all CSS relationships --}}
+    {{!-- js-post-article added to the existing article tag to keep CSS selectors working --}}
     <article class="post min-w-0 flex-auto js-post-article" data-url="{{url}}" data-title="{{title}}">
         {{#unless feature_image}}
             <div class="lg:pl-20">
@@ -33,15 +33,13 @@
     </article>
     {{/post}}
 
-    {{!-- Sidebar stays outside the appended articles --}}
+    {{!-- Sidebar --}}
     {{> "sidebar"}}
 
     {{!-- Hidden fallback link for the engine to follow --}}
     {{#next_post}}
-        <div class="w-full text-center py-8 pagination-fallback hidden">
-             <a href="{{url}}" class="js-next-post-link">
-                {{t "Read next"}}: <strong>{{title}}</strong>
-             </a>
+        <div class="pagination-fallback hidden">
+             <a href="{{url}}" class="js-next-post-link">Next</a>
         </div>
     {{/next_post}}
 

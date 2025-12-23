@@ -10,15 +10,11 @@ export default () => {
   const container = document.querySelector('.js-infinite-container');
   const nextLink = document.querySelector('.js-next-post-link');
 
-  console.log('[InfiniteScroll] Component found:', { 
-    container: !!container, 
-    nextLink: !!nextLink 
-  });
-
   if (!container || !nextLink) {
-    console.log('[InfiniteScroll] Missing container or link. Exiting.');
     return;
   }
+
+  console.log('[InfiniteScroll] Initializing engine on container...');
 
   const analytics = new AnalyticsManager();
   const firstArticle = container.querySelector('.js-post-article');
@@ -32,37 +28,40 @@ export default () => {
     append: '.js-post-article',
     history: 'push',
     historyTitle: true,
-    scrollThreshold: 600,
-    status: '.page-load-status'
+    scrollThreshold: 800,
+    hideNav: '.pagination-fallback'
   });
 
   infScroll.on('append', (response, path, items) => {
-    console.log('[InfiniteScroll] Appended new content.');
-    
-    const newArticleWrapper = items[0];
-    if (!newArticleWrapper) return;
+    const newArticle = items[0];
+    if (!newArticle) return;
 
-    const newTitle = newArticleWrapper.dataset.title;
-    const newUrl = newArticleWrapper.dataset.url;
+    console.log('[InfiniteScroll] Appended:', newArticle.dataset.title);
+
+    const newTitle = newArticle.dataset.title;
+    const newUrl = newArticle.dataset.url;
     const referrer = window.location.pathname; 
 
     // Re-initialize theme features for new content
-    videoResponsive(newArticleWrapper);
-    resizeImagesInGalleries(newArticleWrapper);
-    highlightPrism(newArticleWrapper);
+    videoResponsive(newArticle);
+    resizeImagesInGalleries(newArticle);
+    highlightPrism(newArticle);
     M4Gallery();
 
     analytics.trackPageView(newUrl, newTitle, referrer);
-    analytics.observeArticle(newArticleWrapper, newTitle);
+    analytics.observeArticle(newArticle, newTitle);
 
-    const nextData = newArticleWrapper.querySelector('.js-next-post-data');
+    // Update the pagination link for the NEXT scroll operation
+    const nextData = newArticle.querySelector('.js-next-post-data');
     if (nextData && nextData.dataset.url) {
-        const link = document.createElement('link');
-        link.rel = 'prefetch';
-        link.href = nextData.dataset.url;
-        document.head.appendChild(link);
+        nextLink.href = nextData.dataset.url;
+        
+        const prefetch = document.createElement('link');
+        prefetch.rel = 'prefetch';
+        prefetch.href = nextData.dataset.url;
+        document.head.appendChild(prefetch);
     }
   });
 
-  console.log('[InfiniteScroll] Initialized successfully.');
+  console.log('[InfiniteScroll] Engine Ready.');
 };
