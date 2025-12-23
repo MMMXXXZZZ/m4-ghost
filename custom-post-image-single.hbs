@@ -1,33 +1,25 @@
 {{!-- Layout --}}
 {{!< default }}
 
-{{#contentFor "M4_class_body"}}is-article{{/contentFor}}
+{{#contentFor "M4_class_body"}}is-single-post has-cover is-head-transparent{{/contentFor}}
 
 {{#post}}
 <article class="js-post-article {{post_class}}" data-url="{{url}}" data-title="{{title}}" data-id="{{id}}">
-    <section class="post container mx-auto my-10">
-        <div class="col s12 flex-none w-full">
-            {{!-- Article Header - partials/article/article-header.hbs --}}
-            {{> "article/article-header"}}
-        </div>
-        <div class="flex flex-col">
-            <div class="min-w-0 flex-auto">
-                {{!-- Featured Image - partials/article/article-media.hbs --}}
-                {{> "article/article-media"}}
+    {{!-- Article Header Cover - partials/article/article-header-cover.hbs --}}
+    {{> "article/article-header-cover"}}
 
-                {{!-- Article Content - partials/article/article-body.hbs --}}
-                {{> "article/article-body"}}
+    <div class="post container mx-auto max-w-3xl my-8 px-4 md:px-0">
+        {{!-- Article Author - partials/components/author-meta.hbs --}}
+        {{> "components/author-meta"}}
 
-                {{!-- Article Author - partials/components/author-meta.hbs --}}
-                {{> "components/author-meta"}}
+        {{!-- Article Content - partials/article/article-body.hbs --}}
+        {{> "article/article-body"}}
 
-                {{!-- Comments Section --}}
-                {{> "article/article-comments"}}
-            </div>
-        </div>
-    </section>
+        {{!-- Comments Section --}}
+        {{> "article/article-comments"}}
+    </div>
 
-    {{!-- Related Section --}}
+    {{!-- Related Articles - partials/article/article-related.hbs --}}
     {{> "article/article-related"}}
 
     {{!-- Data for Infinite Scroll --}}
