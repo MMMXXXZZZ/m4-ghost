@@ -7,52 +7,35 @@ import highlightPrism from './components/highlight-prismjs';
 import M4Gallery from './components/gallery';
 
 export default () => {
-  console.log('[Forensics] Starting DOM Interrogation...');
+  // Guard against double initialization
+  if (window.M4InfiniteScrollActive) {
+    console.log('[InfiniteScroll] Already active. Skipping second init.');
+    return;
+  }
 
-  const byClass = document.querySelector('.js-infinite-container');
-  const byId = document.getElementById('diagnostic-container');
+  const container = document.querySelector('.js-infinite-container');
   const nextLink = document.querySelector('.js-next-post-link');
-  
-  // LOGGING: Detailed status
-  console.log('[Forensics] Results:', {
-    foundByClass: !!byClass,
-    foundById: !!byId,
-    foundNextLink: !!nextLink,
-    bodyClasses: document.body.className
-  });
 
-  if (!byClass && !byId) {
-    console.error('[Forensics] CRITICAL: Content container not found. Inspecting parent structure...');
-    const mainContainer = document.querySelector('.container.mx-auto.flex');
-    if (mainContainer) {
-        console.log('[Forensics] Parent flex container found. Children classes:');
-        Array.from(mainContainer.children).forEach((child, i) => {
-            console.log(`  Child ${i}: <${child.tagName.toLowerCase()}> Classes: "${child.className}"`);
-        });
-    } else {
-        console.log('[Forensics] Main flex container ".container.mx-auto.flex" not found either.');
-    }
+  if (!container || !nextLink) {
+    console.warn('[InfiniteScroll] Missing container or next link.');
     return;
   }
 
-  const container = byClass || byId;
-
-  if (!nextLink) {
-    console.warn('[Forensics] Container exists but ".js-next-post-link" is missing. Is this the latest post?');
-    return;
-  }
-
-  console.log('[Forensics] Success. Initializing Infinite Scroll.');
+  console.log('[InfiniteScroll] Initializing engine with path function...');
 
   const analytics = new AnalyticsManager();
-  const firstArticle = container.querySelector('.js-post-article') || container.querySelector('article');
+  const firstArticle = container.querySelector('.js-post-article');
   
   if (firstArticle) {
     analytics.observeArticle(firstArticle, document.title);
   }
 
   const infScroll = new InfiniteScroll(container, {
-    path: '.js-next-post-link',
+    // FIXED: Use a function for path to handle non-numeric Ghost post URLs
+    path: function() {
+        const link = document.querySelector('.js-next-post-link');
+        return link ? link.getAttribute('href') : null;
+    },
     append: '.js-post-article',
     history: 'push',
     historyTitle: true,
@@ -64,8 +47,9 @@ export default () => {
     const newArticle = items[0];
     if (!newArticle) return;
 
-    console.log('[Forensics] Content Appended:', newArticle.dataset.title || 'Untitled');
+    console.log('[InfiniteScroll] Appended:', newArticle.dataset.title);
 
+    // Re-initialize theme features
     videoResponsive(newArticle);
     resizeImagesInGalleries(newArticle);
     highlightPrism(newArticle);
@@ -74,9 +58,19 @@ export default () => {
     analytics.trackPageView(newArticle.dataset.url, newArticle.dataset.title, window.location.pathname);
     analytics.observeArticle(newArticle, newArticle.dataset.title);
 
+    // Update the next link reference for the next scroll trigger
     const nextData = newArticle.querySelector('.js-next-post-data');
-    if (nextData && nextData.dataset.url) {
-        nextLink.href = nextData.dataset.url;
+    const globalNextLink = document.querySelector('.js-next-post-link');
+    
+    if (nextData && nextData.dataset.url && globalNextLink) {
+        globalNextLink.setAttribute('href', nextData.dataset.url);
+        console.log('[InfiniteScroll] Updated next path to:', nextData.dataset.url);
+    } else {
+        console.log('[InfiniteScroll] No more posts to load. Destroying instance.');
+        infScroll.destroy();
     }
   });
+
+  window.M4InfiniteScrollActive = true;
+  console.log('[InfiniteScroll] Engine initialized and monitoring scroll.');
 };
