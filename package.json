@@ -169,9 +169,8 @@
   },
   "scripts": {
     "build": "gulp build",
-    "production": "gulp production",
-    "zip": "gulp zipper",
     "prod": "cross-env NODE_ENV=production gulp production --production",
+    "production": "gulp production --production",
     "dev": "gulp development",
     "lint:js": "standard src/js/**/*.js gulpfile.js",
     "lint:sass": "stylelint src/sass/**/*.sass",
