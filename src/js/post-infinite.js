@@ -7,19 +7,23 @@ import highlightPrism from './components/highlight-prismjs';
 import M4Gallery from './components/gallery';
 
 export default () => {
+  console.log('[InfiniteScroll] Starting diagnostic check...');
+
   const container = document.querySelector('.js-infinite-container');
   const nextLink = document.querySelector('.js-next-post-link');
-
-  console.log('[InfiniteScroll] Init attempt:', {
-    containerFound: !!container,
-    nextLinkFound: !!nextLink,
-    nextUrl: nextLink ? nextLink.getAttribute('href') : null
-  });
+  
+  // LOGGING: Tell us exactly what is missing
+  if (!container) console.warn('[InfiniteScroll] Selector ".js-infinite-container" NOT FOUND in DOM.');
+  if (!nextLink) console.warn('[InfiniteScroll] Selector ".js-next-post-link" NOT FOUND in DOM.');
 
   if (!container || !nextLink) {
-    console.log('[InfiniteScroll] Missing elements. Scroller will not start.');
+    // If not found, let's see what's actually there
+    const mainCols = document.querySelectorAll('.flex-auto');
+    console.log('[InfiniteScroll] Possible containers found (.flex-auto count):', mainCols.length);
     return;
   }
+
+  console.log('[InfiniteScroll] All elements found. Initializing engine.');
 
   const analytics = new AnalyticsManager();
   const firstArticle = container.querySelector('.js-post-article');
@@ -38,33 +42,30 @@ export default () => {
   });
 
   infScroll.on('append', (response, path, items) => {
-    const newArticle = items[0];
-    if (!newArticle) return;
+    const newArticleWrapper = items[0];
+    if (!newArticleWrapper) return;
 
-    console.log('[InfiniteScroll] Appended post:', newArticle.dataset.title);
+    console.log('[InfiniteScroll] Appended:', newArticleWrapper.dataset.title);
 
-    const newTitle = newArticle.dataset.title;
-    const newUrl = newArticle.dataset.url;
+    const newTitle = newArticleWrapper.dataset.title;
+    const newUrl = newArticleWrapper.dataset.url;
     const referrer = window.location.pathname; 
 
-    // Re-initialize theme features for new content
-    videoResponsive(newArticle);
-    resizeImagesInGalleries(newArticle);
-    highlightPrism(newArticle);
+    // Re-run theme features on new content
+    videoResponsive(newArticleWrapper);
+    resizeImagesInGalleries(newArticleWrapper);
+    highlightPrism(newArticleWrapper);
     M4Gallery();
 
     analytics.trackPageView(newUrl, newTitle, referrer);
-    analytics.observeArticle(newArticle, newTitle);
+    analytics.observeArticle(newArticleWrapper, newTitle);
 
-    // Manual prefetch for the NEXT chronological post
-    const nextData = newArticle.querySelector('.js-next-post-data');
+    // Update the link for the next trigger
+    const nextData = newArticleWrapper.querySelector('.js-next-post-data');
     if (nextData && nextData.dataset.url) {
-        const prefetch = document.createElement('link');
-        prefetch.rel = 'prefetch';
-        prefetch.href = nextData.dataset.url;
-        document.head.appendChild(prefetch);
+        nextLink.href = nextData.dataset.url;
     }
   });
 
-  console.log('[InfiniteScroll] Engine is active.');
+  console.log('[InfiniteScroll] Engine is active and watching scroll.');
 };
