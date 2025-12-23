@@ -3,39 +3,41 @@
 
 {{#contentFor "M4_class_body"}}is-article{{/contentFor}}
 
-{{#post}}
-<article class="js-post-article {{post_class}}" data-url="{{url}}" data-title="{{title}}" data-id="{{id}}">
-    <section class="post container mx-auto my-10 px-4 md:px-0">
-        <div class="flex flex-col lg:flex-row gap-10">
-            <div class="min-w-0 flex-auto">
-                {{!-- Article Header --}}
-                {{> "article/article-header"}}
+<div class="js-infinite-container">
+    {{#post}}
+    <article class="js-post-article {{post_class}}" data-url="{{url}}" data-title="{{title}}" data-id="{{id}}">
+        <section class="post container mx-auto my-10 px-4 md:px-0">
+            <div class="flex flex-col lg:flex-row gap-10">
+                <div class="min-w-0 flex-auto">
+                    {{!-- Article Header --}}
+                    {{> "article/article-header"}}
 
-                {{!-- Featured Image --}}
-                {{> "article/article-media"}}
+                    {{!-- Featured Image --}}
+                    {{> "article/article-media"}}
 
-                {{!-- Article Content --}}
-                {{> "article/article-body"}}
+                    {{!-- Article Content --}}
+                    {{> "article/article-body"}}
 
-                {{!-- Comments Section --}}
-                {{> "article/article-comments"}}
+                    {{!-- Comments Section --}}
+                    {{> "article/article-comments"}}
+                </div>
+
+                {{!-- Sidebar is now inside the article wrapper to prevent overlap --}}
+                {{> "sidebar"}}
             </div>
+        </section>
 
-            {{!-- Sidebar --}}
-            {{> "sidebar"}}
+        {{!-- Related Section --}}
+        {{> "article/article-related"}}
+
+        {{!-- Data for Infinite Scroll: Pointing to older posts to continue the feed --}}
+        <div class="js-next-post-data" style="display:none;">
+            {{#prev_post}}
+                <input type="hidden" class="js-next-post-url" value="{{url}}">
+                <input type="hidden" class="js-next-post-title" value="{{title}}">
+                <input type="hidden" class="js-next-post-id" value="{{id}}">
+            {{/prev_post}}
         </div>
-    </section>
-
-    {{!-- Related Section --}}
-    {{> "article/article-related"}}
-
-    {{!-- Data for Infinite Scroll --}}
-    <div class="js-next-post-data" style="display:none;">
-        {{#prev_post}}
-            <input type="hidden" class="js-next-post-url" value="{{url}}">
-            <input type="hidden" class="js-next-post-title" value="{{title}}">
-            <input type="hidden" class="js-next-post-id" value="{{id}}">
-        {{/prev_post}}
-    </div>
-</article>
-{{/post}}
+    </article>
+    {{/post}}
+</div>
