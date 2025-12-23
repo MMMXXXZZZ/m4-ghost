@@ -3,6 +3,7 @@
 
 {{#contentFor "M4_class_body"}}is-article{{/contentFor}}
 
+{{!-- The container must be outside the #post block to be detected on page load --}}
 <div class="js-infinite-container">
     {{#post}}
     <article class="js-post-article {{post_class}}" data-url="{{url}}" data-title="{{title}}" data-id="{{id}}">
@@ -22,7 +23,7 @@
                     {{> "article/article-comments"}}
                 </div>
 
-                {{!-- Sidebar is now inside the article wrapper to prevent overlap --}}
+                {{!-- Sidebar is inside the article wrapper so it cuts off correctly --}}
                 {{> "sidebar"}}
             </div>
         </section>
@@ -30,14 +31,20 @@
         {{!-- Related Section --}}
         {{> "article/article-related"}}
 
-        {{!-- Data for Infinite Scroll: Pointing to older posts to continue the feed --}}
-        <div class="js-next-post-data" style="display:none;">
-            {{#prev_post}}
-                <input type="hidden" class="js-next-post-url" value="{{url}}">
-                <input type="hidden" class="js-next-post-title" value="{{title}}">
-                <input type="hidden" class="js-next-post-id" value="{{id}}">
-            {{/prev_post}}
+        {{!-- Data for Infinite Scroll: We use prev_post to ensure the feed continues back in time --}}
+        {{#prev_post}}
+        <div class="js-next-post-data hidden" data-url="{{url}}" data-title="{{title}}" data-id="{{id}}">
+            <input type="hidden" class="js-next-post-url" value="{{url}}">
+            <input type="hidden" class="js-next-post-title" value="{{title}}">
         </div>
+        {{/prev_post}}
     </article>
+
+    {{!-- Pagination trigger for initial script activation --}}
+    {{#prev_post}}
+    <div class="pagination-fallback hidden">
+        <a href="{{url}}" class="js-next-post-link">Next</a>
+    </div>
+    {{/prev_post}}
     {{/post}}
 </div>

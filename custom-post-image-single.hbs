@@ -23,14 +23,20 @@
         {{!-- Related Articles - partials/article/article-related.hbs --}}
         {{> "article/article-related"}}
 
-        {{!-- Data for Infinite Scroll --}}
-        <div class="js-next-post-data" style="display:none;">
-            {{#prev_post}}
-                <input type="hidden" class="js-next-post-url" value="{{url}}">
-                <input type="hidden" class="js-next-post-title" value="{{title}}">
-                <input type="hidden" class="js-next-post-id" value="{{id}}">
-            {{/prev_post}}
+        {{!-- Infinite Scroll Metadata --}}
+        {{#prev_post}}
+        <div class="js-next-post-data hidden" data-url="{{url}}" data-title="{{title}}" data-id="{{id}}">
+            <input type="hidden" class="js-next-post-url" value="{{url}}">
+            <input type="hidden" class="js-next-post-title" value="{{title}}">
         </div>
+        {{/prev_post}}
     </article>
+
+    {{!-- Pagination trigger --}}
+    {{#prev_post}}
+    <div class="pagination-fallback hidden">
+        <a href="{{url}}" class="js-next-post-link">Next</a>
+    </div>
+    {{/prev_post}}
     {{/post}}
 </div>
