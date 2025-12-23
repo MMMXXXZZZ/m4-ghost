@@ -5,10 +5,9 @@
 
 <div class="container mx-auto flex flex-col lg:flex-row my-10">
 
-    {{!-- This wrapper ensures new articles stack correctly before the sidebar --}}
-    <div class="js-infinite-container min-w-0 flex-auto">
+    {{!-- Wrapper for articles. We keep original classes to maintain typography/spacing --}}
+    <div class="min-w-0 flex-auto js-infinite-container">
         {{#post}}
-        {{!-- js-post-article is the unit that gets cloned and appended --}}
         <article class="post js-post-article" data-url="{{url}}" data-title="{{title}}">
             {{#unless feature_image}}
                 <div class="lg:pl-20">
@@ -27,7 +26,7 @@
                 {{> "article/article-comments"}}
             </div>
 
-            {{!-- Metadata for the next post in the sequence --}}
+            {{!-- This MUST be inside the .js-post-article so the engine finds it in the next load --}}
             {{#next_post}}
                 <div class="js-next-post-data hidden" data-url="{{url}}"></div>
             {{/next_post}}
@@ -35,10 +34,10 @@
         {{/post}}
     </div>
 
-    {{!-- Sidebar remains a direct sibling of the scroll container --}}
+    {{!-- Sidebar stays outside. Eventually, we can move this to a separate row for w-full loads --}}
     {{> "sidebar"}}
 
-    {{!-- Hidden navigation link for the engine to discover the first 'next' URL --}}
+    {{!-- Initial load helper --}}
     {{#next_post}}
         <div class="pagination-fallback hidden">
              <a href="{{url}}" class="js-next-post-link">Next</a>
