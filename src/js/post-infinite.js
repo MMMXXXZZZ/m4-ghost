@@ -7,21 +7,50 @@ import highlightPrism from './components/highlight-prismjs';
 import M4Gallery from './components/gallery';
 
 export default () => {
-  // Guard against double initialization
-  if (window.M4InfiniteScrollActive) {
-    console.log('[InfiniteScroll] Already active. Skipping second init.');
-    return;
-  }
+  if (window.M4InfiniteScrollActive) return;
 
+  console.log('[Diagnostic] Starting deep DOM scan...');
+
+  // 1. Standard Check
   const container = document.querySelector('.js-infinite-container');
   const nextLink = document.querySelector('.js-next-post-link');
+  
+  console.log('[Diagnostic] Primary Selectors:', { 
+    container: !!container, 
+    nextLink: !!nextLink 
+  });
 
-  if (!container || !nextLink) {
-    console.warn('[InfiniteScroll] Missing container or next link.');
-    return;
+  // 2. Fallback search: If container isn't found, find the article and its parents
+  if (!container) {
+    const article = document.querySelector('article.post');
+    if (article) {
+      console.log('[Diagnostic] Found <article>. Parent hierarchy:');
+      let p = article.parentElement;
+      while (p && p !== document.body) {
+        console.log(`  - <${p.tagName.toLowerCase()}> Classes: "${p.className}" ID: "${p.id}"`);
+        p = p.parentElement;
+      }
+    } else {
+      console.warn('[Diagnostic] No <article.post> found at all.');
+    }
   }
 
-  console.log('[InfiniteScroll] Initializing engine with path function...');
+  // 3. Link discovery: If nextLink isn't found, search for any <a> containing "Next"
+  if (!nextLink) {
+    const allLinks = Array.from(document.querySelectorAll('a'));
+    const nextMaybe = allLinks.find(l => l.textContent.toLowerCase().includes('next'));
+    if (nextMaybe) {
+      console.log('[Diagnostic] Potential Next Link found by text search:', {
+        href: nextMaybe.getAttribute('href'),
+        classes: nextMaybe.className
+      });
+    }
+  }
+
+  if (!container || !nextLink) {
+    console.error('[Diagnostic] Initialization aborted: Required markers missing.');
+    return;
+  }
 
   const analytics = new AnalyticsManager();
   const firstArticle = container.querySelector('.js-post-article');
@@ -31,7 +60,6 @@ export default () => {
   }
 
   const infScroll = new InfiniteScroll(container, {
-    // FIXED: Use a function for path to handle non-numeric Ghost post URLs
     path: function() {
         const link = document.querySelector('.js-next-post-link');
         return link ? link.getAttribute('href') : null;
@@ -47,9 +75,6 @@ export default () => {
     const newArticle = items[0];
     if (!newArticle) return;
 
-    console.log('[InfiniteScroll] Appended:', newArticle.dataset.title);
-
-    // Re-initialize theme features
     videoResponsive(newArticle);
     resizeImagesInGalleries(newArticle);
     highlightPrism(newArticle);
@@ -58,19 +83,13 @@ export default () => {
     analytics.trackPageView(newArticle.dataset.url, newArticle.dataset.title, window.location.pathname);
     analytics.observeArticle(newArticle, newArticle.dataset.title);
 
-    // Update the next link reference for the next scroll trigger
     const nextData = newArticle.querySelector('.js-next-post-data');
     const globalNextLink = document.querySelector('.js-next-post-link');
-    
     if (nextData && nextData.dataset.url && globalNextLink) {
         globalNextLink.setAttribute('href', nextData.dataset.url);
-        console.log('[InfiniteScroll] Updated next path to:', nextData.dataset.url);
-    } else {
-        console.log('[InfiniteScroll] No more posts to load. Destroying instance.');
-        infScroll.destroy();
     }
   });
 
   window.M4InfiniteScrollActive = true;
-  console.log('[InfiniteScroll] Engine initialized and monitoring scroll.');
+  console.log('[Diagnostic] Scroller active.');
 };
