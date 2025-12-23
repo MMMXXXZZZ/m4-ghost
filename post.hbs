@@ -5,42 +5,40 @@
 
 <div class="container mx-auto flex flex-col lg:flex-row my-10">
 
-    {{!-- This column is now the target. It keeps the original 'flex-auto' class for your layout. --}}
+    {{!-- This column is the target. 'flex-auto' is preserved for layout. --}}
     <div class="min-w-0 flex-auto js-infinite-container">
         {{#post}}
-        {{!-- We wrap the article in a div to act as the appended unit --}}
-        <div class="js-post-article" data-url="{{url}}" data-title="{{title}}">
-            <article class="post">
-                {{#unless feature_image}}
-                    <div class="lg:pl-20">
-                        {{> "article/article-header"}}
-                        {{> "components/author-meta"}}
-                    </div>
-                {{else}}
+        {{!-- 'js-post-article' added to the existing article tag --}}
+        <article class="post js-post-article" data-url="{{url}}" data-title="{{title}}">
+            {{#unless feature_image}}
+                <div class="lg:pl-20">
                     {{> "article/article-header"}}
                     {{> "components/author-meta"}}
-                {{/unless}}
-
-                {{> "article/article-media"}}
-                {{> "article/article-body"}}
-
-                <div class="article-comments">
-                    {{> "article/article-comments"}}
                 </div>
+            {{else}}
+                {{> "article/article-header"}}
+                {{> "components/author-meta"}}
+            {{/unless}}
 
-                {{!-- Prefetch metadata for the next link --}}
-                {{#next_post}}
-                    <div class="js-next-post-data hidden" data-url="{{url}}"></div>
-                {{/next_post}}
-            </article>
-        </div>
+            {{> "article/article-media"}}
+            {{> "article/article-body"}}
+
+            <div class="article-comments">
+                {{> "article/article-comments"}}
+            </div>
+
+            {{!-- Prefetch metadata --}}
+            {{#next_post}}
+                <div class="js-next-post-data hidden" data-url="{{url}}"></div>
+            {{/next_post}}
+        </article>
         {{/post}}
     </div>
 
-    {{!-- Sidebar stays outside the scroll zone --}}
+    {{!-- Sidebar stays outside the scroll zone to keep it fixed --}}
     {{> "sidebar"}}
 
-    {{!-- Hidden navigation link for the engine --}}
+    {{!-- Navigation fallback --}}
     {{#next_post}}
         <div class="pagination-fallback hidden">
              <a href="{{url}}" class="js-next-post-link">Next</a>
