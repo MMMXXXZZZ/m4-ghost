@@ -20,10 +20,9 @@ jobs:
         run: npm ci
 
       - name: Build Production Theme
-        # This creates dist/m4-ghost-vX.X.zip
         run: npm run production -- --production
 
-      - name: Rename Zip for Deployment
+      - name: Rename Zip
         run: mv dist/*.zip dist/theme.zip
 
       - name: Copy Theme to Server via SCP
@@ -44,24 +43,30 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
           script: |
-            # 1. Go to themes directory
-            cd /var/www/ghost/content/themes
+            # 1. Stop Ghost to release file locks
+            cd /var/www/ghost
+            sudo systemctl stop ghost_m44-cl || echo "Ghost not running or name different"
 
-            # 2. Remove the existing theme folder (Nuclear option to ensure update)
-            # Make sure 'm4-ghost' matches your theme folder name exactly!
-            sudo rm -rf m4-ghost
+            # 2. Go to themes directory
+            cd content/themes
 
-            # 3. Unzip the new theme
+            # 3. Force remove old assets explicitly to ensure update
+            sudo rm -rf m4-ghost/assets/scripts/post.js
+
+            # 4. Unzip the new theme OVER existing folder
             sudo unzip -o /tmp/dist/theme.zip -d m4-ghost
 
-            # 4. Cleanup tmp file
+            # 5. Cleanup tmp file
             sudo rm -rf /tmp/dist
 
-            # 5. Fix permissions (Crucial)
+            # 6. Fix permissions
             sudo chown -R ghost:ghost m4-ghost
 
-            # 6. Restart Ghost
+            # 7. Start Ghost
             cd /var/www/ghost
+            sudo systemctl start ghost_m44-cl
+            
+            # 8. Force restart just in case
             ghost restart
 
       - name: Purge Cloudflare Cache
