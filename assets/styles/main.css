@@ -1869,6 +1869,7 @@ a > code[class*=language-] {
   opacity: 0;
   transition: max-height 0.5s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.5s ease-in-out;
   will-change: max-height, opacity;
+  margin: 0 20px 0 20px;
 }
 
 .promo-popup.is-visible {
@@ -1889,13 +1890,13 @@ a > code[class*=language-] {
   .promo-popup__content {
     flex-direction: row;
     justify-content: space-between;
-    padding: 1rem 0;
+    padding: 1rem 2rem;
   }
 }
 
 .promo-popup__message {
   margin-bottom: 0.5rem;
-  font-size: 0.9rem;
+  font-size: 1rem;
 }
 
 @media (min-width: 64rem) {
