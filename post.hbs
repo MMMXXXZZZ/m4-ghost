@@ -3,50 +3,47 @@
 
 {{#contentFor "M4_class_body"}}is-article{{/contentFor}}
 
-<div class="container mx-auto flex flex-col lg:flex-row my-10">
+{{!-- The container remains the flex parent, but we manage the infinite loading inside --}}
+<div class="container mx-auto flex flex-col lg:flex-row my-10 js-infinite-container">
 
-    {{!-- This div is now the target for Infinite Scroll. It keeps the original theme layout classes. --}}
-    <div class="js-infinite-container min-w-0 flex-auto">
-        {{#post}}
-        <article class="post js-post-article" data-url="{{url}}" data-title="{{title}}">
-            {{#unless feature_image}}
-                <div class="lg:pl-20">
-                    {{> "article/article-header"}}
-                    {{> "components/author-meta"}}
-                </div>
-            {{else}}
+    {{#post}}
+    {{!-- js-post-article added directly to the article tag to preserve all CSS relationships --}}
+    <article class="post min-w-0 flex-auto js-post-article" data-url="{{url}}" data-title="{{title}}">
+        {{#unless feature_image}}
+            <div class="lg:pl-20">
                 {{> "article/article-header"}}
                 {{> "components/author-meta"}}
-            {{/unless}}
-
-            {{> "article/article-media"}}
-            {{> "article/article-body"}}
-
-            <div class="article-comments">
-                {{> "article/article-comments"}}
             </div>
-            
-            {{!-- Metadata for prefetching inside the article --}}
-            {{#next_post}}
-                <div class="js-next-post-data hidden" data-url="{{url}}"></div>
-            {{/next_post}}
-        </article>
-        {{/post}}
-    </div>
+        {{else}}
+            {{> "article/article-header"}}
+            {{> "components/author-meta"}}
+        {{/unless}}
 
-    {{!-- Sidebar stays outside the scroller to remain fixed/consistent --}}
+        {{> "article/article-media"}}
+        {{> "article/article-body"}}
+
+        <div class="article-comments">
+            {{> "article/article-comments"}}
+        </div>
+
+        {{!-- Metadata for the infinite scroll engine --}}
+        {{#next_post}}
+            <div class="js-next-post-data hidden" data-url="{{url}}"></div>
+        {{/next_post}}
+    </article>
+    {{/post}}
+
+    {{!-- Sidebar stays outside the appended articles --}}
     {{> "sidebar"}}
 
-    {{!-- NAVIGATION / FALLBACK --}}
-    {{#post}}
+    {{!-- Hidden fallback link for the engine to follow --}}
     {{#next_post}}
-        <div class="w-full text-center py-8 pagination-fallback">
-             <a href="{{url}}" class="js-next-post-link inline-block px-6 py-3 border border-gray-200 rounded-full hover:bg-gray-50 transition-colors">
+        <div class="w-full text-center py-8 pagination-fallback hidden">
+             <a href="{{url}}" class="js-next-post-link">
                 {{t "Read next"}}: <strong>{{title}}</strong>
              </a>
         </div>
     {{/next_post}}
-    {{/post}}
 
 </div>
 

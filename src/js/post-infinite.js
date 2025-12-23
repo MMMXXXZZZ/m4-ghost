@@ -10,10 +10,13 @@ export default () => {
   const container = document.querySelector('.js-infinite-container');
   const nextLink = document.querySelector('.js-next-post-link');
 
-  console.log('[InfiniteScroll] Checking for container and link...', { container: !!container, nextLink: !!nextLink });
+  console.log('[InfiniteScroll] Component found:', { 
+    container: !!container, 
+    nextLink: !!nextLink 
+  });
 
   if (!container || !nextLink) {
-    console.log('[InfiniteScroll] Required elements missing. Skipping.');
+    console.log('[InfiniteScroll] Missing container or link. Exiting.');
     return;
   }
 
@@ -34,12 +37,16 @@ export default () => {
   });
 
   infScroll.on('append', (response, path, items) => {
-    console.log('[InfiniteScroll] New post appended.');
+    console.log('[InfiniteScroll] Appended new content.');
+    
     const newArticleWrapper = items[0];
+    if (!newArticleWrapper) return;
+
     const newTitle = newArticleWrapper.dataset.title;
     const newUrl = newArticleWrapper.dataset.url;
     const referrer = window.location.pathname; 
 
+    // Re-initialize theme features for new content
     videoResponsive(newArticleWrapper);
     resizeImagesInGalleries(newArticleWrapper);
     highlightPrism(newArticleWrapper);
@@ -57,5 +64,5 @@ export default () => {
     }
   });
 
-  console.log('[InfiniteScroll] Initialization complete.');
+  console.log('[InfiniteScroll] Initialized successfully.');
 };
