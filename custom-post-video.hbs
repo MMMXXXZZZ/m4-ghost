@@ -4,46 +4,58 @@
 {{#contentFor "M4_class_body"}}is-video has-cover is-head-transparent{{/contentFor}}
 
 {{#post}}
+<article class="js-post-article {{post_class}}" data-url="{{url}}" data-title="{{title}}" data-id="{{id}}">
+    <div class="cc-video godo-hero-cover bg-dark pt-16 relative">
+        <div class="py-10 flex flex-col lg:flex-row mx-auto lg:px-4">
+            <div class="flex-grow lg:mr-8">
+                <div class="cc-video-cont h-0" style="padding: 0 0 56.25%">
+                    <div class="cc-video-embed">
+                        <span class="js-video-close absolute button is-black is-circle -right-3 -top-3 z-3 hidden">
+                            <svg class="icon is-x-small"><use xlink:href="#icon-close"></use></svg>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="cc-video-right lg:w-1/3">
+                <div class="cc-video-header px-4 pt-8 lg:p-0">
+                    {{!-- Category and Datetime partials/components/primary-tag.hbs --}}
+                    {{> "components/primary-tag" class="text-white"}}
 
-<div class="cc-video godo-hero-cover bg-dark pt-16 relative">
-    <div class="py-10 flex flex-col lg:flex-row mx-auto lg:px-4">
-        <div class="flex-grow lg:mr-8">
-            <div class="cc-video-cont h-0" style="padding: 0 0 56.25%">
-                <div class="cc-video-embed">
-                    <span class="js-video-close absolute button is-black is-circle -right-3 -top-3 z-3 hidden">
-                        <svg class="icon is-x-small"><use xlink:href="#icon-close"></use></svg>
-                    </span>
+                    <h1 class="cc-video-title text-white text-4xl xl:text-5xl">{{title}}</h1>
+                    {{#if custom_excerpt}}<p class="text-white text-opacity-60 text-xl xl:text-2xl mt-5">{{custom_excerpt}}</p>{{/if}}
                 </div>
             </div>
         </div>
-        <div class="cc-video-right lg:w-1/3">
-            <div class="cc-video-header px-4 pt-8 lg:p-0">
-                {{!-- Category and Datetime partials/components/primary-tag.hbs --}}
-                {{> "components/primary-tag" class="text-white"}}
-
-                <h1 class="cc-video-title text-white text-4xl xl:text-5xl">{{title}}</h1>
-                {{#if custom_excerpt}}<p class="text-white text-opacity-60 text-xl xl:text-2xl mt-5">{{custom_excerpt}}</p>{{/if}}
-            </div>
-        </div>
     </div>
-</div>
 
-<div class="container js-video-post mx-auto flex flex-col lg:flex-row my-10">
-    <article class="post min-w-0 flex-auto">
-        {{!-- Article Author - partials/components/author-meta.hbs --}}
-        {{> "components/author-meta" class="lg:ml-20"}}
+    <div class="container js-video-post mx-auto flex flex-col lg:flex-row my-10 px-4 md:px-0">
+        <div class="post min-w-0 flex-auto">
+            {{!-- Article Author - partials/components/author-meta.hbs --}}
+            {{> "components/author-meta" class="lg:ml-20"}}
 
-        {{!-- Article Content - partials/article/article-body.hbs --}}
-        {{> "article/article-body"}}
-    </article>
-{{/post}}
+            {{!-- Article Content - partials/article/article-body.hbs --}}
+            {{> "article/article-body"}}
 
-    {{!-- Sidebar - partials/sidebar.hbs --}}
-    {{> "sidebar"}}
-</div>
+            {{!-- Comments Section --}}
+            {{> "article/article-comments"}}
+        </div>
 
-{{!-- Related Articles - partials/article/article-related.hbs --}}
-{{> "article/article-related"}}
+        {{!-- Sidebar - partials/sidebar.hbs --}}
+        {{> "sidebar"}}
+    </div>
+
+    {{!-- Related Articles - partials/article/article-related.hbs --}}
+    {{> "article/article-related"}}
+
+    {{!-- Data for Infinite Scroll --}}
+    <div class="js-next-post-data" style="display:none;">
+        {{#prev_post}}
+            <input type="hidden" class="js-next-post-url" value="{{url}}">
+            <input type="hidden" class="js-next-post-title" value="{{title}}">
+            <input type="hidden" class="js-next-post-id" value="{{id}}">
+        {{/prev_post}}
+    </div>
+</article>
 
 {{#contentFor "scripts"}}<script>
 (function () {
@@ -63,14 +75,12 @@
     var $videoMedia = document.querySelector('.cc-video-embed');
     var $jsVideoClose = document.querySelector('.js-video-close');
 
-    /* Append Video in Top of Article */
     if ($firstVideo.closest('.kg-embed-card')) {
         $videoMedia.appendChild($firstVideo.closest('.kg-embed-card'));
     } else {
         $videoMedia.appendChild($firstVideo.parentNode);
     }
 
-    /* Video fixed */
     function videoMediaScroll() {
         if (window.scrollY > document.querySelector('.js-video-post').offsetTop - 100) {
             document.body.classList.add('has-video-fixed');
@@ -85,7 +95,6 @@
         window.addEventListener('scroll', videoMediaScroll);
     }
 
-    /*  Close video fixed */
     $jsVideoClose.addEventListener('click', function (e) {
         e.preventDefault();
         document.body.classList.remove('has-video-fixed');
@@ -94,3 +103,4 @@
     });
 })();
 </script>{{/contentFor}}
+{{/post}}
