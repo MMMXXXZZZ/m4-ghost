@@ -7,50 +7,18 @@ import highlightPrism from './components/highlight-prismjs';
 import M4Gallery from './components/gallery';
 
 export default () => {
+  // Prevent double initialization
   if (window.M4InfiniteScrollActive) return;
 
-  console.log('[Diagnostic] Starting deep DOM scan...');
-
-  // 1. Standard Check
   const container = document.querySelector('.js-infinite-container');
-  const nextLink = document.querySelector('.js-next-post-link');
-  
-  console.log('[Diagnostic] Primary Selectors:', { 
-    container: !!container, 
-    nextLink: !!nextLink 
-  });
+  const initialLink = document.querySelector('.js-next-post-link');
 
-  // 2. Fallback search: If container isn't found, find the article and its parents
-  if (!container) {
-    const article = document.querySelector('article.post');
-    if (article) {
-      console.log('[Diagnostic] Found <article>. Parent hierarchy:');
-      let p = article.parentElement;
-      while (p && p !== document.body) {
-        console.log(`  - <${p.tagName.toLowerCase()}> Classes: "${p.className}" ID: "${p.id}"`);
-        p = p.parentElement;
-      }
-    } else {
-      console.warn('[Diagnostic] No <article.post> found at all.');
-    }
-  }
-
-  // 3. Link discovery: If nextLink isn't found, search for any <a> containing "Next"
-  if (!nextLink) {
-    const allLinks = Array.from(document.querySelectorAll('a'));
-    const nextMaybe = allLinks.find(l => l.textContent.toLowerCase().includes('next'));
-    if (nextMaybe) {
-      console.log('[Diagnostic] Potential Next Link found by text search:', {
-        href: nextMaybe.getAttribute('href'),
-        classes: nextMaybe.className
-      });
-    }
-  }
-
-  if (!container || !nextLink) {
-    console.error('[Diagnostic] Initialization aborted: Required markers missing.');
+  if (!container || !initialLink) {
+    console.log('[InfiniteScroll] Required DOM elements not found. Skipping.');
     return;
   }
+
+  console.log('[InfiniteScroll] Initializing engine...');
 
   const analytics = new AnalyticsManager();
   const firstArticle = container.querySelector('.js-post-article');
@@ -59,22 +27,38 @@ export default () => {
     analytics.observeArticle(firstArticle, document.title);
   }
 
+  // We track the next URL in a variable to bypass library regex parsing
+  let nextFetchUrl = initialLink.getAttribute('href');
+
   const infScroll = new InfiniteScroll(container, {
-    path: function() {
-        const link = document.querySelector('.js-next-post-link');
-        return link ? link.getAttribute('href') : null;
-    },
+    path: () => nextFetchUrl,
     append: '.js-post-article',
     history: 'push',
     historyTitle: true,
-    scrollThreshold: 800,
-    hideNav: '.pagination-fallback'
+    scrollThreshold: 600,
+    loadOnScroll: true
+  });
+
+  // 'load' fires as soon as the data is fetched, allowing us to grab the NEXT url
+  infScroll.on('load', (body) => {
+    const nextData = body.querySelector('.js-next-post-data');
+    nextFetchUrl = nextData ? nextData.dataset.url : null;
+    
+    if (!nextFetchUrl) {
+      console.log('[InfiniteScroll] Reached end of post stream.');
+      infScroll.options.loadOnScroll = false;
+    } else {
+      console.log('[InfiniteScroll] Next URL queued:', nextFetchUrl);
+    }
   });
 
   infScroll.on('append', (response, path, items) => {
     const newArticle = items[0];
     if (!newArticle) return;
 
+    console.log('[InfiniteScroll] Content Appended:', newArticle.dataset.title);
+
+    // Re-trigger theme-specific JS for the new content
     videoResponsive(newArticle);
     resizeImagesInGalleries(newArticle);
     highlightPrism(newArticle);
@@ -82,14 +66,8 @@ export default () => {
 
     analytics.trackPageView(newArticle.dataset.url, newArticle.dataset.title, window.location.pathname);
     analytics.observeArticle(newArticle, newArticle.dataset.title);
-
-    const nextData = newArticle.querySelector('.js-next-post-data');
-    const globalNextLink = document.querySelector('.js-next-post-link');
-    if (nextData && nextData.dataset.url && globalNextLink) {
-        globalNextLink.setAttribute('href', nextData.dataset.url);
-    }
   });
 
   window.M4InfiniteScrollActive = true;
-  console.log('[Diagnostic] Scroller active.');
+  console.log('[InfiniteScroll] Engine is active and watching scroll.');
 };

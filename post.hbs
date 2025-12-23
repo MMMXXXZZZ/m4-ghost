@@ -3,40 +3,42 @@
 
 {{#contentFor "M4_class_body"}}is-article{{/contentFor}}
 
-{{!-- The js-infinite-container is on the existing flex parent to keep layout --}}
-<div class="container mx-auto flex flex-col lg:flex-row my-10 js-infinite-container">
+<div class="container mx-auto flex flex-col lg:flex-row my-10">
 
-    {{#post}}
-    {{!-- js-post-article is on the existing article tag to keep CSS selectors working --}}
-    <article class="post min-w-0 flex-auto js-post-article" data-url="{{url}}" data-title="{{title}}">
-        {{#unless feature_image}}
-            <div class="lg:pl-20">
+    {{!-- This wrapper ensures new articles stack correctly before the sidebar --}}
+    <div class="js-infinite-container min-w-0 flex-auto">
+        {{#post}}
+        {{!-- js-post-article is the unit that gets cloned and appended --}}
+        <article class="post js-post-article" data-url="{{url}}" data-title="{{title}}">
+            {{#unless feature_image}}
+                <div class="lg:pl-20">
+                    {{> "article/article-header"}}
+                    {{> "components/author-meta"}}
+                </div>
+            {{else}}
                 {{> "article/article-header"}}
                 {{> "components/author-meta"}}
+            {{/unless}}
+
+            {{> "article/article-media"}}
+            {{> "article/article-body"}}
+
+            <div class="article-comments">
+                {{> "article/article-comments"}}
             </div>
-        {{else}}
-            {{> "article/article-header"}}
-            {{> "components/author-meta"}}
-        {{/unless}}
 
-        {{> "article/article-media"}}
-        {{> "article/article-body"}}
+            {{!-- Metadata for the next post in the sequence --}}
+            {{#next_post}}
+                <div class="js-next-post-data hidden" data-url="{{url}}"></div>
+            {{/next_post}}
+        </article>
+        {{/post}}
+    </div>
 
-        <div class="article-comments">
-            {{> "article/article-comments"}}
-        </div>
-
-        {{!-- Hidden metadata for the scroll engine --}}
-        {{#next_post}}
-            <div class="js-next-post-data hidden" data-url="{{url}}"></div>
-        {{/next_post}}
-    </article>
-    {{/post}}
-
-    {{!-- Sidebar --}}
+    {{!-- Sidebar remains a direct sibling of the scroll container --}}
     {{> "sidebar"}}
 
-    {{!-- Hidden fallback link --}}
+    {{!-- Hidden navigation link for the engine to discover the first 'next' URL --}}
     {{#next_post}}
         <div class="pagination-fallback hidden">
              <a href="{{url}}" class="js-next-post-link">Next</a>
