@@ -20,7 +20,7 @@ jobs:
         run: npm ci
 
       - name: Build Production Theme
-        # Using the "prod" script from your original package.json
+        # Using the correct 'prod' script from package.json
         run: npm run prod
 
       - name: Copy Theme to Server via SCP
@@ -46,7 +46,7 @@ jobs:
             
             cd content/themes
             
-            # Wipe existing folder to ensure absolutely clean extraction
+            # Wipe existing folder
             sudo rm -rf m4-ghost
             
             # Unzip new version

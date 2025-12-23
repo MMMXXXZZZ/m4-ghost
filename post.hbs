@@ -3,13 +3,13 @@
 
 {{#contentFor "M4_class_body"}}is-article{{/contentFor}}
 
-{{!-- Main Container for Infinite Scroll --}}
-<div class="container mx-auto flex flex-col lg:flex-row my-10 js-infinite-container">
+{{!-- Main Container --}}
+<div class="container mx-auto flex flex-col lg:flex-row my-10">
 
-    {{!-- WRAPPER: This div is what gets cloned. We store metadata here. --}}
-    <div class="js-post-article min-w-0 flex-auto post-wrapper" data-url="{{url}}" data-title="{{title}}">
+    {{!-- WRAPPER: Limits infinite scroll to just the article area, leaving sidebar fixed --}}
+    <div class="js-infinite-container min-w-0 flex-auto">
         {{#post}}
-        <article class="post">
+        <article class="post js-post-article" data-url="{{url}}" data-title="{{title}}">
             {{#unless feature_image}}
                 <div class="lg:pl-20">
                     {{> "article/article-header"}}
@@ -26,20 +26,20 @@
             <div class="article-comments">
                 {{> "article/article-comments"}}
             </div>
+            
+            {{!-- Metadata for prefetching --}}
+            {{#next_post}}
+                <div class="js-next-post-data hidden" data-url="{{url}}"></div>
+            {{/next_post}}
         </article>
-        
-        {{!-- Data for the NEXT-NEXT prefetch (hidden inside the loaded content) --}}
-        {{#next_post}}
-             <div class="js-next-post-data hidden" data-url="{{url}}"></div>
-        {{/next_post}}
-
         {{/post}}
     </div>
 
-    {{!-- Sidebar --}}
+    {{!-- Sidebar stays at the top level of the flex container --}}
     {{> "sidebar"}}
 
     {{!-- NAVIGATION / FALLBACK --}}
+    {{#post}}
     {{#next_post}}
         <div class="w-full text-center py-8 pagination-fallback">
              <a href="{{url}}" class="js-next-post-link inline-block px-6 py-3 border border-gray-200 rounded-full hover:bg-gray-50 transition-colors">
@@ -47,6 +47,7 @@
              </a>
         </div>
     {{/next_post}}
+    {{/post}}
 
 </div>
 
