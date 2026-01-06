@@ -26,8 +26,10 @@
             {{!-- Subscribe --}}
             {{#if @custom.disable_member_subscriptions}}
             {{#if @member}}
+            <li class="dropdown is-right hidden relative lg:block">
             <span class="w-2 h-2 rounded-full bg-primary inline-block mr-2"></span>
             <span class="uppercase tracking-wide relative z-3 text-sm">{{t "Subscribed!"}}</span>
+            </li>>
             {{else}}
             <li class="dropdown is-right is-hoverable hidden relative lg:block">
                 <span class="hla h-16 flex items-center text-sm">{{t "Follow"}} <svg
