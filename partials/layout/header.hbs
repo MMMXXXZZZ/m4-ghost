@@ -16,8 +16,7 @@
 
         {{!-- Navigation --}}
         {{#if @site.navigation}}
-        <nav class="mainMenu px-5 items-center hidden flex-grow lg:flex{{#match @custom.header_menu " Center"}}
-            justify-center{{/match}}{{#match @custom.header_menu "Right" }} justify-end{{/match}}">
+        <nav class="mainMenu px-5 items-center hidden flex-grow lg:flex{{#match @custom.header_menu "Center"}} justify-center{{/match}}{{#match @custom.header_menu "Right" }} justify-end{{/match}}">
             {{navigation}}
         </nav>
         {{/if}}
