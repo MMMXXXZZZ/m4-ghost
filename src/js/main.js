@@ -24,16 +24,28 @@ const M4Setup = () => {
   darkMode('.js-dark-mode')
   headerTransparency('.has-cover', 'is-head-transparent')
 
-  document.querySelector('.js-menu-open').addEventListener('click', function (e) {
-    e.preventDefault()
-    document.querySelector('.js-search').classList.add('hidden')
-    document.body.classList.add('has-menu')
-  })
+  // ── Mobile menu ────────────────────────────────────────────────────────────
+  // Guard against .js-search being absent on pages that don't render the
+  // search overlay partial (prevents a null-reference crash that would
+  // silently swallow the menu open/close listeners).
+  const $menuOpen  = document.querySelector('.js-menu-open')
+  const $menuClose = document.querySelector('.js-menu-close')
+  const $search    = document.querySelector('.js-search')
 
-  document.querySelector('.js-menu-close').addEventListener('click', function (e) {
-    e.preventDefault()
-    document.body.classList.remove('has-menu')
-  })
+  if ($menuOpen) {
+    $menuOpen.addEventListener('click', function (e) {
+      e.preventDefault()
+      if ($search) $search.classList.add('hidden')
+      document.body.classList.add('has-menu')
+    })
+  }
+
+  if ($menuClose) {
+    $menuClose.addEventListener('click', function (e) {
+      e.preventDefault()
+      document.body.classList.remove('has-menu')
+    })
+  }
 
   if (typeof searchSettings !== 'undefined' && typeof siteSearch !== 'undefined') {
     loadScript(siteSearch)
@@ -50,30 +62,15 @@ const M4Setup = () => {
   }
 
   // ── Haptic feedback ────────────────────────────────────────────────────────
-  //
-  // `targets` extends the defaults — you don't need to repeat selectors already
-  // in DEFAULT_CONFIG (button, a[href], .hla, [data-ghost-search], sliders…).
-  //
-  // Add extras here, or override individual presets by repeating a selector
-  // with a different haptic value (first match wins).
-  //
-  // Inline override: add data-haptic="success" to any element in your templates.
-  //
   initHapticFeedback({
     targets: [
-      // Examples — uncomment or add your own:
       // { selector: '.load-more-btn',          haptic: 'medium'    },
-      // { selector: '[data-portal]',           haptic: 'light'     },  // Ghost portal links
-      // { selector: '[data-members-signout]',  haptic: 'warning'   },  // sign-out = caution
-      // { selector: '.js-dark-mode',           haptic: 'selection' },  // theme toggle
+      // { selector: '[data-portal]',           haptic: 'light'     },
+      // { selector: '[data-members-signout]',  haptic: 'warning'   },
+      // { selector: '.js-dark-mode',           haptic: 'selection' },
       // { selector: 'form [type="submit"]',    haptic: 'medium'    },
     ],
-
-    exclude: [
-      // '[disabled]' and '.no-haptic' are already in defaults.
-      // Add your own opt-outs:
-      // '.promo-popup__btn',
-    ],
+    exclude: [],
   })
 }
 
