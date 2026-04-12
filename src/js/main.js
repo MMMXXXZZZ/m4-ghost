@@ -22,7 +22,6 @@ const M4Setup = () => {
   }
 
   darkMode('.js-dark-mode')
-
   headerTransparency('.has-cover', 'is-head-transparent')
 
   document.querySelector('.js-menu-open').addEventListener('click', function (e) {
@@ -41,7 +40,6 @@ const M4Setup = () => {
   }
 
   scrollHideHeader('.js-hide-header')
-
   promoPopup('#js-promo-popup', 2000)
 
   if (document.querySelector('.js-infinite-container')) {
@@ -52,39 +50,29 @@ const M4Setup = () => {
   }
 
   // ── Haptic feedback ────────────────────────────────────────────────────────
-  // Customise any of the four targeting modes here.
-  // All options shown — remove or leave empty what you don't need.
+  //
+  // `targets` extends the defaults — you don't need to repeat selectors already
+  // in DEFAULT_CONFIG (button, a[href], .hla, [data-ghost-search], sliders…).
+  //
+  // Add extras here, or override individual presets by repeating a selector
+  // with a different haptic value (first match wins).
+  //
+  // Inline override: add data-haptic="success" to any element in your templates.
+  //
   initHapticFeedback({
-    // (1) CLASS NAMES — elements with any of these classes get haptic on click
-    classes: [
-      // 'button' and 'kg-btn' are already in the defaults.
-      // Add your own:
-      // 'load-more-btn',
-      // 'js-toggle-search',
+    targets: [
+      // Examples — uncomment or add your own:
+      // { selector: '.load-more-btn',          haptic: 'medium'    },
+      // { selector: '[data-portal]',           haptic: 'light'     },  // Ghost portal links
+      // { selector: '[data-members-signout]',  haptic: 'warning'   },  // sign-out = caution
+      // { selector: '.js-dark-mode',           haptic: 'selection' },  // theme toggle
+      // { selector: 'form [type="submit"]',    haptic: 'medium'    },
     ],
 
-    // (2) LINK PATTERNS — <a href="..."> links whose href matches get haptic
-    linkPatterns: [
-      // '/shop/',           // all shop links
-      // 'mailto:',          // email links
-      // /\.pdf$/i,          // PDF downloads
-      // /^https?:\/\//,     // all external links
-    ],
-
-    // (3) SELECTORS — any CSS selector, most specific wins
-    selectors: [
-      // '[data-haptic]' is already in the defaults.
-      // Add your own:
-      // 'nav a',
-      // '.post-body a',
-      // 'form [type="submit"]',
-    ],
-
-    // (4) EXCLUSIONS — matched elements are always skipped
     exclude: [
-      // '[disabled]' and '.no-haptic' are already in the defaults.
-      // Add your own:
-      // '.js-dark-mode',   // dark-mode toggle has its own feel
+      // '[disabled]' and '.no-haptic' are already in defaults.
+      // Add your own opt-outs:
+      // '.promo-popup__btn',
     ],
   })
 }

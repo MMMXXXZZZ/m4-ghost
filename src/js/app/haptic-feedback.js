@@ -1,108 +1,93 @@
 /**
  * haptic-feedback.js
  *
- * Attaches haptic feedback to any combination of:
- *   1. CSS class names          → config.classes
- *   2. Link href patterns       → config.linkPatterns
- *   3. Raw CSS selectors        → config.selectors
- *   4. Exclusions (opt-out)     → config.exclude
+ * Attaches web-haptics feedback to any element via a `targets` array.
+ * Each target maps a CSS selector → a named haptic preset (+ optional event).
  *
- * Uses a single delegated listener on `document` — cheap and
- * works for elements added dynamically (e.g. infinite scroll posts).
+ * Uses a single delegated listener on `document` — works automatically
+ * for elements added later by infinite scroll, no re-init needed.
  *
- * Usage — call once after DOMContentLoaded:
+ * ─── Preset quick-reference ────────────────────────────────────────────────
+ *
+ *  "light"      single short tap     — nav links, toggles, minor taps
+ *  "medium"     moderate tap         — buttons, card actions  (default)
+ *  "heavy"      strong tap           — major actions, destructive confirms
+ *  "soft"       cushioned tap        — subtle, rounded feel
+ *  "rigid"      crisp hard tap       — precise, snappy feel
+ *  "selection"  subtle tick          — sliders, pickers, steppers
+ *  "success"    two ascending taps   — form saved, payment confirmed
+ *  "warning"    two taps + hesitate  — destructive action ahead
+ *  "error"      four rapid taps      — validation fail, network error
+ *  "nudge"      strong + soft tail   — reminder / attention grab
+ *  "buzz"       long vibration       — rare, high-attention moments
+ *
+ * ─── Apple HIG rules (follow these) ───────────────────────────────────────
+ *  • Always pair with a visual change — never haptic-only feedback.
+ *  • Match intensity to significance: minor → light/selection, major → heavy.
+ *  • Don't over-use — if everything vibrates, nothing feels special.
+ *  • Fire the haptic at the exact instant the visual change occurs.
+ *  • For async ops, trigger on result, not on initiation:
+ *      try { await submit(); haptics.trigger('success') }
+ *      catch { haptics.trigger('error') }
+ *
+ * ─── Usage ─────────────────────────────────────────────────────────────────
  *
  *   import initHapticFeedback from './app/haptic-feedback'
  *
  *   initHapticFeedback({
- *     classes:      ['button', 'btn', 'js-haptic'],
- *     linkPatterns: ['/shop/', 'mailto:', /\.pdf$/i],
- *     selectors:    ['[data-haptic]', 'nav a', '.sidebar .button'],
- *     exclude:      ['[disabled]', '.no-haptic', '.promo-popup__btn'],
- *     duration:     10,   // ms — Android / Vibration API only
+ *     targets: [
+ *       { selector: 'button',               haptic: 'medium'    },
+ *       { selector: 'a[href]',              haptic: 'light'     },
+ *       { selector: '.hla',                 haptic: 'light'     },
+ *       { selector: '[data-haptic]',        haptic: 'medium'    },
+ *       { selector: '.kg-audio-seek-slider',haptic: 'selection', event: 'change' },
+ *     ],
+ *     exclude: ['[disabled]', '.no-haptic'],
  *   })
  */
 
-import { triggerHaptic } from '../lib/haptic'
+import { haptics } from '../lib/haptic'
 
 // ─── Defaults ────────────────────────────────────────────────────────────────
 
 const DEFAULT_CONFIG = {
   /**
-   * (1) CLASS NAMES  — without the leading dot.
-   * Every element that has at least one of these classes will trigger haptic.
+   * Array of target objects: { selector, haptic, event? }
    *
-   * Examples:
-   *   classes: ['button', 'btn', 'kg-btn', 'js-haptic']
+   *   selector  — any valid CSS selector
+   *   haptic    — preset name (see reference above), default: "medium"
+   *   event     — DOM event to listen for, default: "click"
+   *               Use "change" for <input type="range"> sliders so haptic
+   *               fires once on release rather than on every drag tick.
    */
-  classes: [
-    'button',    // your theme's .button class
-    'kg-btn',    // Ghost card buttons
-    'js-haptic', // opt-in marker — add this class to any element you like
-    'post-box',
-    'story-cover',
+  targets: [
+    // Interactive elements
+    { selector: 'button',                  haptic: 'medium'    },
+    { selector: 'a[href]',                 haptic: 'light'     },
+
+    // Theme icon-buttons (li elements acting as buttons)
+    { selector: '.hla',                    haptic: 'light'     },
+    { selector: '[data-ghost-search]',     haptic: 'light'     },
+
+    // Opt-in data attribute — add data-haptic="preset" to any element,
+    // or just data-haptic for the default medium.
+    { selector: '[data-haptic]',           haptic: 'medium'    },
+
+    // Ghost audio card — buttons covered by 'button' above,
+    // sliders use 'change' so they fire once on release.
+    { selector: '.kg-audio-seek-slider',   haptic: 'selection', event: 'change' },
+    { selector: '.kg-audio-volume-slider', haptic: 'selection', event: 'change' },
   ],
 
   /**
-   * (2) LINK PATTERNS — strings or RegExp objects tested against href.
-   * Only <a> tags are tested. An empty array disables link-pattern matching.
-   *
-   * Examples:
-   *   linkPatterns: [
-   *     '/shop/',            // internal shop links
-   *     'mailto:',           // email links
-   *     /\.pdf$/i,           // PDF downloads
-   *     /^https?:\/\/(?!yourdomain\.com)/, // all external links
-   *   ]
-   */
-  linkPatterns: [],
-
-  /**
-   * (3) SELECTORS — any valid CSS selector string.
-   * These are passed directly to .matches() / .closest().
-   *
-   * Examples:
-   *   selectors: [
-   *     '[data-haptic]',      // data-attribute opt-in
-   *     'nav a',              // all nav links
-   *     '.post-body a',       // all links inside posts
-   *     'form [type="submit"]',
-   *   ]
-   */
-  selectors: [
-    '[data-haptic]',        // data-attribute opt-in on any element
-    'button',
-    'a[href]',
-      '.hla',
-  '[data-ghost-search]',
-    '.kg-audio-seek-slider',
-  '.kg-audio-volume-slider',
-  ],
-
-  /**
-   * (4) EXCLUDE — CSS selectors that suppress haptic even if matched above.
-   * Checked last, so they always win.
-   *
-   * Examples:
-   *   exclude: [
-   *     '[disabled]',
-   *     '[aria-disabled="true"]',
-   *     '.no-haptic',
-   *     '.js-dark-mode',  // already has its own feel
-   *   ]
+   * Exclusions — matched elements are always skipped regardless of targets.
+   * Add '.no-haptic' to any element in your templates to opt out.
    */
   exclude: [
     '[disabled]',
     '[aria-disabled="true"]',
     '.no-haptic',
   ],
-
-  /**
-   * Vibration duration in milliseconds.
-   * Only used on Android / browsers that support the Vibration API.
-   * iOS ignores this (it uses a native tick with no configurable length).
-   */
-  duration: 10,
 }
 
 // ─── Init ────────────────────────────────────────────────────────────────────
@@ -112,77 +97,62 @@ const DEFAULT_CONFIG = {
  */
 export default function initHapticFeedback (userConfig = {}) {
   const config = {
-    ...DEFAULT_CONFIG,
-    ...userConfig,
-    // Array fields are merged, not replaced, so callers can just pass extras
-    classes:      [...DEFAULT_CONFIG.classes,      ...(userConfig.classes      || [])],
-    linkPatterns: [...DEFAULT_CONFIG.linkPatterns, ...(userConfig.linkPatterns || [])],
-    selectors:    [...DEFAULT_CONFIG.selectors,    ...(userConfig.selectors    || [])],
-    exclude:      [...DEFAULT_CONFIG.exclude,      ...(userConfig.exclude      || [])],
+    exclude: [...DEFAULT_CONFIG.exclude, ...(userConfig.exclude || [])],
+    // targets: user list replaces defaults if provided, otherwise use defaults
+    targets: userConfig.targets
+      ? [...DEFAULT_CONFIG.targets, ...userConfig.targets]
+      : [...DEFAULT_CONFIG.targets],
   }
 
-  // ── Build the CSS selector that catches everything in one .closest() call ──
+  const excludeSelector = config.exclude.filter(Boolean).join(', ') || null
 
-  const selectorParts = new Set()
-
-  // Classes → .className
-  config.classes.forEach(cls => {
-    if (cls && cls.trim()) selectorParts.add(`.${cls.trim().replace(/^\./, '')}`)
-  })
-
-  // Raw selectors pass through as-is
-  config.selectors.forEach(sel => {
-    if (sel && sel.trim()) selectorParts.add(sel.trim())
-  })
-
-  // Link patterns require us to catch ALL <a> tags first, then filter in the handler
-  const hasLinkPatterns = config.linkPatterns.length > 0
-  if (hasLinkPatterns) selectorParts.add('a[href]')
-
-  if (selectorParts.size === 0) {
-    console.warn('[haptic-feedback] No targets configured — nothing to listen to.')
-    return
+  // Group targets by event type so we can attach one delegated listener per event
+  const byEvent = {}
+  for (const target of config.targets) {
+    const event = target.event || 'click'
+    if (!byEvent[event]) byEvent[event] = []
+    byEvent[event].push(target)
   }
 
-  const combinedSelector = [...selectorParts].join(', ')
-  const excludeSelector  = config.exclude.filter(Boolean).join(', ') || null
-
-  // ── Single delegated listener ─────────────────────────────────────────────
-
-  document.addEventListener('click', function handleHapticClick (e) {
-    // Walk up the DOM from the click target to find the first matching ancestor
-    const target = e.target.closest(combinedSelector)
-    if (!target) return
-
-    // (4) Exclusions — checked against the matched element
-    if (excludeSelector && target.matches(excludeSelector)) return
-
-    // (2) Extra gate for <a> tags: only fire if the href matches a pattern
-    if (target.tagName === 'A' && hasLinkPatterns) {
-      // Skip if the element already matched via a class or explicit selector
-      const matchedByClassOrSelector = (
-        config.classes.some(cls => target.classList.contains(cls.replace(/^\./, ''))) ||
-        config.selectors.some(sel => {
-          try { return target.matches(sel) } catch (_) { return false }
-        })
-      )
-
-      if (!matchedByClassOrSelector) {
-        const href = target.getAttribute('href') || ''
-        const hrefMatches = config.linkPatterns.some(pattern => {
-          if (pattern instanceof RegExp) return pattern.test(href)
-          return typeof pattern === 'string' && href.includes(pattern)
-        })
-        if (!hrefMatches) return
-      }
+  // Build a combined selector per event group for fast .closest() lookup
+  for (const [event, targets] of Object.entries(byEvent)) {
+    // Map from selector string → haptic preset
+    const presetMap = new Map()
+    for (const t of targets) {
+      presetMap.set(t.selector.trim(), t.haptic || 'medium')
     }
 
-    triggerHaptic(config.duration)
+    const combinedSelector = [...presetMap.keys()].join(', ')
 
-  }, { passive: true })
+    document.addEventListener(event, function handleHaptic (e) {
+      const el = e.target.closest(combinedSelector)
+      if (!el) return
+
+      // Exclusions win
+      if (excludeSelector && el.matches(excludeSelector)) return
+
+      // Resolve which preset to use: first matching selector wins
+      let preset = 'medium'
+      for (const [sel, p] of presetMap) {
+        try { if (el.matches(sel)) { preset = p; break } } catch (_) {}
+      }
+
+      // data-haptic="preset" overrides everything — lets templates customise inline
+      const dataPreset = el.getAttribute('data-haptic')
+      if (dataPreset && dataPreset.trim()) preset = dataPreset.trim()
+
+      haptics.trigger(preset)
+
+    }, { passive: true })
+  }
 
   if (process.env.NODE_ENV !== 'production') {
-    console.debug('[haptic-feedback] Listening for:', combinedSelector)
+    for (const [event, targets] of Object.entries(byEvent)) {
+      console.debug(
+        `[haptic-feedback] "${event}" listener →`,
+        targets.map(t => `${t.selector} (${t.haptic || 'medium'})`).join(' | ')
+      )
+    }
     if (excludeSelector) console.debug('[haptic-feedback] Excluding:', excludeSelector)
   }
 }
