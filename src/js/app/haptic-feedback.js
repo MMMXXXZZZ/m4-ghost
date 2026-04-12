@@ -39,6 +39,8 @@ const DEFAULT_CONFIG = {
     'button',    // your theme's .button class
     'kg-btn',    // Ghost card buttons
     'js-haptic', // opt-in marker — add this class to any element you like
+    'post-box',
+    'story-cover',
   ],
 
   /**
@@ -69,6 +71,12 @@ const DEFAULT_CONFIG = {
    */
   selectors: [
     '[data-haptic]',        // data-attribute opt-in on any element
+    'button',
+    'a[href]',
+      '.hla',
+  '[data-ghost-search]',
+    '.kg-audio-seek-slider',
+  '.kg-audio-volume-slider',
   ],
 
   /**
