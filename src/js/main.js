@@ -11,35 +11,20 @@ import scrollHideHeader from './components/scroll-hide-header'
 import promoPopup from './components/promo-popup'
 import postInfinite from './post-infinite'
 
+// ─── Haptic feedback ──────────────────────────────────────────────────────────
+import initHapticFeedback from './app/haptic-feedback'
+
 const M4Setup = () => {
   console.debug('[main] M4Setup starting')
-  /**
-   * Links to social media
-   *
-   * @param  {Object[name, url, title]} followSocialMedia -  This variable will come from the ghost dashboard
-   * @param  {Element} '.js-social-media' - All elements containing this class will be selected and the social media links will be appended.
-   */
+
   if (typeof followSocialMedia === 'object' && followSocialMedia !== null) {
     socialMedia(followSocialMedia, '.js-social-media')
   }
 
-  /**
-   * Dark Mode
-   * @param  {Element} '.js-dark-mode' - Class name of all buttons for changing the dark mode
-   */
   darkMode('.js-dark-mode')
 
-  /**
-   * Header - Add and remove transparency when the header is larger than 64px
-   * and the page contains the cover.
-   *
-   * @param  {Element} '.has-cover' - The class will be in the body indicating that it is enabled to add transparency.
-   * @param  {className} 'is-head-transparent' - Add this class to the body to make it transparent.
-   */
   headerTransparency('.has-cover', 'is-head-transparent')
 
-  /* Toggle Mobile Menu
-  /* ---------------------------------------------------------- */
   document.querySelector('.js-menu-open').addEventListener('click', function (e) {
     e.preventDefault()
     document.querySelector('.js-search').classList.add('hidden')
@@ -51,28 +36,14 @@ const M4Setup = () => {
     document.body.classList.remove('has-menu')
   })
 
-  /**
-   * Search - Load the lazy search Script
-   * @param  {String} siteSearch - assets/scripts/search.js
-   */
   if (typeof searchSettings !== 'undefined' && typeof siteSearch !== 'undefined') {
     loadScript(siteSearch)
   }
 
-  /**
-   * header hide when scrolling down and show when scrolling up
-   * @param  {Element} '.js-hide-header' - Header class
-   */
   scrollHideHeader('.js-hide-header')
 
-  /**
-   * Promo Popup
-   * @param {String} selector - The container ID
-   * @param {Number} delay - Delay in ms before showing
-   */
   promoPopup('#js-promo-popup', 2000)
 
-  // Initialize infinite scroll orchestration if present
   if (document.querySelector('.js-infinite-container')) {
     console.info('[main] .js-infinite-container detected — initializing postInfinite')
     postInfinite()
@@ -80,7 +51,42 @@ const M4Setup = () => {
     console.debug('[main] .js-infinite-container not found — skipping postInfinite')
   }
 
-  // End M4Setup
+  // ── Haptic feedback ────────────────────────────────────────────────────────
+  // Customise any of the four targeting modes here.
+  // All options shown — remove or leave empty what you don't need.
+  initHapticFeedback({
+    // (1) CLASS NAMES — elements with any of these classes get haptic on click
+    classes: [
+      // 'button' and 'kg-btn' are already in the defaults.
+      // Add your own:
+      // 'load-more-btn',
+      // 'js-toggle-search',
+    ],
+
+    // (2) LINK PATTERNS — <a href="..."> links whose href matches get haptic
+    linkPatterns: [
+      // '/shop/',           // all shop links
+      // 'mailto:',          // email links
+      // /\.pdf$/i,          // PDF downloads
+      // /^https?:\/\//,     // all external links
+    ],
+
+    // (3) SELECTORS — any CSS selector, most specific wins
+    selectors: [
+      // '[data-haptic]' is already in the defaults.
+      // Add your own:
+      // 'nav a',
+      // '.post-body a',
+      // 'form [type="submit"]',
+    ],
+
+    // (4) EXCLUSIONS — matched elements are always skipped
+    exclude: [
+      // '[disabled]' and '.no-haptic' are already in the defaults.
+      // Add your own:
+      // '.js-dark-mode',   // dark-mode toggle has its own feel
+    ],
+  })
 }
 
 document.addEventListener('DOMContentLoaded', M4Setup)
