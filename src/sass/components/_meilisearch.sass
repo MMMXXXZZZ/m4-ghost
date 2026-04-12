@@ -1,0 +1,31 @@
+// MeiliSearch Search UI
+// Suppresses Ghost's native .js-search overlay and provides the slide-in
+// entrance animation for the search modal container.
+// -----------------------------------------------------------------------------
+
+// Ghost's built-in search overlay — hidden so only MeiliSearch shows
+.js-search.search
+  display:        none        !important
+  opacity:        0           !important
+  visibility:     hidden      !important
+  pointer-events: none        !important
+
+// Highlight style for matched search terms
+.ms-highlight,
+em
+  font-style:  italic !important
+  font-weight: 400    !important
+
+// Slide-in entrance animation
+// Applied by meilisearch.js via MutationObserver when the modal mounts.
+// Removed once the animation ends so it doesn't affect subsequent opens.
+@keyframes ms-slide-in
+  from
+    transform: translateY(-20px)
+    opacity: 0
+  to
+    transform: translateY(0)
+    opacity: 1
+
+.ms-search-entering
+  animation: ms-slide-in 0.28s cubic-bezier(0.16, 1, 0.3, 1) both

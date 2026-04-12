@@ -34,13 +34,13 @@
     </script>
 
     {{!-- Fonts -> Space Grotesk=variable; JetBrains Mono=variable (for code) --}}
-    {{!-- Remove Google Fonts for Public Sans and Atkinson --}}
     <link rel="preload" href="{{asset 'fonts/SpaceGrotesk-VariableFont_wght.ttf'}}" as="font" type="font/ttf" crossorigin>
-    {{!-- <link rel="preload" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'"/>
-    <noscript><link rel="preconnect" href="https://fonts.gstatic.com"><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap" rel="stylesheet"></noscript> --}}
 
-    {{!-- Styles --}}
+    {{!-- Theme styles --}}
     <link rel="stylesheet" type="text/css" href="{{asset "styles/main.css"}}"/>
+
+    {{!-- MeiliSearch Search UI styles (custom theme override) --}}
+    <link rel="stylesheet" type="text/css" href="https://m44.cl/content/files/ghost-meilisearch-search-ui-m4.css">
 
     <style>
         :root {
@@ -56,32 +56,34 @@
 
     {{!-- Ghost outputs important style and meta data with this tag --}}
     {{ghost_head}}
+
+    {{!-- MeiliSearch Search UI bundle — loaded with defer so it doesn't block
+         rendering. meilisearch.js in the theme bundle polls for it after
+         DOMContentLoaded in case it hasn't executed yet.                    --}}
+    <script defer src="https://cdn.jsdelivr.net/npm/@fanyangmeng/ghost-meilisearch-search-ui@1.2.3/dist/search.min.js"></script>
 </head>
 <body class="{{{block "M4_class_body"}}}">
 
     <div class="site-wrapper flex flex-col justify-start min-h-screen">
-        {{!-- Header - partials/layout/header.hbs --}}
+        {{!-- Header --}}
         {{> "layout/header"}}
 
         {{!-- Promo Popup --}}
         <div id="js-promo-popup" class="promo-popup"></div>
 
-        {{!-- All the main content gets inserted here, index.hbs, post.hbs, etc --}}
+        {{!-- Main content --}}
         <main class="site-main">{{{body}}}</main>
 
-        {{!-- Footer - partials/layout/footer.hbs --}}
+        {{!-- Footer --}}
         {{> "layout/footer"}}
 
-        {{!-- Mobile Menu - partials/layout/footer.hbs --}}
+        {{!-- Mobile Menu --}}
         {{> "layout/mobile-menu"}}
     </div>
 
-    {{!-- Search DISABLED - partials/search.hbs --}}
-    {{!-- {{> "search"}} --}}
     {{!-- Site URL --}}
     <script>
         var siteUrl = '{{@site.url}}';
-        // var siteSearch = '{{asset "scripts/search.js"}}';
         var prismJs = '{{asset "scripts/prismjs.js"}}';
         var prismJsComponents = 'https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/';
         var M4Gallery = {{@custom.gallery}};
@@ -89,16 +91,15 @@
 
     {{!-- Icons --}}
     {{> "icons/icons-symbol-defs"}}
-    {{!-- {{> "integrations/meili-search"}} --}}
-    {{!-- Ghost outputs important scripts and data with this tag - it should always be the very last thing before the closing body tag --}}
+
+    {{!-- Ghost outputs important scripts with this tag --}}
     {{ghost_foot}}
 
-    {{!-- The main JavaScript --}}
+    {{!-- Theme JavaScript --}}
     <script src="{{#is "post, page"}}{{asset "scripts/post.js"}}{{else}}{{asset "scripts/main.js"}}{{/is}}"></script>
 
     {{#if pagination.pages}}<script src="{{asset "scripts/pagination.js"}}" async defer></script>{{/if}}
 
-    {{!-- The #block helper will pull in data from the #contentFor other template files. --}}
     {{{block "scripts"}}}
 </body>
 </html>
