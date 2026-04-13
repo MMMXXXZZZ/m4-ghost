@@ -42,13 +42,13 @@ import { haptics } from '../lib/haptic'
 const DEFAULT_CONFIG = {
   targets: [
     { selector: 'button',                  haptic: 'medium'    },
-    { selector: 'a[href]',                 haptic: 'light'     },
+    { selector: 'a[href]',                 haptic: 'heavy'     },
     { selector: '.hla',                    haptic: 'light'     },
 
     // [data-ghost-search] clicks are handled by meilisearch.js (capture phase)
     // so they never reach this bubble-phase listener. Listed here only so that
     // if MeiliSearch is not loaded, the click still gets a haptic.
-    { selector: '[data-ghost-search]',     haptic: 'light'     },
+    { selector: '[data-ghost-search]',     haptic: 'nudge'     },
 
     { selector: '[data-haptic]',           haptic: 'medium'    },
     { selector: '.kg-audio-seek-slider',   haptic: 'selection', event: 'change' },

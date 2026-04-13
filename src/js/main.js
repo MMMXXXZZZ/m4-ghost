@@ -3,16 +3,16 @@
 // lib
 import 'lazysizes'
 
-import socialMedia from './app/social-media'
-import darkMode from './app/dark-mode'
+import socialMedia       from './app/social-media'
+import darkMode          from './app/dark-mode'
 import headerTransparency from './app/header-transparency'
-import loadScript from './components/load-script'
-import scrollHideHeader from './components/scroll-hide-header'
-import promoPopup from './components/promo-popup'
-import postInfinite from './post-infinite'
+import loadScript        from './components/load-script'
+import scrollHideHeader  from './components/scroll-hide-header'
+import promoPopup        from './components/promo-popup'
+import postInfinite      from './post-infinite'
 
-import initHapticFeedback from './app/haptic-feedback'
-import initMeiliSearch    from './lib/meilisearch'
+import initHapticFeedback              from './app/haptic-feedback'
+import initMeiliSearch, { MEILISEARCH_ENABLED } from './lib/meilisearch'
 
 const M4Setup = () => {
   console.debug('[main] M4Setup starting')
@@ -43,8 +43,14 @@ const M4Setup = () => {
     })
   }
 
-  if (typeof searchSettings !== 'undefined' && typeof siteSearch !== 'undefined') {
-    loadScript(siteSearch)
+  // ── Search ─────────────────────────────────────────────────────────────────
+  // MeiliSearch replaces the theme's native FlexSearch.
+  // To roll back: set MEILISEARCH_ENABLED = false in src/js/lib/meilisearch.js
+  // and the block below will re-enable the original search.
+  if (!MEILISEARCH_ENABLED) {
+    if (typeof searchSettings !== 'undefined' && typeof siteSearch !== 'undefined') {
+      loadScript(siteSearch)
+    }
   }
 
   scrollHideHeader('.js-hide-header')
