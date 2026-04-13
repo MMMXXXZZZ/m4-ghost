@@ -34,20 +34,26 @@
     </script>
 
     {{!-- ═══════════════════════════════════════════════════════════════
+         LOADING SCREEN — first-visit gate
+         This must be THE VERY FIRST script in <head> so the CSS class
+         lands on <html> before the browser paints a single pixel.
+         If 'm4_vis' is already in localStorage, the loader is hidden by
+         CSS before it could ever flash.
+    ═══════════════════════════════════════════════════════════════ --}}
+    <script>if(localStorage.getItem('m4_vis'))document.documentElement.classList.add('m4-skip');</script>
+
+    {{!-- ═══════════════════════════════════════════════════════════════
          LOADING SCREEN — feature-image flag
-         Ghost makes post context available in the layout, so we can
-         reach `feature_image` here. This one-liner runs before any
-         render-blocking resource and sets a global that the loader
-         script (in <body>) reads to know which dismiss strategy to use.
     ═══════════════════════════════════════════════════════════════ --}}
     <script>{{#is "post, page"}}{{#if feature_image}}window._m4fi="{{feature_image}}";{{/if}}{{/is}}</script>
 
     {{!-- ═══════════════════════════════════════════════════════════════
-         LOADING SCREEN — styles
-         Kept inline (not in main.css) so they are guaranteed to parse
-         before the first paint — no FOUC on the loader itself.
+         LOADING SCREEN — styles (inline = parsed before first paint)
     ═══════════════════════════════════════════════════════════════ --}}
     <style>
+        /* ── Skip on return visits ── */
+        .m4-skip #m4-loader { display: none !important; }
+
         /* ── Overlay ── */
         #m4-loader {
             position: fixed;
@@ -58,36 +64,27 @@
             align-items: center;
             justify-content: center;
             will-change: transform;
-            /* slide-up easing: fast start, soft land */
-            transition: transform 0.7s cubic-bezier(0.76, 0, 0.24, 1);
+            /*
+             * easeOutExpo — cubic-bezier(0.16, 1, 0.3, 1)
+             * Panel launches upward fast, eases to a crisp stop.
+             */
+            transition: transform 0.85s cubic-bezier(0.16, 1, 0.3, 1);
             pointer-events: all;
         }
-        /* triggered by JS → slides the whole panel upward */
-        #m4-loader.m4-loader--out {
-            transform: translateY(-100%);
-            pointer-events: none;
-        }
-        /* removed from paint tree after transition ends */
-        #m4-loader.m4-loader--gone {
-            display: none;
-        }
+        #m4-loader.m4-loader--out  { transform: translateY(-100%); pointer-events: none; }
+        #m4-loader.m4-loader--gone { display: none; }
 
         /* ── Logo ── */
         .m4-loader__logo {
-            /* fluid: 100 px on very small phones → 260 px on desktop */
-            width: clamp(100px, 28vw, 260px);
+            width: clamp(120px, 30vw, 300px);
             height: auto;
             display: block;
-            /* subtle breathe while we wait */
             animation: m4-breathe 2s ease-in-out infinite;
         }
-        /* freeze animation the moment we start dismissing */
-        #m4-loader.m4-loader--out .m4-loader__logo {
-            animation: none;
-        }
+        #m4-loader.m4-loader--out .m4-loader__logo { animation: none; }
         @keyframes m4-breathe {
             0%, 100% { opacity: 1;   }
-            50%       { opacity: 0.55; }
+            50%       { opacity: 0.5; }
         }
 
         /* ── "First time?" hint ── */
@@ -97,25 +94,29 @@
             left: 50%;
             transform: translateX(-50%) translateY(8px);
             margin: 0;
-            color: rgba(255, 255, 255, 0.8);
-            /* use the theme's own variable so it inherits Space Grotesk */
-            font-family: inherit;
-            font-size: clamp(0.75rem, 1.5vw, 0.875rem);
+            color: rgba(255, 255, 255, 0.82);
+            /*
+             * Explicit system-font stack — zero network requests.
+             *   macOS / iOS  → San Francisco  (-apple-system)
+             *   Windows      → Segoe UI
+             *   Android      → Roboto
+             *   Linux        → Helvetica Neue / Arial
+             * This renders correctly before Space Grotesk has loaded.
+             */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                         "Helvetica Neue", Arial, sans-serif;
+            font-size: clamp(0.75rem, 1.6vw, 0.875rem);
             letter-spacing: 0.04em;
             white-space: nowrap;
             opacity: 0;
             transition: opacity 0.5s ease, transform 0.5s ease;
-            /* separate layer so transition doesn't repaint the whole overlay */
             will-change: opacity, transform;
         }
         .m4-loader__hint.m4-loader__hint--visible {
             opacity: 1;
             transform: translateX(-50%) translateY(0);
         }
-        /* hide hint on the way out so it doesn't peek above the fold */
-        #m4-loader.m4-loader--out .m4-loader__hint {
-            opacity: 0;
-        }
+        #m4-loader.m4-loader--out .m4-loader__hint { opacity: 0; }
     </style>
 
     {{!-- Fonts -> Space Grotesk=variable; JetBrains Mono=variable (for code) --}}
@@ -142,52 +143,41 @@
     {{!-- Ghost outputs important style and meta data with this tag --}}
     {{ghost_head}}
 
-    {{!-- MeiliSearch Search UI bundle — loaded with defer so it doesn't block
-         rendering. meilisearch.js in the theme bundle polls for it after
-         DOMContentLoaded in case it hasn't executed yet.                    --}}
+    {{!-- MeiliSearch Search UI bundle — deferred so it doesn't block rendering. --}}
     <script defer src="https://cdn.jsdelivr.net/npm/@fanyangmeng/ghost-meilisearch-search-ui@1.2.3/dist/search.min.js"></script>
 </head>
 <body class="{{{block "M4_class_body"}}}">
 
     {{!-- ═══════════════════════════════════════════════════════════════
-         LOADING SCREEN
-         Must be the FIRST child of <body> so it paints over everything
-         while the rest of the DOM is being parsed and stylesheets load.
-         The inline <script> immediately below it wires up the dismiss
-         logic — no DOMContentLoaded needed because we only reference
-         elements that are already in the DOM at this point.
+         LOADING SCREEN — first child of <body>
+
+         SVG viewBox explained
+         ─────────────────────
+         Your logo paths occupy this coordinate space:
+           x  ~42  → ~958   (width  ~916)
+           y  ~273 → ~728   (height ~455)
+
+         viewBox="0 250 1000 500" places that content inside a 2:1 canvas
+         with comfortable breathing room on all sides. The logo is then
+         scaled responsively via CSS clamp().
+
+         Logo colours: your path uses fill="#151515" (near-black) on the
+         orange overlay — strong contrast, no change needed. If you ever
+         want a white version for the splash only, swap it to fill="#fff".
+
+         After exporting a new logo from Affinity, run it through SVGOMG
+         (jakearchibald.github.io/svgomg) before replacing the <path>.
     ═══════════════════════════════════════════════════════════════ --}}
     <div id="m4-loader" aria-hidden="true" role="presentation">
 
-        {{!--
-            ┌─────────────────────────────────────────────────────────────┐
-            │  SVG LOGO — replace the content between the <svg> tags.     │
-            │                                                             │
-            │  Affinity export settings that matter:                      │
-            │   ✓ Set viewBox          — required for CSS resizing        │
-            │   ✓ Export Text as Curves — no font-loading dependency      │
-            │   ✓ Flatten Transforms   — cleaner path data                │
-            │   ○ Relative Coordinates — optional, ~5 % smaller file      │
-            │   ✗ Use Document Resolution — irrelevant for pure vector    │
-            │                                                             │
-            │  Keep the exported SVG file small (< 3 KB ideally).        │
-            │  Because we inline it here it travels with every page.      │
-            │  Run it through https://jakearchibald.github.io/svgomg/     │
-            │  before pasting — typically removes 30–60 % of bloat.      │
-            └─────────────────────────────────────────────────────────────┘
-        --}}
         <svg
             class="m4-loader__logo"
-            viewBox="0 0 240 56"
-            fill="none"
+            viewBox="0 250 1000 500"
             xmlns="http://www.w3.org/2000/svg"
             aria-hidden="true"
             focusable="false"
         >
-            {{!-- ↓↓↓  REPLACE THIS BLOCK WITH YOUR ACTUAL LOGO PATHS  ↓↓↓ --}}
-            <rect x="0"   y="16" width="240" height="24" rx="5" fill="rgba(255,255,255,0.22)"/>
-            <rect x="80"  y="38" width="80"  height="6"  rx="3" fill="rgba(255,255,255,0.12)"/>
-            {{!-- ↑↑↑  REPLACE THIS BLOCK WITH YOUR ACTUAL LOGO PATHS  ↑↑↑ --}}
+            <path fill="#151515" fill-rule="nonzero" d="m299.475 727.825 35.75-76.7-183.3-378.3h-72.8zm151.45-455v455h72.8v-455zm-336.05 455h-72.8l36.4-76.05zM809.075 727.825h72.8v-455h-72.8zm-208-178.75h75.4v-76.7zm280.8 0h76.05v-76.7z"/>
         </svg>
 
         <p class="m4-loader__hint" id="m4-loader-hint"></p>
@@ -202,44 +192,45 @@
         var done   = false;
 
         /* ── Language ─────────────────────────────────────────────────
-           Matches /en/ or /en at the very start of the path, covering:
-             m44.cl/en/article-slug   → "First time?"
-             m44.cl/es/article-slug   → "¿Primera vez?"
-             m44.cl/article-slug      → "¿Primera vez?" (default)
+           m44.cl/en/…  →  "First time?"
+           everything else → "¿Primera vez?"
         ────────────────────────────────────────────────────────────── */
         hint.textContent = /^\/en(\/|$)/.test(location.pathname)
             ? 'First time?'
             : '¿Primera vez?';
 
-        /* ── Show hint after 3 s if page still hasn't finished ────── */
+        /* ── Show hint after 3 s if still loading ── */
         var hintTimer = setTimeout(function () {
             if (!done) hint.classList.add('m4-loader__hint--visible');
         }, 3000);
 
-        /* ── Dismiss: trigger CSS slide-up, then nuke the DOM node ── */
+        /* ── Dismiss ───────────────────────────────────────────────── */
         function dismiss() {
             if (done) return;
             done = true;
             clearTimeout(hintTimer);
+
+            /*
+             * Mark as visited. Every subsequent page load will have
+             * .m4-skip on <html> before first paint → zero flash.
+             * The flag lives until the user clears site data.
+             */
+            try { localStorage.setItem('m4_vis', '1'); } catch (e) {}
+
             loader.classList.add('m4-loader--out');
             loader.addEventListener('transitionend', function () {
                 loader.classList.add('m4-loader--gone');
-                loader.remove(); /* free memory & remove from accessibility tree */
+                loader.remove();
             }, { once: true });
         }
 
-        /* ── Absolute safety valve: always dismiss after 7 s ──────── */
+        /* ── Safety valve: always dismiss after 7 s ── */
         var safetyTimer = setTimeout(dismiss, 7000);
 
         /* ── Dismiss strategy ──────────────────────────────────────
-           Posts/pages with a feature image: wait for that specific
-           image to decode — this is the visual "above the fold" asset,
-           so dismissing when it's ready feels right even if other
-           resources (comments, analytics) are still loading.
-
-           Everything else (homepage, tag archives, posts without a
-           feature image): wait for window "load" which fires once all
-           sub-resources the browser knows about are fetched.
+           Post/page with feature image → wait for that image decode.
+           Homepage, archives, posts without image → window.load.
+           bfcache hit (readyState complete on arrival) → instant.
         ────────────────────────────────────────────────────────────── */
         if (window._m4fi) {
             var img = new Image();
@@ -248,7 +239,6 @@
             img.src = window._m4fi;
         } else {
             if (document.readyState === 'complete') {
-                /* Page was served from bfcache — fire immediately */
                 dismiss();
             } else {
                 window.addEventListener('load', function () {
