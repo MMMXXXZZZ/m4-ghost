@@ -40,7 +40,7 @@
          the Worker's #m4-loader is hidden instantly on return visits
          where localStorage already has 'm4_vis' set.
     ═══════════════════════════════════════════════════════════════ --}}
-    <script>if(localStorage.getItem('m4_vis'))document.documentElement.classList.add('m4-skip');</script>
+    <script>if(sessionStorage.getItem('m4_vis'))document.documentElement.classList.add('m4-skip');</script>
     <style>.m4-skip #m4-loader{display:none!important}</style>
 
     {{!-- Fonts -> Space Grotesk=variable; JetBrains Mono=variable (for code) --}}
