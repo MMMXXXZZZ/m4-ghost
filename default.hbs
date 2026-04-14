@@ -10,6 +10,10 @@
 <html lang="{{@site.locale}}"{{#match @custom.color_scheme "Dark"}} class="dark"{{/match}}>
 <head>
     {{!-- Document Settings --}}
+    <meta name="view-transition" content="same-origin">
+<style>
+  @view-transition { navigation: auto; }
+</style>
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     {{!-- Base Meta --}}
