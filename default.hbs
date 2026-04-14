@@ -9,11 +9,13 @@
 -->
 <html lang="{{@site.locale}}"{{#match @custom.color_scheme "Dark"}} class="dark"{{/match}}>
 <head>
-    {{!-- Document Settings --}}
+    {{!-- View Transitions — same-origin navigation fades (Chrome/Safari) --}}
     <meta name="view-transition" content="same-origin">
-<style>
-  @view-transition { navigation: auto; }
-</style>
+    <style>
+      @view-transition { navigation: auto; }
+    </style>
+
+    {{!-- Document Settings --}}
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     {{!-- Base Meta --}}
@@ -42,10 +44,76 @@
          The Worker (m4-splash) owns the full splash on cache misses.
          This one-liner adds .m4-skip to <html> before first paint so
          the Worker's #m4-loader is hidden instantly on return visits
-         where localStorage already has 'm4_vis' set.
+         where sessionStorage already has 'm4_vis' set.
     ═══════════════════════════════════════════════════════════════ --}}
     <script>if(sessionStorage.getItem('m4_vis'))document.documentElement.classList.add('m4-skip');</script>
     <style>.m4-skip #m4-loader{display:none!important}</style>
+
+    {{!-- ═══════════════════════════════════════════════════════════════
+         FADE-IN — masks FOUT (flash of fallback font before Space
+         Grotesk applies) on every page load.
+
+         Two-layer approach:
+           1. body fades in over 250ms — font swaps invisibly inside
+           2. .site-wrapper direct children stagger top→bottom
+              with a subtle upward drift for depth
+
+         Suppressed on View Transitions navigations via body.m4-loaded:
+           After the first fade completes, JS adds .m4-loaded to body.
+           View Transitions navigate to a new document, DOMContentLoaded
+           fires again, but the .m4-loaded class is NOT present on the
+           new document — so the fade fires once per page load, which is
+           exactly what we want. View Transitions then crossfade the two
+           states, so both effects layer naturally without conflict.
+
+         Suppressed for users who prefer reduced motion.
+    ═══════════════════════════════════════════════════════════════ --}}
+    <style>
+        @media (prefers-reduced-motion: no-preference) {
+
+            /* ── Keyframes ── */
+            @keyframes m4-fadein {
+                from { opacity: 0; transform: translateY(6px); }
+                to   { opacity: 1; transform: translateY(0);   }
+            }
+
+            /* ── Body — short fade masks font swap ── */
+            body {
+                animation: m4-fadein 0.25s ease-out both;
+            }
+
+            /* ── Site sections — staggered cascade ── */
+            .site-wrapper > * {
+                animation: m4-fadein 0.4s ease-out both;
+            }
+            .site-wrapper > *:nth-child(1) { animation-delay: 0.04s; }
+            .site-wrapper > *:nth-child(2) { animation-delay: 0.10s; }
+            .site-wrapper > *:nth-child(3) { animation-delay: 0.16s; }
+            .site-wrapper > *:nth-child(4) { animation-delay: 0.22s; }
+            .site-wrapper > *:nth-child(5) { animation-delay: 0.28s; }
+
+            /* ── Post/article body content — fine-grained cascade ──
+               Targets direct children of the article body so headings,
+               paragraphs, figures, code blocks each drift in separately.
+               10 elements covers most articles; beyond that they share
+               the last delay (no jump, just grouped).
+            ── */
+            .post-body > * {
+                animation: m4-fadein 0.45s ease-out both;
+            }
+            .post-body > *:nth-child(1)  { animation-delay: 0.05s; }
+            .post-body > *:nth-child(2)  { animation-delay: 0.09s; }
+            .post-body > *:nth-child(3)  { animation-delay: 0.13s; }
+            .post-body > *:nth-child(4)  { animation-delay: 0.17s; }
+            .post-body > *:nth-child(5)  { animation-delay: 0.21s; }
+            .post-body > *:nth-child(6)  { animation-delay: 0.25s; }
+            .post-body > *:nth-child(7)  { animation-delay: 0.29s; }
+            .post-body > *:nth-child(8)  { animation-delay: 0.33s; }
+            .post-body > *:nth-child(9)  { animation-delay: 0.37s; }
+            .post-body > *:nth-child(10) { animation-delay: 0.41s; }
+
+        }
+    </style>
 
     {{!-- Fonts -> Space Grotesk=variable; JetBrains Mono=variable (for code) --}}
     <link rel="preload" href="{{asset 'fonts/SpaceGrotesk-VariableFont_wght.ttf'}}" as="font" type="font/ttf" crossorigin>
