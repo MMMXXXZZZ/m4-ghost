@@ -11,9 +11,7 @@
 <head>
     {{!-- View Transitions — same-origin navigation fades (Chrome/Safari) --}}
     <meta name="view-transition" content="same-origin">
-    <style>
-      @view-transition { navigation: auto; }
-    </style>
+    <style>@view-transition { navigation: auto; }</style>
 
     {{!-- Document Settings --}}
     <meta charset="utf-8" />
@@ -41,48 +39,24 @@
 
     {{!-- ═══════════════════════════════════════════════════════════════
          LOADING SCREEN — return-visit gate only.
-         The Worker (m4-splash) owns the full splash on cache misses.
-         This one-liner adds .m4-skip to <html> before first paint so
-         the Worker's #m4-loader is hidden instantly on return visits
-         where sessionStorage already has 'm4_vis' set.
+         Worker (m4-splash) owns the full splash on cache misses.
     ═══════════════════════════════════════════════════════════════ --}}
     <script>if(sessionStorage.getItem('m4_vis'))document.documentElement.classList.add('m4-skip');</script>
     <style>.m4-skip #m4-loader{display:none!important}</style>
 
     {{!-- ═══════════════════════════════════════════════════════════════
          FADE-IN — masks FOUT (flash of fallback font before Space
-         Grotesk applies) on every page load.
-
-         Two-layer approach:
-           1. body fades in over 250ms — font swaps invisibly inside
-           2. .site-wrapper direct children stagger top→bottom
-              with a subtle upward drift for depth
-
-         Suppressed on View Transitions navigations via body.m4-loaded:
-           After the first fade completes, JS adds .m4-loaded to body.
-           View Transitions navigate to a new document, DOMContentLoaded
-           fires again, but the .m4-loaded class is NOT present on the
-           new document — so the fade fires once per page load, which is
-           exactly what we want. View Transitions then crossfade the two
-           states, so both effects layer naturally without conflict.
-
-         Suppressed for users who prefer reduced motion.
+         Grotesk applies). Suppressed for prefers-reduced-motion.
     ═══════════════════════════════════════════════════════════════ --}}
     <style>
         @media (prefers-reduced-motion: no-preference) {
-
-            /* ── Keyframes ── */
             @keyframes m4-fadein {
                 from { opacity: 0; transform: translateY(6px); }
                 to   { opacity: 1; transform: translateY(0);   }
             }
-
-            /* ── Body — short fade masks font swap ── */
             body {
                 animation: m4-fadein 0.25s ease-out both;
             }
-
-            /* ── Site sections — staggered cascade ── */
             .site-wrapper > * {
                 animation: m4-fadein 0.4s ease-out both;
             }
@@ -91,13 +65,6 @@
             .site-wrapper > *:nth-child(3) { animation-delay: 0.16s; }
             .site-wrapper > *:nth-child(4) { animation-delay: 0.22s; }
             .site-wrapper > *:nth-child(5) { animation-delay: 0.28s; }
-
-            /* ── Post/article body content — fine-grained cascade ──
-               Targets direct children of the article body so headings,
-               paragraphs, figures, code blocks each drift in separately.
-               10 elements covers most articles; beyond that they share
-               the last delay (no jump, just grouped).
-            ── */
             .post-body > * {
                 animation: m4-fadein 0.45s ease-out both;
             }
@@ -111,8 +78,26 @@
             .post-body > *:nth-child(8)  { animation-delay: 0.33s; }
             .post-body > *:nth-child(9)  { animation-delay: 0.37s; }
             .post-body > *:nth-child(10) { animation-delay: 0.41s; }
-
         }
+    </style>
+
+    {{!-- ═══════════════════════════════════════════════════════════════
+         NPROGRESS — thin orange bar on slow navigations.
+         CSS loaded here so it's parsed before first paint (no FOUC
+         on the bar itself). JS loaded at end of body.
+    ═══════════════════════════════════════════════════════════════ --}}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nprogress@0.2.0/nprogress.css"/>
+    <style>
+        /* Override NProgress default blue with site orange */
+        #nprogress .bar {
+            background: #F73E05;
+            height: 3px;
+        }
+        #nprogress .peg {
+            box-shadow: 0 0 10px #F73E05, 0 0 5px #F73E05;
+        }
+        /* Hide the spinner — bar only */
+        #nprogress .spinner { display: none; }
     </style>
 
     {{!-- Fonts -> Space Grotesk=variable; JetBrains Mono=variable (for code) --}}
@@ -183,5 +168,41 @@
     {{#if pagination.pages}}<script src="{{asset "scripts/pagination.js"}}" async defer></script>{{/if}}
 
     {{{block "scripts"}}}
+
+    {{!-- ═══════════════════════════════════════════════════════════════
+         NPROGRESS — initialised at end of body so the DOM is ready.
+         Starts on any same-origin link click, completes on load/reveal.
+         Does NOT fire when the Worker splash is showing (splash handles
+         its own feedback). Only fires on in-session navigations where
+         sessionStorage has m4_vis (i.e. return visits).
+    ═══════════════════════════════════════════════════════════════ --}}
+    <script src="https://cdn.jsdelivr.net/npm/nprogress@0.2.0/nprogress.min.js"></script>
+    <script>
+    (function () {
+        NProgress.configure({ showSpinner: false, trickleSpeed: 80, minimum: 0.08 });
+
+        document.addEventListener('click', function (e) {
+            var a = e.target.closest('a');
+            if (!a) return;
+            var href = a.getAttribute('href');
+            if (!href) return;
+            if (
+                a.target === '_blank' ||
+                href.startsWith('#') ||
+                href.startsWith('mailto:') ||
+                href.startsWith('javascript:') ||
+                (href.startsWith('http') && !href.startsWith(window.location.origin))
+            ) return;
+            NProgress.start();
+        });
+
+        // Complete on full page load
+        window.addEventListener('load', function () { NProgress.done(); });
+
+        // Complete on View Transitions reveal (Chrome/Safari)
+        document.addEventListener('pagereveal', function () { NProgress.done(); });
+    }());
+    </script>
+
 </body>
 </html>
