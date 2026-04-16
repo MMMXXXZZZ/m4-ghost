@@ -11,6 +11,8 @@ import isSinglePost from './post/is-singgle-post'
 
 import initInfiniteScroll from './post-infinite'
 
+import initIgShareStory from './components/ig-share-story'
+
 const M4PostSetup = () => {
   console.log('M4PostSetup: Starting initialization...')
 
@@ -19,6 +21,8 @@ const M4PostSetup = () => {
   highlightPrism('code[class*=language-]')
   isSinglePost()
   M4Gallery()
+
+  initIgShareStory()
 
   console.log('M4PostSetup: Initializing Infinite Scroll...')
   initInfiniteScroll()
