@@ -136,7 +136,7 @@
         {{> "layout/header"}}
 
         {{!-- Promo Popup --}}
-        <div id="js-promo-popup" class="promo-popup"></div>
+        <div id="js-promo-popup" class="promo-popup"{{#if @custom.promo_popup_message}} data-message="{{@custom.promo_popup_message}}"{{/if}}></div>
 
         {{!-- Main content --}}
         <main class="site-main">{{{body}}}</main>

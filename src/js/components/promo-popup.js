@@ -18,6 +18,19 @@ export default settings => {
   const options = { ...defaults, ...settings }
   const element = document.querySelector(options.selector)
 
+  if (element && element.dataset.message) {
+    options.content = `
+      <div class="promo-popup__content">
+        <span class="promo-popup__message">
+          ${element.dataset.message}
+        </span>
+        <button class="promo-popup__btn js-promo-close">
+          Don't show again
+        </button>
+      </div>
+    `
+  }
+
   if (!element) return
 
   // Check Session Storage

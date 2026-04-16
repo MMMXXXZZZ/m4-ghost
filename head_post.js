@@ -2484,7 +2484,7 @@ var _default = settings => {
     content: `
       <div class="promo-popup__content">
         <span class="promo-popup__message">
-          ≡ƒôó We've updated our privacy policy and detention guidelines.
+          📢 We've updated our privacy policy and detention guidelines.
         </span>
         <button class="promo-popup__btn js-promo-close">
           Don't show again

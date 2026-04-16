@@ -158,6 +158,9 @@
       },
       "github_url": {
         "type": "text"
+      },
+      "promo_popup_message": {
+        "type": "text"
       }
     }
   },
