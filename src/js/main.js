@@ -3,16 +3,17 @@
 // lib
 import 'lazysizes'
 
-import socialMedia       from './app/social-media'
-import darkMode          from './app/dark-mode'
+import socialMedia        from './app/social-media'
+import darkMode           from './app/dark-mode'
 import headerTransparency from './app/header-transparency'
-import loadScript        from './components/load-script'
-import scrollHideHeader  from './components/scroll-hide-header'
-import promoPopup        from './components/promo-popup'
-import postInfinite      from './post-infinite'
+import loadScript         from './components/load-script'
+import scrollHideHeader   from './components/scroll-hide-header'
+import promoPopup         from './components/promo-popup'
+import postInfinite       from './post-infinite'
 
-import initHapticFeedback              from './app/haptic-feedback'
+import initHapticFeedback                       from './app/haptic-feedback'
 import initMeiliSearch, { MEILISEARCH_ENABLED } from './lib/meilisearch'
+import initSpeculationRules                     from './lib/speculation-rules'
 
 const M4Setup = () => {
   console.debug('[main] M4Setup starting')
@@ -44,9 +45,6 @@ const M4Setup = () => {
   }
 
   // ── Search ─────────────────────────────────────────────────────────────────
-  // MeiliSearch replaces the theme's native FlexSearch.
-  // To roll back: set MEILISEARCH_ENABLED = false in src/js/lib/meilisearch.js
-  // and the block below will re-enable the original search.
   if (!MEILISEARCH_ENABLED) {
     if (typeof searchSettings !== 'undefined' && typeof siteSearch !== 'undefined') {
       loadScript(siteSearch)
@@ -65,18 +63,17 @@ const M4Setup = () => {
 
   // ── Haptic feedback ────────────────────────────────────────────────────────
   initHapticFeedback({
-    targets: [
-      // { selector: '.load-more-btn',         haptic: 'medium'    },
-      // { selector: '[data-portal]',          haptic: 'light'     },
-      // { selector: '[data-members-signout]', haptic: 'warning'   },
-      // { selector: '.js-dark-mode',          haptic: 'selection' },
-      // { selector: 'form [type="submit"]',   haptic: 'medium'    },
-    ],
+    targets: [],
     exclude: [],
   })
 
   // ── MeiliSearch ────────────────────────────────────────────────────────────
   initMeiliSearch()
+
+  // ── Speculation Rules (prefetch on hover) ──────────────────────────────────
+  // Progressive enhancement: Chromium only. No-ops silently on Firefox/Safari.
+  // See src/js/lib/speculation-rules.js for exclusion list and upgrade notes.
+  initSpeculationRules()
 }
 
 document.addEventListener('DOMContentLoaded', M4Setup)
