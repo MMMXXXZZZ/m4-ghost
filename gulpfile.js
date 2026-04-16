@@ -51,7 +51,8 @@ const clean = () => {
     'assets/styles/**',
     'assets/images/**',
     'partials/main-styles.hbs',
-    'dist'
+    'dist',
+    'temp.html'
   ], { force: true })
 }
 
