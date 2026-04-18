@@ -6,14 +6,20 @@
             <time class="datetime uppercase text-xs" datetime="{{date format="YYYY-MM-DD"}}">{{date format="D MMM YYYY"}}</time>
         </span>
 
-        <img class="object-cover blur-up h-56 w-full lg:h-full rounded-xl blur-up lazyload"
-            src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
-            data-srcset="{{img_url feature_image size="xs"}} 100w,{{img_url feature_image size="s"}} 300w,{{img_url feature_image size="m"}} 600w"
-            data-sizes="auto"
-            alt="{{#if feature_image_alt}}{{feature_image_alt}}{{else}}{{title}}{{/if}}"
-            width="330"
-            height="310"
-        />
+        <picture>
+            <source
+                data-srcset="{{img_url feature_image size="xs" format="avif"}} 100w,{{img_url feature_image size="s" format="avif"}} 300w,{{img_url feature_image size="m" format="avif"}} 600w"
+                type="image/avif"
+            >
+            <img class="object-cover blur-up h-56 w-full lg:h-full rounded-xl blur-up lazyload"
+                src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
+                data-srcset="{{img_url feature_image size="xs" format="webp"}} 100w,{{img_url feature_image size="s" format="webp"}} 300w,{{img_url feature_image size="m" format="webp"}} 600w"
+                data-sizes="auto"
+                alt="{{#if feature_image_alt}}{{feature_image_alt}}{{else}}{{title}}{{/if}}"
+                width="330"
+                height="310"
+            />
+        </picture>
 
         <a class="absolute bottom-0 left-0 ml-4 mb-4 h-12 w-12 bg-white text-black rounded-full flex justify-center items-center hover:text-white hover:bg-primary" href="{{url}}">
             <svg xmlns="http://www.w3.org/2000/svg" class="icon is-small" viewBox="0 0 512 512"><path d="M133 440a35.37 35.37 0 01-17.5-4.67c-12-6.8-19.46-20-19.46-34.33V111c0-14.37 7.46-27.53 19.46-34.33a35.13 35.13 0 0135.77.45l247.85 148.36a36 36 0 010 61l-247.89 148.4A35.5 35.5 0 01133 440z"/></svg>

@@ -6,13 +6,16 @@
         <a href="{{url absolute="true"}}" class="flex items-center">
             {{#if feature_image}}
             <figure class="h-20 w-28 relative mr-4 flex-none bg-gray-100 rounded overflow-hidden img-hover">
-                <img class="image-inset absolute img-hover-here blur-up lazyload"
-                    src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
-                    data-src="{{img_url feature_image size="s"}}"
-                    width="112"
-                    height="80"
-                    alt="{{#if feature_image_alt}}{{feature_image_alt}}{{else}}{{title}}{{/if}}"
-                />
+                <picture>
+                    <source data-srcset="{{img_url feature_image size="s" format="avif"}}" type="image/avif">
+                    <img class="image-inset absolute img-hover-here blur-up lazyload"
+                        src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
+                        data-src="{{img_url feature_image size="s" format="webp"}}"
+                        width="112"
+                        height="80"
+                        alt="{{#if feature_image_alt}}{{feature_image_alt}}{{else}}{{title}}{{/if}}"
+                    />
+                </picture>
             </figure>
             {{/if}}
 
