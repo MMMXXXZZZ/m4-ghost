@@ -29,11 +29,16 @@ const M4Setup = () => {
   const $menuClose = document.querySelector('.js-menu-close')
   const $search    = document.querySelector('.js-search')
 
+  let _menuScrollY = 0
+
   if ($menuOpen) {
     $menuOpen.addEventListener('click', e => {
       e.preventDefault()
+      _menuScrollY = window.scrollY
       if ($search) $search.classList.add('hidden')
       document.body.classList.add('has-menu')
+      // Firefox scrolls to the menu wrapper on overflow:hidden; restore position.
+      window.scrollTo(0, _menuScrollY)
     })
   }
 
@@ -41,6 +46,7 @@ const M4Setup = () => {
     $menuClose.addEventListener('click', e => {
       e.preventDefault()
       document.body.classList.remove('has-menu')
+      window.scrollTo(0, _menuScrollY)
     })
   }
 

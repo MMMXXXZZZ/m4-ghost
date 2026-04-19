@@ -106,7 +106,9 @@
     </style>
 
     {{!-- Fonts -> Space Grotesk=variable; JetBrains Mono=variable (for code) --}}
-    <link rel="preload" href="{{asset 'fonts/SpaceGrotesk-VariableFont_wght.ttf'}}" as="font" type="font/ttf" crossorigin>
+    {{!-- Hardcoded path (no ?v= hash) so it matches the @font-face url in main.css exactly;
+         mismatched URLs cause the browser to download the font twice. --}}
+    <link rel="preload" href="/assets/fonts/SpaceGrotesk-VariableFont_wght.ttf" as="font" type="font/ttf" crossorigin>
 
     {{!-- Theme styles --}}
     <link rel="stylesheet" type="text/css" href="{{asset "styles/main.css"}}"/>
