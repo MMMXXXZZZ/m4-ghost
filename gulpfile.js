@@ -169,6 +169,8 @@ function zipper (done) {
       '!tailwind.config.js',
       '!routes.yaml',
       '!CONTRIBUTING.md',
+      '!CLAUDE.md',
+      '!.claude', '!.claude/**',
       '!yarn-error.log',
       '!yarn.lock'
     ]),
