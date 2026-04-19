@@ -43,6 +43,14 @@
     ═══════════════════════════════════════════════════════════════ --}}
     <script>if(sessionStorage.getItem('m4_vis'))document.documentElement.classList.add('m4-skip');</script>
     <style>.m4-skip #m4-loader{display:none!important}</style>
+    <style>
+        /* Mobile menu wrapper has no intrinsic height — its children are
+           position:fixed so they don't contribute to layout. Without this,
+           the wrapper creates a phantom block below the footer because
+           min-h-screen on the menu child applies before position:fixed is
+           resolved from the stylesheet. Fixed children ignore this rule. */
+        .mobile-menu-wrapper { height: 0; overflow: hidden; }
+    </style>
 
     {{!-- ═══════════════════════════════════════════════════════════════
          FADE-IN — masks FOUT (flash of fallback font before Space
@@ -131,12 +139,12 @@
 </head>
 <body class="{{{block "M4_class_body"}}}">
 
-    <div class="site-wrapper flex flex-col justify-start">
+    <div class="site-wrapper flex flex-col justify-start min-h-screen">
         {{!-- Header --}}
         {{> "layout/header"}}
 
         {{!-- Promo Popup --}}
-        <div id="js-promo-popup" class="promo-popup"{{#if @custom.promo_popup_message}} data-message="{{@custom.promo_popup_message}}"{{/if}}></div>
+        <div id="js-promo-popup" class="promo-popup"></div>
 
         {{!-- Main content --}}
         <main class="site-main">{{{body}}}</main>
