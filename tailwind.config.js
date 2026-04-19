@@ -6,7 +6,7 @@ module.exports = {
   theme: {
     // This font-family applies to the body of a post. For everything else refer to _typography.sass
     fontFamily: {
-      sans: ['var(--gh-font-body)', 'Public Sans', ...defaultTheme.fontFamily.sans],
+      sans: ['var(--gh-font-body)', 'Space Grotesk', 'Public Sans', ...defaultTheme.fontFamily.sans],
       serif: ['var(--gh-font-body)', ...defaultTheme.fontFamily.serif]
     },
     colors: {
