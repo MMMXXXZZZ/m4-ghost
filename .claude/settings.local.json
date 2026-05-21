@@ -1,7 +1,15 @@
 {
   "permissions": {
     "allow": [
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(xargs ls *)"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "duplicati-docs",
+    "ghost-docs",
+    "meilisearch-docs",
+    "claude-docs",
+    "mdn"
+  ]
 }
