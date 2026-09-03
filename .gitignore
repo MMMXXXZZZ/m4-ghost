@@ -13,7 +13,6 @@ b-cov
 *.map
 *.vscode
 
-
 pids
 logs
 results
@@ -38,4 +37,4 @@ changelog.md.bk
 .cache-loader
 yarn-error.log
 
-
+CLAUDE.md
