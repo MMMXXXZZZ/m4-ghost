@@ -79,6 +79,17 @@ window.addEventListener('load',function(){dismiss('window-load');},{once:true});
 // key so shared links don't each get their own entry, and — critically —
 // so the key for a clean URL is byte-identical to the URL the purge
 // pipeline emits. See CACHE KEY CONTRACT below.
+// Clients that must never be splashed. The splash cannot preserve a status
+// code -- the status line ships with the first byte, long before the origin
+// has answered -- so anything that reads status codes gets the origin
+// response verbatim instead. That is search crawlers (a soft 200 on a 404
+// gets broken URLs indexed), link unfurlers, and auditing tools.
+const NO_SPLASH_UA = /bot|crawler|spider|crawling|slurp|lighthouse|headlesschrome|facebookexternalhit|embedly|preview|whatsapp|telegram|discord|pinterest|yandex|baiduspider|duckduckbo|applebot|semrush|ahrefs/i;
+
+// Escape for embedding in an inline <script>. JSON.stringify alone is not
+// enough: a "</script>" inside the value would close the element early.
+const jsString = (v) => JSON.stringify(v).replace(/</g, '\\u003c');
+
 const TRACKING_PARAM = /^(utm_.*|fbclid|gclid|msclkid|mc_cid|mc_eid|igshid|ref)$/i;
 
 // CACHE KEY CONTRACT
@@ -160,6 +171,15 @@ export default {
       }
     }
 
+    // ── Clients that need a truthful status code ─────────────────────────
+    // Placed after the cache lookup on purpose: a cache hit replays a real
+    // origin response (only 2xx are ever stored), so it is correct for these
+    // clients and saves the low-RAM origin a render.
+    if (NO_SPLASH_UA.test(request.headers.get('User-Agent') || '')) {
+      log('passthrough: no-splash client');
+      return fetch(request);
+    }
+
     // ── Cache miss ────────────────────────────────────────────────────────
     const originRequest = new Request(request.url, {
       method: request.method,
@@ -219,6 +239,19 @@ export default {
         if (origin.ok && !bypassCache) {
           ctx.waitUntil(cache.put(cacheKey, origin.clone()));
         }
+        // The status line is already sent as 200, so a redirect cannot be
+        // expressed in the response. Hand it to the client instead of
+        // streaming the redirect's placeholder body, which is what used to
+        // leave the reader on a blank page behind the splash.
+        const loc = origin.headers.get('Location');
+        if (origin.status >= 300 && origin.status < 400 && loc) {
+          await writer.write(enc.encode(
+            `<script>console.log('[splash] origin ${origin.status}, redirecting client');`
+            + `location.replace(${jsString(loc)});<\/script>`
+          ));
+          return;
+        }
+
         // 204/304 and other bodiless responses have a null body.
         if (!origin.body) {
           await writer.write(enc.encode('</body></html>'));
