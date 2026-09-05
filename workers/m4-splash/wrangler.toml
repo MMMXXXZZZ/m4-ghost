@@ -1,0 +1,7 @@
+name = "m4-splash"
+main = "src/index.mjs"
+compatibility_date = "2026-04-19"
+
+# Route is managed in the Cloudflare dashboard: m44.cl/*
+# Declared here for documentation only; `wrangler deploy` does not
+# reassign it because routes are not listed in this file.
