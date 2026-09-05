@@ -184,6 +184,12 @@ export default {
     const originRequest = new Request(request.url, {
       method: request.method,
       headers: request.headers,
+      // An incoming Request carries redirect:'manual', but a Request built
+      // from a URL defaults to 'follow'. Without this, Cloudflare follows a
+      // Ghost 301 internally and serves the target's body under the original
+      // URL -- so /rss and /rss/ both returned 200 with identical content,
+      // and the 3xx branch below could never fire.
+      redirect: 'manual',
       cf: {
         cacheEverything: !bypassCache,
         cacheTtlByStatus: bypassCache ? undefined : {
