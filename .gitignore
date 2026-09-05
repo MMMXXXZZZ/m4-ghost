@@ -13,6 +13,7 @@ b-cov
 *.map
 *.vscode
 
+.env
 pids
 logs
 results
@@ -38,3 +39,7 @@ changelog.md.bk
 yarn-error.log
 
 CLAUDE.md
+
+
+# Local ops scripts (cache-rule apply/rollback payloads)
+/ops/

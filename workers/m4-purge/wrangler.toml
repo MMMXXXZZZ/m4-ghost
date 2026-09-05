@@ -1,0 +1,20 @@
+name = "m4-purge"
+main = "src/index.mjs"
+compatibility_date = "2026-09-04"
+
+# Unlike m4-splash, this Worker NEEDS a public URL: Ghost posts webhooks to
+# it from the origin. It is not attached to the m44.cl route, so it never
+# sits in the visitor request path. The HMAC signature is the access control.
+workers_dev = true
+preview_urls = false
+
+[vars]
+# How many pages of each collection to purge. Strictly every page shifts when
+# a post enters or leaves, but deep pages are rarely requested and the edge
+# TTL backstops them. Raising this costs purge-batch budget (30 URLs/call).
+PAGINATION_DEPTH = "5"
+
+# Set as secrets, never committed (all three are account-scoped values):
+#   bunx wrangler secret put CF_PURGE_TOKEN        --name m4-purge
+#   bunx wrangler secret put CF_ZONE_ID            --name m4-purge
+#   bunx wrangler secret put GHOST_WEBHOOK_SECRET  --name m4-purge
