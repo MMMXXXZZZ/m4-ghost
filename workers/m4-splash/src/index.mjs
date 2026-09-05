@@ -11,15 +11,22 @@
 // This is intentional and the only approach that keeps Ghost Portal,
 // web components, and all Ghost-internal scripts working correctly.
 
-// Painted before everything — dark background appears in ~1ms,
-// eliminates white flash on click while Worker fetches origin.
+// Dark background painted as early as possible — eliminates the white
+// flash while the Worker waits on origin.
+//
+// MUST be emitted AFTER <!DOCTYPE html>, inside <head>. While this style
+// was concatenated BEFORE the doctype, the HTML parser discarded the
+// doctype and rendered every cache-miss page in QUIRKS MODE (measured:
+// document.compatMode === 'BackCompat', document.doctype === null).
+// Cache hits serve the clean origin response in standards mode, so the
+// breakage only ever appeared on misses.
 const INSTANT_BG = `<style id="m4bg">html{background:#110f16;overflow:hidden}</style>`;
 
 // Minimal orange overlay. No body{height:100%} — that was causing the
 // phantom 100vh block after the splash dismissed. position:fixed on
 // the loader covers the screen without affecting document layout.
 const SPLASH = `<!DOCTYPE html><html lang="es"><head>\
-<meta charset="utf-8">\
+<meta charset="utf-8">${INSTANT_BG}\
 <meta name="viewport" content="width=device-width,initial-scale=1">\
 <title>m44</title>\
 <script>\
@@ -49,11 +56,11 @@ document.documentElement.classList.add('dark');\
 <\/div>\
 <script>\
 (function(){\
-var l=document.getElementById('m4-loader'),h=document.getElementById('m4h'),done=false;\
+var l=document.getElementById('m4-loader'),h=document.getElementById('m4h'),done=false;console.log('[splash] visible | compatMode='+document.compatMode+' doctype='+(document.doctype?document.doctype.name:'(none)'));\
 h.textContent=new RegExp('^/en(/|$)').test(location.pathname)?'First time?':'\u00bfPrimera vez?';\
 var ht=setTimeout(function(){if(!done)h.classList.add('show');},3000);\
-function dismiss(){\
-if(done)return;done=true;clearTimeout(ht);\
+function dismiss(reason){\
+if(done)return;done=true;clearTimeout(ht);console.log('[splash] dismissed:',reason||'unknown');\
 try{sessionStorage.setItem('m4_vis','1');}catch(e){}\
 var bg=document.getElementById('m4bg');if(bg)bg.remove();\
 document.documentElement.style.overflow='';\
@@ -61,16 +68,43 @@ l.classList.add('out');\
 l.addEventListener('transitionend',function(){l.classList.add('gone');l.remove();},{once:true});\
 }\
 window._m4dismiss=dismiss;\
-setTimeout(dismiss,8000);\
-window.addEventListener('load',function(){dismiss();},{once:true});\
+setTimeout(function(){dismiss('timeout-8s');},8000);\
+window.addEventListener('load',function(){dismiss('window-load');},{once:true});\
 })();\
 <\/script>\
 `;
+
+
+// Params that never change the rendered document. Dropped from the cache
+// key so shared links don't each get their own entry, and — critically —
+// so the key for a clean URL is byte-identical to the URL the purge
+// pipeline emits. See CACHE KEY CONTRACT below.
+const TRACKING_PARAM = /^(utm_.*|fbclid|gclid|msclkid|mc_cid|mc_eid|igshid|ref)$/i;
+
+// CACHE KEY CONTRACT
+// -----------------
+// Entries written here live in caches.default, which is the same cache a
+// zone purge-by-URL acts on. A purge only evicts this entry when the URL
+// it purges matches this key EXACTLY. For a query-less URL that key is
+// `https://host/path`, which is the form the purge pipeline emits — so
+// they line up. Changing either side without the other silently breaks
+// invalidation with no error anywhere. Keep them in sync.
+function cacheKeyFor(rawUrl) {
+  const u = new URL(rawUrl);
+  const kept = new URLSearchParams();
+  for (const k of [...new Set(u.searchParams.keys())].sort()) {
+    if (TRACKING_PARAM.test(k)) continue;
+    for (const v of u.searchParams.getAll(k)) kept.append(k, v);
+  }
+  const qs = kept.toString();
+  return `${u.protocol}//${u.host}${u.pathname}${qs ? '?' + qs : ''}`;
+}
 
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const accept = request.headers.get('Accept') || '';
+    const log = (...a) => console.log('[splash]', url.pathname, ...a);
 
     // ── Non-HTML: pass through unchanged ─────────────────────────────────
     if (!accept.includes('text/html')) return fetch(request);
@@ -92,15 +126,18 @@ export default {
       p.startsWith('/api/') ||
       p.startsWith('/members/')
     ) {
+      log('passthrough: internal path');
       return fetch(request);
     }
 
-    // ── Logged-in editors ─────────────────────────────────────────────────
+    // ── Signed-in users (members and staff) ──────────────────────────────
+    // Never splash, never cache — these responses are per-user.
     const cookie = request.headers.get('Cookie') || '';
     if (
       cookie.includes('ghost-admin-api-session') ||
       cookie.includes('ghost-members-ssr')
     ) {
+      log('passthrough: authenticated');
       return fetch(request);
     }
 
@@ -108,25 +145,22 @@ export default {
     const reqCC = request.headers.get('Cache-Control') || '';
     const bypassCache = reqCC.includes('no-cache') || reqCC.includes('no-store');
 
-    const cacheKey = new Request(
-      `${url.protocol}//${url.host}${url.pathname}`,
-      { method: 'GET', headers: { 'Accept': 'text/html' } }
-    );
+    const cacheKey = new Request(cacheKeyFor(request.url), {
+      method: 'GET', headers: { 'Accept': 'text/html' }
+    });
     const cache = caches.default;
 
     if (!bypassCache) {
       const cached = await cache.match(cacheKey);
       if (cached) {
-        // Cache hit — serve instantly, no splash needed
-        return cached;
+        log('hit');
+        const r = new Response(cached.body, cached);
+        r.headers.set('X-M4-Worker', 'hit');
+        return r;
       }
     }
 
-    // ── Cache miss: stream INSTANT_BG + SPLASH immediately ───────────────
-    const { readable, writable } = new TransformStream();
-    const writer = writable.getWriter();
-    const enc = new TextEncoder();
-
+    // ── Cache miss ────────────────────────────────────────────────────────
     const originRequest = new Request(request.url, {
       method: request.method,
       headers: request.headers,
@@ -142,27 +176,70 @@ export default {
     });
     const originPromise = fetch(originRequest);
 
+    // Give the origin a short head start. If it answers within the deadline
+    // we forward its response verbatim — correct status, correct headers,
+    // working redirects — and skip the splash, because a response that fast
+    // never needed one.
+    //
+    // Committing to the splash means committing to `200` before the status
+    // is known: once the first byte is on the wire the status line is
+    // already sent. That is why the old unconditional splash turned every
+    // Ghost 404 into a soft 200 and swallowed every 301/302 redirect,
+    // streaming the redirect's body instead of following it.
+    const deadlineMs = Number(env?.SPLASH_DEADLINE_MS ?? 200);
+    const FELL_THROUGH = Symbol('deadline');
+    const winner = await Promise.race([
+      originPromise.catch(() => null),
+      new Promise((res) => setTimeout(() => res(FELL_THROUGH), deadlineMs)),
+    ]);
+
+    if (winner !== FELL_THROUGH) {
+      if (!winner) {
+        log('origin error; failing open');
+        return fetch(request);
+      }
+      log('fast origin', winner.status, '— passthrough, no splash');
+      if (winner.ok && !bypassCache) {
+        ctx.waitUntil(cache.put(cacheKey, winner.clone()));
+      }
+      const r = new Response(winner.body, winner);
+      r.headers.set('X-M4-Worker', 'fast');
+      return r;
+    }
+
+    // ── Slow origin: stream the splash, then pipe the body behind it ─────
+    log('slow origin >', deadlineMs + 'ms — splashing');
+    const { readable, writable } = new TransformStream();
+    const writer = writable.getWriter();
+    const enc = new TextEncoder();
+
     ctx.waitUntil((async () => {
       try {
         const origin = await originPromise;
         if (origin.ok && !bypassCache) {
           ctx.waitUntil(cache.put(cacheKey, origin.clone()));
         }
+        // 204/304 and other bodiless responses have a null body.
+        if (!origin.body) {
+          await writer.write(enc.encode('</body></html>'));
+          return;
+        }
         const reader = origin.body.getReader();
-        while (true) {
+        for (;;) {
           const { done, value } = await reader.read();
           if (done) break;
-          writer.write(value);
+          await writer.write(value);   // awaited: respect backpressure
         }
       } catch (err) {
-        writer.write(enc.encode('</body></html>'));
+        await writer.write(enc.encode(
+          `<script>console.error('[splash] origin stream failed');<\/script></body></html>`
+        ));
       } finally {
         writer.close();
       }
     })());
 
-    // Dark bg lands first (~1ms), splash overlay follows immediately
-    writer.write(enc.encode(INSTANT_BG + SPLASH));
+    writer.write(enc.encode(SPLASH));
 
     return new Response(readable, {
       status: 200,
