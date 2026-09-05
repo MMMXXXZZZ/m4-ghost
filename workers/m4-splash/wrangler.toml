@@ -2,6 +2,23 @@ name = "m4-splash"
 main = "src/index.mjs"
 compatibility_date = "2026-04-19"
 
-# Route is managed in the Cloudflare dashboard: m44.cl/*
-# Declared here for documentation only; `wrangler deploy` does not
-# reassign it because routes are not listed in this file.
+# The m44.cl/* route is configured in the Cloudflare dashboard and survives
+# `wrangler deploy` untouched (verified: X-M4-Worker still present after the
+# 2026-09-04 deploy, which listed only the workers.dev trigger). Left out of
+# this file deliberately so wrangler does not take ownership of it.
+
+# Wrangler enables both of these by default when absent, which published the
+# Worker at m4-splash.<account>.workers.dev as a side effect of that deploy.
+# The Worker is meant to be reachable only through the m44.cl route.
+workers_dev = false
+preview_urls = false
+
+[vars]
+# Milliseconds the origin gets to answer before the Worker commits to the
+# splash. Under it, the origin response is forwarded verbatim (real status
+# codes, working redirects). Over it, the splash streams and the status is
+# necessarily 200, because the status line ships with the first byte.
+#
+# Measured origin latency on m4-main is 600-1800ms for a cold render, so a
+# 200ms budget loses nearly every race. Tune with real numbers, not taste.
+SPLASH_DEADLINE_MS = "200"
