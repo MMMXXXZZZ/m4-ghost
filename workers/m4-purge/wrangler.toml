@@ -5,7 +5,15 @@ compatibility_date = "2026-09-04"
 # Unlike m4-splash, this Worker NEEDS a public URL: Ghost posts webhooks to
 # it from the origin. It is not attached to the m44.cl route, so it never
 # sits in the visitor request path. The HMAC signature is the access control.
-workers_dev = true
+# Routed on our own domain rather than <account>.workers.dev, whose subdomain
+# is derived from the account email and would leak it into every webhook
+# target stored in Ghost. This pattern is more specific than m4-splash's
+# "m44.cl/*", so it wins for this path and the splash Worker never sees it.
+routes = [
+  { pattern = "m44.cl/_cfpurge*", zone_name = "m44.cl" }
+]
+
+workers_dev = false
 preview_urls = false
 
 [vars]
