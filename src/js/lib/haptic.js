@@ -130,6 +130,22 @@ export class WebHaptics {
     return typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function'
   }
 
+  // The checkbox-switch trick below only produces a real haptic on iOS/iPadOS,
+  // where Safari maps a <input switch> toggle onto the native HIG tick. It was
+  // previously gated on `!isSupported`, which is ALSO true on desktop Firefox
+  // and desktop Safari (neither implements navigator.vibrate). On those the
+  // trick buys nothing and costs a lot: clicking the label focuses the hidden
+  // checkbox at the end of <body>, which scrolls the document to the bottom and
+  // steals focus from whatever the reader was using -- notably the Ghost Portal
+  // sign-in iframe, whose input then silently refuses typing and pasting.
+  static get _usesSwitchFallback () {
+    if (typeof navigator === 'undefined') return false
+    const ua = navigator.userAgent || ''
+    // iPhone/iPod/iPad, plus iPadOS 13+ which reports itself as "Macintosh".
+    return /iP(hone|od|ad)/.test(ua) ||
+           (/Macintosh/.test(ua) && (navigator.maxTouchPoints || 0) > 1)
+  }
+
   async trigger (input, options = {}) {
     const normalized = normalizeInput(input)
     if (!normalized) return
@@ -152,13 +168,13 @@ export class WebHaptics {
     }
 
     // iOS / Safari: use the checkbox-switch trick (fires native HIG haptic)
-    if (!WebHaptics.isSupported || this._debug) {
+    if ((!WebHaptics.isSupported && WebHaptics._usesSwitchFallback) || this._debug) {
       this._ensureDOM()
       if (!this._label) return
       this._stopPattern()
       const firstDelay      = vibrations[0]?.delay ?? 0
       const firstClickFired = firstDelay === 0
-      if (firstClickFired) this._label.click()
+      if (firstClickFired) this._tick()
       await this._runPattern(vibrations, defaultIntensity, firstClickFired)
     }
   }
@@ -205,9 +221,9 @@ export class WebHaptics {
           const interval = TOGGLE_MIN + (1 - phase.intensity) * TOGGLE_MAX
           if (lastToggleTime === -1) {
             lastToggleTime = time
-            if (!firstClickFired) { this._label?.click(); firstClickFired = true }
+            if (!firstClickFired) { this._tick(); firstClickFired = true }
           } else if (time - lastToggleTime >= interval) {
-            this._label?.click()
+            this._tick()
             lastToggleTime = time
           }
         }
@@ -217,17 +233,36 @@ export class WebHaptics {
     })
   }
 
+  // Fires the switch toggle without letting it disturb the page. Clicking a
+  // <label> forwards the click to its checkbox, which FOCUSES that checkbox --
+  // and focusing an element scrolls it into view. Both effects are restored
+  // synchronously here so the reader never sees them.
+  _tick () {
+    if (!this._label) return
+    const doc    = this._label.ownerDocument
+    const prev   = doc.activeElement
+    const scroll = { x: window.scrollX, y: window.scrollY }
+    this._label.click()
+    if (doc.activeElement !== prev) {
+      if (prev && typeof prev.focus === 'function') prev.focus({ preventScroll: true })
+      else if (doc.activeElement && typeof doc.activeElement.blur === 'function') doc.activeElement.blur()
+    }
+    if (window.scrollX !== scroll.x || window.scrollY !== scroll.y) {
+      window.scrollTo(scroll.x, scroll.y)
+    }
+  }
+
   _ensureDOM () {
     if (this._domReady || typeof document === 'undefined') return
     const id       = `web-haptics-${this._id}`
     const label    = document.createElement('label')
     label.htmlFor  = id
-    label.style.cssText = 'position:absolute;width:0;height:0;opacity:0;pointer-events:none;overflow:hidden'
+    label.style.cssText = 'position:fixed;top:0;left:0;width:0;height:0;opacity:0;pointer-events:none;overflow:hidden'
     const checkbox = document.createElement('input')
     checkbox.type  = 'checkbox'
     checkbox.id    = id
     checkbox.setAttribute('switch', '')
-    checkbox.style.cssText = 'position:absolute;width:0;height:0;opacity:0;pointer-events:none'
+    checkbox.style.cssText = 'position:fixed;top:0;left:0;width:0;height:0;opacity:0;pointer-events:none'
     label.appendChild(checkbox)
     document.body.appendChild(label)
     this._label    = label
