@@ -485,7 +485,7 @@ ul {
  */
 
 html {
-  font-family: var(--gh-font-body), "Space Grotesk", Public Sans, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"; /* 1 */
+  font-family: var(--gh-font-body), Space Grotesk, Public Sans, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"; /* 1 */
   line-height: 1.5; /* 2 */
 }
 
@@ -806,6 +806,18 @@ h6 {
  * * 6. mark and q
  * * 7. table
  * */
+
+@font-face {
+  font-family: "Space Grotesk";
+
+  src: url("../fonts/SpaceGrotesk-VariableFont_wght.ttf") format("truetype");
+
+  font-weight: 300 700;
+
+  font-style: normal;
+
+  font-display: swap;
+}
 
 html {
   font-size: 16px;
@@ -1869,7 +1881,6 @@ a > code[class*=language-] {
   opacity: 0;
   transition: max-height 0.5s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.5s ease-in-out;
   will-change: max-height, opacity;
-  margin: 0 20px 0 20px;
 }
 
 .promo-popup.is-visible {
@@ -1890,13 +1901,13 @@ a > code[class*=language-] {
   .promo-popup__content {
     flex-direction: row;
     justify-content: space-between;
-    padding: 1rem 2rem;
+    padding: 1rem 0;
   }
 }
 
 .promo-popup__message {
   margin-bottom: 0.5rem;
-  font-size: 1rem;
+  font-size: 0.9rem;
 }
 
 @media (min-width: 64rem) {
@@ -1941,6 +1952,182 @@ a > code[class*=language-] {
   visibility: hidden;
   opacity: 0;
   transition: visibility 0s linear 0.3s, opacity 0.3s 0s;
+}
+
+.js-search.search {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+.ms-highlight,
+em {
+  font-style: italic !important;
+  font-weight: 400 !important;
+}
+
+@keyframes ms-slide-in {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.ms-search-entering {
+  animation: ms-slide-in 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.ig-share-btn {
+  align-items: center;
+  background: transparent;
+  border: none;
+  color: black;
+  cursor: pointer;
+  display: flex;
+  font-family: "Space Grotesk", "Public Sans", Whitney SSm A, Whitney SSm B, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen, Ubuntu, Cantarell, Open Sans, Helvetica Neue, sans-serif;
+  font-size: 16px;
+  gap: 8px;
+  min-width: 220px;
+  padding: 0;
+  transition: opacity 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ig-share-btn__icon {
+  background-color: #efefef;
+  background-image: var(--ig-share-icon-url);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 24px 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  height: 60px;
+  width: 60px;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ig-share-btn--loading .ig-share-btn__icon {
+  transform: translateX(-16px);
+}
+
+.ig-share-btn__text-wrap {
+  align-items: center;
+  background: white;
+  border-radius: 8px;
+  backface-visibility: hidden;
+  display: flex;
+  height: 48px;
+  justify-content: center;
+  min-width: 160px;
+  overflow: hidden;
+  padding: 12px 16px;
+  perspective: 1000px;
+  position: relative;
+  transform-style: preserve-3d;
+}
+
+.ig-share-btn__label {
+  animation-fill-mode: forwards;
+  opacity: 1;
+  pointer-events: none;
+  position: absolute;
+  transform: translateY(0);
+  width: 100%;
+}
+
+.ig-share-btn__label--enter {
+  animation: ig-story-slide-in 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.ig-share-btn__label--exit {
+  animation: ig-story-slide-out 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.ig-share-btn__note {
+  font-size: 0.8em;
+}
+
+.ig-share-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+@keyframes ig-story-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ig-story-slide-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+}
+
+.nav-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  line-height: 1.15 !important;
+  padding: 0.4rem 0.75rem !important;
+  border: 1px solid var(--ghost-accent-color);
+  border-radius: 999px;
+  color: var(--ghost-accent-color) !important;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+
+.nav-pill:hover, .nav-pill:focus-visible {
+  background-color: var(--ghost-accent-color);
+  color: #fff !important;
+  transform: translateY(-1px);
+}
+
+.nav-pill:active {
+  transform: translateY(0);
+}
+
+.nav-pill-icon {
+  width: 0.95em;
+  height: 0.95em;
+  flex: none;
+  fill: currentColor;
+}
+
+.mainMenu > ul li.nav-pill-item {
+  display: flex;
+  align-items: center;
+}
+
+.mobile-nav .nav-pill-item {
+  display: block;
+  margin: 0.5rem 0;
+}
+
+.mobile-nav .nav-pill-item .nav-pill {
+  display: inline-flex;
 }
 
 .header {
@@ -20046,7 +20233,7 @@ a > code[class*=language-] {
 }
 
 .font-sans{
-  font-family: var(--gh-font-body), Public Sans, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  font-family: var(--gh-font-body), Space Grotesk, Public Sans, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
 .font-serif{
@@ -42880,7 +43067,7 @@ a > code[class*=language-] {
   }
 
   .sm\:font-sans{
-    font-family: var(--gh-font-body), Public Sans, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    font-family: var(--gh-font-body), Space Grotesk, Public Sans, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   }
 
   .sm\:font-serif{
@@ -65643,7 +65830,7 @@ a > code[class*=language-] {
   }
 
   .md\:font-sans{
-    font-family: var(--gh-font-body), Public Sans, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    font-family: var(--gh-font-body), Space Grotesk, Public Sans, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   }
 
   .md\:font-serif{
@@ -88406,7 +88593,7 @@ a > code[class*=language-] {
   }
 
   .lg\:font-sans{
-    font-family: var(--gh-font-body), Public Sans, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    font-family: var(--gh-font-body), Space Grotesk, Public Sans, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   }
 
   .lg\:font-serif{
@@ -111169,7 +111356,7 @@ a > code[class*=language-] {
   }
 
   .xl\:font-sans{
-    font-family: var(--gh-font-body), Public Sans, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    font-family: var(--gh-font-body), Space Grotesk, Public Sans, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   }
 
   .xl\:font-serif{

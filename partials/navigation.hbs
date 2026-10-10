@@ -7,8 +7,25 @@
 
 {{else}}
     <ul class="nav">
+        {{!-- Pinned first: the external media tracker, rendered as a pill with a
+              popout icon so it reads as "leaves this site". Ghost orders items by
+              the Navigation setting, so pulling it out of the main loop below is
+              what puts it first regardless of where it sits in the admin list. --}}
         {{#foreach navigation}}
+        {{#match slug "hasan-piker-media-tracker"}}
+        <li class="nav-pill-item {{link_class for=(url) class=(concat "nav-" slug)}}">
+            <a class="nav-pill" href="{{url absolute="true"}}" target="_blank" rel="noopener">
+                <span class="nav-pill-label">{{label}}</span>
+                <svg class="nav-pill-icon" aria-hidden="true" focusable="false"><use xlink:href="#icon-open-external"></use></svg>
+            </a>
+        </li>
+        {{/match}}
+        {{/foreach}}
+
+        {{#foreach navigation}}
+        {{#match slug "hasan-piker-media-tracker"}}{{else}}
         <li class="{{link_class for=(url) class=(concat "nav-" slug)}}"><a href="{{url absolute="true"}}">{{label}}</a></li>
+        {{/match}}
         {{/foreach}}
     </ul>
 {{/if}}

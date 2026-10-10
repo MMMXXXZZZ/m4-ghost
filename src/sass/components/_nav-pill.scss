@@ -1,0 +1,60 @@
+// Nav pill
+// --------------------------------------------------
+// The pinned external nav item (see partials/navigation.hbs). Rendered as a
+// pill with a popout icon so it reads as "this leaves the site" rather than as
+// one more tag link. Shared by the desktop header nav and the mobile menu.
+
+.nav-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+
+  // The header rule `.mainMenu > ul li a` sets line-height:4rem and a flat
+  // horizontal padding to centre plain links in the 4rem bar. A pill needs its
+  // own box, so both are reset here and the centring is done by the flex row.
+  line-height: 1.15 !important;
+  padding: 0.4rem 0.75rem !important;
+
+  border: 1px solid var(--ghost-accent-color);
+  border-radius: 999px;
+  color: var(--ghost-accent-color) !important;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+
+  &:hover,
+  &:focus-visible {
+    background-color: var(--ghost-accent-color);
+    color: #fff !important;
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.nav-pill-icon {
+  width: 0.95em;
+  height: 0.95em;
+  flex: none;
+  fill: currentColor;
+}
+
+// Keep the pill vertically centred inside the 4rem header bar, which lays its
+// items out with line-height rather than flex.
+.mainMenu > ul li.nav-pill-item {
+  display: flex;
+  align-items: center;
+}
+
+// In the mobile menu the nav items stack as full-width rows; let the pill keep
+// its intrinsic width instead of stretching across the drawer.
+.mobile-nav .nav-pill-item {
+  display: block;
+  margin: 0.5rem 0;
+
+  .nav-pill {
+    display: inline-flex;
+  }
+}
