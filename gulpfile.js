@@ -16,6 +16,7 @@ const header = require('gulp-header')
 
 // Babel
 const browserify = require('browserify')
+const esbuild = require('esbuild')
 const source = require('vinyl-source-stream')
 const buffer = require('vinyl-buffer')
 const uglify = require('gulp-uglify')
@@ -124,6 +125,28 @@ function scripts (done) {
   }))
 }
 
+// Guide bundle (custom-guide-interactive.hbs only)
+//
+// esbuild rather than browserify for this one entry. three.js is ESM-only:
+// its CJS entry is a deprecated shim that require()s the ES module, which
+// browserify cannot follow, and browserify 17 ships acorn 6 — too old to
+// parse three's modern syntax even after babel. Rather than downlevel a
+// megabyte of library through babel on every build, this entry gets a
+// bundler that speaks ESM natively. The other five bundles are untouched.
+function guideScript (done) {
+  esbuild.build({
+    entryPoints: ['src/js/guide.js'],
+    bundle: true,
+    outfile: 'assets/scripts/guide.js',
+    format: 'iife',
+    target: ['es2019'],
+    minify: isProduction,
+    sourcemap: !isProduction,
+    legalComments: 'none',
+    logLevel: 'warning'
+  }).then(() => done()).catch(done)
+}
+
 // Image
 function images (done) {
   pump([
@@ -180,15 +203,15 @@ function zipper (done) {
 }
 
 const cssWatcher = () => watch('src/sass/**', styles)
-const jsWatcher = () => watch('src/js/**', scripts)
+const jsWatcher = () => watch('src/js/**', parallel(scripts, guideScript))
 const imgWatcher = () => watch('src/img/**', images)
 const hbsWatcher = () => watch(['*.hbs', 'partials/**/*.hbs'], hbs)
 
-const compile = parallel(styles, scripts, images)
+const compile = parallel(styles, scripts, guideScript, images)
 const watcher = parallel(cssWatcher, jsWatcher, imgWatcher, hbsWatcher)
 
 const build = series(clean, compile)
 const production = series(build, copyAmpStyle, copyMainStyle, zipper)
 const development = series(build, serve, watcher)
 
-module.exports = { build, development, production, zipper }
+module.exports = { build, development, production, zipper, guideScript }

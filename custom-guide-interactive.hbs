@@ -21,8 +21,6 @@
 
 {{#contentFor "M4_class_body"}}is-article is-guide-interactive{{/contentFor}}
 
-{{> "interactive/tilt"}}
-
 {{#post}}
 <article class="js-post-article {{post_class}}" data-url="{{url}}" data-title="{{title}}" data-id="{{id}}">
     <section class="post container mx-auto my-10 px-4 md:px-0">
@@ -32,7 +30,7 @@
               still set on the post for OpenGraph cards regardless of
               whether article-media renders it here. --}}
         <div class="ix-hero">
-            {{> "interactive/hero-embers"}}
+            <canvas class="ix-hero-fx" aria-hidden="true"></canvas>
             {{> "article/article-header"}}
             {{> "article/article-media"}}
         </div>
@@ -41,10 +39,6 @@
              class="post-body min-w-0 js-post-content{{#match @custom.post_font "=" "font-serif"}} font-serif{{else}} font-sans{{/match}}{{#match @custom.post_font_size "=" "20px"}} text-xl{{else}} text-lg{{/match}}">
             {{content}}
         </div>
-
-        {{!-- The interactive component. Unconditional: the template is the gate.
-              It mounts beside #post-body and moves the prose into panels. --}}
-        {{> "interactive/guide-columns"}}
 
         {{!-- Tags sit in the page chrome, not the prose flow. Keeping them
               inside .post-body (as article-body.hbs does) left them orphaned
@@ -59,3 +53,11 @@
     </section>
 </article>
 {{/post}}
+
+{{!-- All behaviour for this template lives in one bundle: the column
+      component, the tilt signal and the three.js ember field. Loading it
+      here rather than in default.hbs keeps three.js off every other page
+      on the site. --}}
+{{#contentFor "scripts"}}
+<script src="{{asset "scripts/guide.js"}}" defer></script>
+{{/contentFor}}
