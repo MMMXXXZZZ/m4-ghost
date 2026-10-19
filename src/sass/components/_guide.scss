@@ -233,3 +233,20 @@
     --gray-150: #0d0f11;
     --gray-100: #0d0f11;
   }
+
+  // Hero -> stack snapping.
+  //
+  // `proximity`, not `mandatory`. Measured on the live page: the stack's
+  // bottom sits past the maximum scroll offset, so with mandatory the
+  // only snap points are the hero and the stack and the tags/footer below
+  // them become unreachable -- every scroll down snaps back to the stack.
+  // Proximity snaps when you are near and releases otherwise.
+  //
+  // Only the stack is a target. Snapping the hero as well made
+  // scrollTo(0) land at the hero's own offset (174px here), burying the
+  // announcement bar above it.
+  html:has(body.is-guide-interactive) { scroll-snap-type: y proximity; }
+  @media (prefers-reduced-motion: no-preference) {
+    html:has(body.is-guide-interactive) { scroll-behavior: smooth; }
+  }
+  .ix-stack { scroll-snap-align: start; scroll-snap-stop: always; }
