@@ -250,3 +250,22 @@
     html:has(body.is-guide-interactive) { scroll-behavior: smooth; }
   }
   .ix-stack { scroll-snap-align: start; scroll-snap-stop: always; }
+
+  // Page-level palette cross-fade, lifted from PBS's [data-section]
+  // treatment. The open column writes its tokens onto <html>, and these
+  // transitions carry the chrome across to the new palette over 800ms
+  // instead of cutting to it.
+  body.is-guide-interactive {
+    transition:
+      background-color 800ms cubic-bezier(.16, 1, .3, 1),
+      color 800ms cubic-bezier(.16, 1, .3, 1);
+  }
+  html[data-ix-section] body.is-guide-interactive {
+    background-color: var(--m4-bg, var(--bg));
+  }
+  html.dark[data-ix-section] body.is-guide-interactive {
+    background-color: var(--m4-bg-dark, var(--m4-bg, var(--bg)));
+  }
+  @media (prefers-reduced-motion: reduce) {
+    body.is-guide-interactive { transition: none; }
+  }

@@ -1,6 +1,17 @@
-/* global history, location, getComputedStyle */
+/* global history, location, getComputedStyle, performance */
 
 import { gsap } from 'gsap'
+import { Observer } from 'gsap/Observer'
+import { CustomEase } from 'gsap/CustomEase'
+
+gsap.registerPlugin(Observer, CustomEase)
+
+// PBS's signature easing, cubic-bezier(0.16, 1, 0.3, 1). In that project
+// it drives the 800ms palette cross-fade; recreated here so our motion
+// shares the same character. It is aggressively front-loaded -- 82.5% of
+// the distance in the first 25% of the time -- which is what reads as
+// physical rather than linear.
+CustomEase.create('pbs', 'M0,0 C0.16,1 0.3,1 1,1')
 /**
  * GUIDE COLUMNS — interactive presentation of a normally-published post.
  *
@@ -307,6 +318,8 @@ export default function initColumns () {
   // frame against Flip's 20.7ms. Flip stays the right tool for the mobile
   // case, where drawers move between containers.
   const DUR = 0.6
+  const PALETTE = ['--m4-bg', '--m4-title', '--m4-link',
+    '--m4-bg-dark', '--m4-title-dark', '--m4-link-dark']
 
   /**
    * Pin every body to the width it has when open, so its text does not
@@ -351,6 +364,20 @@ export default function initColumns () {
       }
 
       if (on) {
+        // HomepageShell drives a data-section attribute on <html> from a
+        // ScrollTrigger at the 50% line, and [data-section] carries an
+        // 800ms cubic-bezier(.16,1,.3,1) transition, so the whole page
+        // cross-fades to the active panel's palette. Same idea here, with
+        // the open column as the trigger: the chrome follows the column
+        // instead of only the column repainting.
+        const root = document.documentElement
+        PALETTE.forEach((v) => {
+          const val = e.item.style.getPropertyValue(v)
+          if (val) root.style.setProperty(v, val)
+          else root.style.removeProperty(v)
+        })
+        root.setAttribute('data-ix-section', e.slug)
+
         markerEl.innerHTML = ''
         if (e.icon) markerEl.appendChild(e.icon.cloneNode(true))
         const label = document.createElement('span')
@@ -381,6 +408,67 @@ export default function initColumns () {
 
   sizeBodies()
   window.addEventListener('resize', sizeBodies)
+
+  /**
+   * Wheel over a COLLAPSED rail walks the columns sideways. Over the open
+   * body the wheel is left alone, so reading still scrolls normally.
+   *
+   * Threshold plus cooldown rather than raw delta: a trackpad emits a
+   * long tail of small deltas, and without both, one flick would skip
+   * half the guide. Below the threshold the stack rubber-bands and
+   * springs back, so the gesture is acknowledged even when it doesn't
+   * commit.
+   */
+  const TOLERANCE = 35
+  const LOCK_MS = 520
+  let lastStep = 0
+  let band = 0
+
+  function rubber (dir) {
+    band = gsap.utils.clamp(-26, 26, band + dir * 6)
+    gsap.to(stack, {
+      x: band,
+      duration: 0.18,
+      ease: 'power2.out',
+      overwrite: 'auto',
+      onComplete () {
+        gsap.to(stack, {
+          x: 0,
+          duration: 0.9,
+          ease: 'elastic.out(1, 0.45)',
+          overwrite: 'auto',
+          onComplete () { band = 0 }
+        })
+      }
+    })
+  }
+
+  function stepColumn (dir) {
+    const now = performance.now()
+    if (now - lastStep < LOCK_MS) return false
+    const i = entries.findIndex((e) => e.item.dataset.open === 'true')
+    const n = gsap.utils.clamp(0, entries.length - 1, i + dir)
+    if (n === i) { rubber(dir); return false }
+    lastStep = now
+    gsap.to(stack, { x: 0, duration: 0.5, ease: 'pbs', overwrite: 'auto' })
+    open(entries[n].slug, true)
+    return true
+  }
+
+  Observer.create({
+    target: stack,
+    type: 'wheel,touch',
+    tolerance: TOLERANCE,
+    preventDefault: false,
+    onChangeY (self) {
+      const ev = self.event
+      const over = ev && ev.target && ev.target.closest ? ev.target.closest('.ix-item') : null
+      if (!over || over.dataset.open === 'true') return
+      if (ev.cancelable) ev.preventDefault()
+      const dir = self.deltaY > 0 ? 1 : -1
+      if (!stepColumn(dir)) rubber(dir)
+    }
+  })
 
   const initial = location.hash.replace('#', '')
   // immediate: at mount there is nothing to animate from, and tweening
