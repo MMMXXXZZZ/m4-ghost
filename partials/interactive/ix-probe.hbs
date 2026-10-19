@@ -1,0 +1,104 @@
+{{!-- ═══════════════════════════════════════════════════════════════════════
+     IX PROBE — Guide to Protest 2026 proof-of-concept scaffold.
+
+     Rendered only for posts carrying the internal tag #interactivo
+     (gated in post.hbs). Internal tags are not output to readers, so
+     tagging a post is the whole switch: no template dropdown, no slug
+     coupling, no second copy of the content.
+
+     What it proves:
+       1. Internal-tag gating is server-rendered (so the plain article
+          HTML is what crawlers see — the SEO requirement).
+       2. The already-rendered #post-body can be MOVED (not duplicated)
+          into a shadow root and re-laid-out as columns.
+       3. A shadow root isolates us from theme CSS: the post-body
+          fade-in cascade, Tailwind, typography partials.
+       4. Reports the layout constraints it finds (sidebar, infinite
+          scroll container, sticky header) to the console.
+
+     Throwaway: delete once the real component lands.
+═══════════════════════════════════════════════════════════════════════ --}}
+<div id="m4-ix-probe" data-ix-probe="1" hidden></div>
+<script>
+(function () {
+  var TAG = '[m4-ix]';
+  function report() {
+    var body = document.getElementById('post-body');
+    var findings = {
+      gateRendered: !!document.getElementById('m4-ix-probe'),
+      postBodyFound: !!body,
+      h2Count: body ? body.querySelectorAll('h2').length : 0,
+      h3Count: body ? body.querySelectorAll('h3').length : 0,
+      kgCards: body ? body.querySelectorAll('.kg-card').length : 0,
+      tocPresent: !!document.getElementById('post-table-of-contents'),
+      sidebarPresent: !!document.querySelector('.post-share-inner, aside'),
+      infiniteContainer: !!document.querySelector('.js-infinite-container'),
+      shareSticky: !!document.querySelector('.js-share'),
+      supportsShadow: !!(Element.prototype.attachShadow),
+      supportsViewTransition: !!document.startViewTransition,
+      headerMode: document.querySelector('.js-hide-header') ? 'scroll-hide' : 'sticky-or-none'
+    };
+    console.log(TAG + ' probe findings', findings);
+
+    if (!body || !findings.supportsShadow) return;
+
+    // --- Split the rendered article into sections on <h2> --------------
+    var sections = [];
+    var current = null;
+    Array.prototype.forEach.call(Array.prototype.slice.call(body.childNodes), function (node) {
+      var isH2 = node.nodeType === 1 && node.tagName === 'H2';
+      if (isH2) {
+        current = { title: node.textContent.trim(), id: node.id || '', nodes: [] };
+        sections.push(current);
+        return;
+      }
+      if (current) current.nodes.push(node);
+    });
+    console.log(TAG + ' sections parsed: ' + sections.length,
+      sections.map(function (s) { return s.title; }));
+
+    // --- Move (not clone) into a shadow root ---------------------------
+    var host = document.createElement('div');
+    host.id = 'm4-ix-host';
+    body.parentNode.insertBefore(host, body);
+    var root = host.attachShadow({ mode: 'open' });
+    root.innerHTML =
+      '<style>' +
+      ':host{display:block;--ix-accent:#F73E05;}' +
+      '.cols{display:grid;gap:2px;grid-template-columns:repeat(auto-fit,minmax(9rem,1fr));}' +
+      '.col{background:#110f16;color:#fff;padding:1rem;cursor:pointer;font:600 .8rem/1.2 system-ui,sans-serif;' +
+      'text-transform:uppercase;letter-spacing:.04em;min-height:7rem;display:flex;align-items:flex-end;' +
+      'border:1px solid #222;}' +
+      '.col:hover{background:var(--ix-accent);}' +
+      '.panel{display:none;padding:1rem 0;font:1rem/1.6 system-ui,sans-serif;color:inherit;}' +
+      '.panel.open{display:block;}' +
+      '.panel img{max-width:100%;height:auto;}' +
+      '@media (max-width:40rem){.cols{grid-template-columns:1fr 1fr;}}' +
+      '</style><div class="cols"></div><div class="panels"></div>';
+
+    var cols = root.querySelector('.cols');
+    var panels = root.querySelector('.panels');
+    sections.forEach(function (s, i) {
+      var b = document.createElement('div');
+      b.className = 'col';
+      b.textContent = s.title;
+      var p = document.createElement('div');
+      p.className = 'panel';
+      s.nodes.forEach(function (n) { p.appendChild(n); });   // MOVES the node
+      panels.appendChild(p);
+      b.addEventListener('click', function () {
+        Array.prototype.forEach.call(panels.children, function (el) { el.classList.remove('open'); });
+        p.classList.add('open');
+      });
+      cols.appendChild(b);
+    });
+
+    body.style.display = 'none';
+    console.log(TAG + ' mounted ' + sections.length + ' columns in shadow root. ' +
+      'Theme CSS reaching shadow content: expect NONE (check typography).');
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', report);
+  } else { report(); }
+})();
+</script>

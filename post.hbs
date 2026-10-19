@@ -21,6 +21,11 @@
 
                     {{!-- Comments Section --}}
                     {{> "article/article-comments"}}
+
+                    {{!-- IX PROBE — only for posts tagged with the internal tag #interactivo --}}
+                    {{#has tag="#interactivo"}}
+                    {{> "interactive/ix-probe"}}
+                    {{/has}}
                 </div>
 
                 {{!-- Sidebar is inside the article wrapper so it cuts off correctly --}}
