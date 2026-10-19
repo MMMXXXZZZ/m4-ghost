@@ -1,4 +1,4 @@
-/* global history, location */
+/* global history, location, getComputedStyle */
 
 import { gsap } from 'gsap'
 /**
@@ -307,21 +307,48 @@ export default function initColumns () {
   // frame against Flip's 20.7ms. Flip stays the right tool for the mobile
   // case, where drawers move between containers.
   const DUR = 0.6
-  function open (slug, push) {
+
+  /**
+   * Pin every body to the width it has when open, so its text does not
+   * re-wrap as the column animates. Without this the closing column
+   * reflows its paragraphs every frame on the way down (expensive, and
+   * visibly jumpy), and the opening one starts squeezed into the 5.5rem
+   * rail. The item's overflow:hidden does the clipping instead.
+   */
+  function sizeBodies () {
+    const faces = stack.querySelectorAll('.ix-face')
+    if (!faces.length) return
+    const gap = parseFloat(getComputedStyle(stack).gap) || 0
+    const faceW = faces[0].getBoundingClientRect().width
+    const openW = stack.getBoundingClientRect().width -
+      (entries.length - 1) * (faceW + gap) - gap
+    stack.style.setProperty('--ix-open-w', `${Math.max(240, Math.round(openW))}px`)
+  }
+
+  function open (slug, push, immediate) {
     entries.forEach((e) => {
       const on = e.slug === slug
       e.item.dataset.open = on ? 'true' : 'false'
       e.face.setAttribute('aria-expanded', on ? 'true' : 'false')
       e.nav.setAttribute('aria-current', on ? 'true' : 'false')
 
-      // hidden="until-found" keeps closed bodies out of layout, tab order
-      // and the a11y tree while STILL matching Ctrl+F, which fires
-      // beforematch and opens that column. It also means only the open
-      // body is laid out, which is what keeps the tween cheap.
+      // Reveal the opening body up front; hide a closing one only once it
+      // has finished collapsing. Hiding on the way down is what made the
+      // outgoing content vanish instantly instead of sliding away.
       if (on) e.body.removeAttribute('hidden')
-      else e.body.setAttribute('hidden', 'until-found')
 
-      gsap.to(e.item, { '--g': on ? 1 : 0, duration: DUR, ease: 'power3.inOut' })
+      const done = () => {
+        // Re-check rather than trust the closure: a fast second click can
+        // land while this tween is still running.
+        if (e.item.dataset.open === 'false') e.body.setAttribute('hidden', 'until-found')
+      }
+
+      if (immediate) {
+        gsap.set(e.item, { '--g': on ? 1 : 0 })
+        done()
+      } else {
+        gsap.to(e.item, { '--g': on ? 1 : 0, duration: DUR, ease: 'power3.inOut', onComplete: done })
+      }
 
       if (on) {
         markerEl.innerHTML = ''
@@ -352,8 +379,13 @@ export default function initColumns () {
     if (entries.some((x) => x.slug === s)) open(s, false)
   })
 
+  sizeBodies()
+  window.addEventListener('resize', sizeBodies)
+
   const initial = location.hash.replace('#', '')
-  open(entries.some((x) => x.slug === initial) ? initial : entries[0].slug, false)
+  // immediate: at mount there is nothing to animate from, and tweening
+  // would leave every closed body visible in a 5.5rem rail for 600ms.
+  open(entries.some((x) => x.slug === initial) ? initial : entries[0].slug, false, true)
 
   // With no lede above the first heading, #post-body is left empty and
   // would still contribute its margins.

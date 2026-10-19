@@ -36,7 +36,7 @@
   // overlay-scrollbar browsers and before the first measurement.
   .ix {
     --ix-max: 3440px;
-    margin: 2rem 0 6rem;
+    margin: 0 0 4rem;
     width: min(calc(100vw - var(--m4-sbw, 0px)), var(--ix-max));
     max-width: none;
     margin-left: calc(50% - min(calc(50vw - var(--m4-sbw, 0px) / 2), calc(var(--ix-max) / 2)));
@@ -46,9 +46,10 @@
   // Horizontal accordion. Each item is a column: a fixed-width face that
   // is always visible, plus a body that only the open column shows.
   // --g drives flex-grow and is what GSAP tweens.
+  // The app owns the screen once you are past the hero.
   .ix-stack {
     display: flex; align-items: stretch; gap: 2px;
-    height: min(82vh, 900px); overflow: hidden;
+    height: 100vh; height: 100svh; overflow: hidden;
     background: var(--gray-200, #2a2a2a);
   }
   .ix-item {
@@ -77,10 +78,12 @@
   .ix-item[data-open="true"] .ix-face {
     background: var(--m4-link, var(--ghost-accent-color, #F73E05)); color: #fff;
   }
+  // Fixed to the open width (set by JS) so text never re-wraps mid-tween;
+  // the item clips it instead.
   .ix-body {
-    flex: 1 1 auto; min-width: 0;
+    flex: none; width: var(--ix-open-w, 100%);
     overflow-y: auto; overscroll-behavior: contain;
-    padding: 2rem 1.5rem 3rem;
+    padding: 2rem 1.5rem 6rem;
   }
 
   // Mobile: a horizontal rail of 8 vertical labels is unusable on a
@@ -94,7 +97,7 @@
       gap: .75rem; padding: 1rem 1.15rem;
     }
     .ix-face .lbl { writing-mode: horizontal-tb; transform: none; white-space: normal; text-align: left; }
-    .ix-body { padding: 1.25rem 1.15rem 2rem; }
+    .ix-body { width: 100%; padding: 1.25rem 1.15rem 2rem; }
   }
 
   // Reading measure. Full bleed is right for the chrome and wrong for
@@ -205,4 +208,16 @@
   }
   .m4-motion-ask button[data-yes] {
     background: var(--ghost-accent-color, #F73E05); border-color: transparent; color: #fff;
+  }
+
+  // This template runs near-black in dark mode: the column palettes are
+  // the colour on the page, and the theme's default #222 chrome muddies
+  // them. Scoped to the body class so no other template shifts.
+  html.dark body.is-guide-interactive,
+  body.is-guide-interactive.dark {
+    --bg: #050607;
+    --blank: #090a0c;
+    --header-bg: #050607;
+    --gray-150: #0d0f11;
+    --gray-100: #0d0f11;
   }
