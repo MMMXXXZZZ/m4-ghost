@@ -68,9 +68,17 @@
     var body = document.getElementById('post-body');
     if (!body) { console.log(TAG + ' no #post-body'); return; }
 
-    // --- Parse: each <h2> at any depth starts a section -----------------
+    // --- Parse: each <h2> starts a section ------------------------------
+    // Headings inside a Koenig card are card furniture, not article
+    // structure: a signup card's <h2 class="kg-signup-card-heading"> is
+    // its call to action. Treating them as sections produced two bogus
+    // columns ("ADVERTENCIA", "¿Eres pro-cerdos...") on the 2025 guide,
+    // and worse -- because such a heading is nested, the sibling walk
+    // below drained only the card's own children and left the real
+    // following prose stranded in #post-body.
     var sections = [];
     Array.prototype.forEach.call(body.querySelectorAll('h2'), function (h2) {
+      if (h2.closest('.kg-card')) return;
       var sec = { title: h2.textContent.trim(), id: h2.id || '', head: h2, nodes: [] };
       var n = h2.nextSibling;
       while (n) {
