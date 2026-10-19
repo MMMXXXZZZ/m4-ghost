@@ -1,0 +1,198 @@
+{{!-- ═══════════════════════════════════════════════════════════════════════
+     GUIDE COLUMNS — interactive presentation of a normally-published post.
+
+     Architecture (each decision was measured, not assumed):
+
+     • LIGHT DOM, no shadow root. Ghost Portal binds member forms with a
+       one-time document.querySelectorAll("form[data-members-form]") from
+       a React lifecycle hook that runs AFTER its async init — i.e. after
+       DOMContentLoaded, and after us. A signup card moved behind a shadow
+       boundary is never found, so the waitlist card would be silently
+       dead. Light DOM keeps it reachable whenever Portal runs.
+
+     • EACH PANEL CARRIES .post-body. That class is the only carrier of
+       prose typography (src/sass/pages/_post.sass): link colour, heading
+       colour, and list-style, which Tailwind's preflight otherwise resets
+       to no bullets. Prose moved out of it loses all of that.
+
+     • The fade-in cascade (default.hbs, ".post-body > *") is scoped off
+       for this template via body.is-guide-interactive, rather than by
+       dropping .post-body — see above for why dropping it is not free.
+
+     • Content is MOVED, never copied. The server renders the whole
+       article; crawlers get the prose in the main document.
+═══════════════════════════════════════════════════════════════════════ --}}
+
+<style>
+  .ix { margin: 2rem 0 6rem; }
+  .ix-cols {
+    display: grid; gap: 2px;
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  }
+  .ix-col {
+    appearance: none; border: 1px solid var(--gray-200, #2a2a2a);
+    background: var(--blank, #110f16); color: inherit;
+    padding: 1.25rem 1rem; min-height: 7.5rem; cursor: pointer;
+    display: flex; align-items: flex-end; text-align: left;
+    font: 600 0.78rem/1.25 inherit; text-transform: uppercase;
+    letter-spacing: 0.04em; transition: background-color .18s ease, color .18s ease;
+  }
+  .ix-col:hover, .ix-col:focus-visible,
+  .ix-col[aria-expanded="true"] { background: var(--ghost-accent-color, #F73E05); color: #fff; }
+  .ix-panel { display: none; }
+  .ix-panel.is-open { display: flex; }
+  .ix-nav {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+    display: flex; gap: 2px; overflow-x: auto;
+    background: var(--blank, #110f16);
+    border-top: 1px solid var(--gray-200, #2a2a2a);
+    padding: 0.4rem; scrollbar-width: none;
+  }
+  .ix-nav::-webkit-scrollbar { display: none; }
+  .ix-nav button {
+    appearance: none; border: 0; background: transparent; color: inherit;
+    white-space: nowrap; padding: 0.5rem 0.8rem; cursor: pointer;
+    font: 600 0.7rem/1 inherit; text-transform: uppercase; letter-spacing: .04em;
+    border-radius: 999px;
+  }
+  .ix-nav button[aria-current="true"] { background: var(--ghost-accent-color, #F73E05); color: #fff; }
+  @media (max-width: 40rem) { .ix-cols { grid-template-columns: 1fr 1fr; } }
+  @media (prefers-reduced-motion: reduce) { .ix-col { transition: none; } }
+</style>
+
+<script>
+(function () {
+  var TAG = '[m4-ix]';
+
+  function init() {
+    var body = document.getElementById('post-body');
+    if (!body) { console.log(TAG + ' no #post-body'); return; }
+
+    // --- Parse: each <h2> at any depth starts a section -----------------
+    var sections = [];
+    Array.prototype.forEach.call(body.querySelectorAll('h2'), function (h2) {
+      var sec = { title: h2.textContent.trim(), id: h2.id || '', head: h2, nodes: [] };
+      var n = h2.nextSibling;
+      while (n) {
+        if (n.nodeType === 1 && n.tagName === 'H2') break;
+        var next = n.nextSibling;
+        sec.nodes.push(n);
+        n = next;
+      }
+      sections.push(sec);
+    });
+
+    console.log(TAG + ' sections parsed: ' + sections.length + ' ' +
+      JSON.stringify(sections.map(function (s) { return s.title; })));
+
+    if (!sections.length) {
+      console.log(TAG + ' no <h2> sections; leaving the article as published.');
+      return;
+    }
+
+    // --- Build (light DOM, beside #post-body) ---------------------------
+    var wrap = document.createElement('div');
+    wrap.className = 'ix';
+    var cols = document.createElement('div');
+    cols.className = 'ix-cols';
+    var panels = document.createElement('div');
+    panels.className = 'ix-panels';
+    var nav = document.createElement('nav');
+    nav.className = 'ix-nav';
+    nav.setAttribute('aria-label', 'Secciones');
+
+    var entries = sections.map(function (s, i) {
+      var slug = s.id || ('ix-' + i);
+
+      var panel = document.createElement('section');
+      // .post-body so theme typography still applies to the moved prose.
+      panel.className = 'ix-panel post-body';
+      panel.id = slug;
+      panel.appendChild(s.head);                                  // MOVES
+      s.nodes.forEach(function (n) { panel.appendChild(n); });    // MOVES
+      panels.appendChild(panel);
+
+      var col = document.createElement('button');
+      col.type = 'button';
+      col.className = 'ix-col';
+      col.textContent = s.title;
+      col.setAttribute('aria-expanded', 'false');
+      col.setAttribute('aria-controls', slug);
+      cols.appendChild(col);
+
+      var navBtn = document.createElement('button');
+      navBtn.type = 'button';
+      navBtn.textContent = s.title;
+      navBtn.setAttribute('aria-current', 'false');
+      nav.appendChild(navBtn);
+
+      return { slug: slug, title: s.title, panel: panel, col: col, nav: navBtn };
+    });
+
+    wrap.appendChild(cols);
+    wrap.appendChild(panels);
+    body.parentNode.insertBefore(wrap, body.nextSibling);
+    document.body.appendChild(nav);
+
+    // --- Analytics: column opens, not a 10s dwell timer ------------------
+    // post-infinite.js owns observeArticle(), and it bails without
+    // .js-infinite-container -- which this template deliberately omits.
+    // Read-tracking would otherwise be silently absent here.
+    var opened = {};
+    var readFired = false;
+    function track(title) {
+      if (!window._paq) return;
+      try {
+        window._paq.push(['trackEvent', 'Guide', 'OpenColumn', title]);
+        if (!readFired && Object.keys(opened).length >= 3) {
+          readFired = true;
+          window._paq.push(['trackEvent', 'Guide', 'Read', document.title]);
+        }
+      } catch (err) { console.warn(TAG + ' analytics push failed', err); }
+    }
+
+    // --- Open / close ---------------------------------------------------
+    function open(slug, push) {
+      entries.forEach(function (e) {
+        var on = e.slug === slug;
+        e.panel.classList.toggle('is-open', on);
+        e.col.setAttribute('aria-expanded', on ? 'true' : 'false');
+        e.nav.setAttribute('aria-current', on ? 'true' : 'false');
+        if (on && !opened[slug]) {
+          opened[slug] = true;
+          track(e.title);
+        }
+      });
+      if (push && window.history && history.replaceState) {
+        history.replaceState(null, '', '#' + slug);
+      }
+    }
+
+    entries.forEach(function (e) {
+      e.col.addEventListener('click', function () { open(e.slug, true); });
+      e.nav.addEventListener('click', function () {
+        open(e.slug, true);
+        wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+
+    window.addEventListener('hashchange', function () {
+      var s = location.hash.replace('#', '');
+      if (entries.some(function (e) { return e.slug === s; })) open(s, false);
+    });
+
+    var initial = location.hash.replace('#', '');
+    open(entries.some(function (e) { return e.slug === initial; }) ? initial : entries[0].slug, false);
+
+    console.log(TAG + ' mounted ' + entries.length + ' columns (light DOM) ' +
+      JSON.stringify({
+        memberFormsInPanels: document.querySelectorAll('.ix-panel form[data-members-form]').length,
+        memberFormsStillQueryable: document.querySelectorAll('form[data-members-form]').length
+      }));
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else { init(); }
+})();
+</script>

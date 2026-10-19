@@ -36,14 +36,19 @@
             {{content}}
         </div>
 
+        {{!-- The interactive component. Unconditional: the template is the gate.
+              It mounts beside #post-body and moves the prose into panels. --}}
+        {{> "interactive/guide-columns"}}
+
+        {{!-- Tags sit in the page chrome, not the prose flow. Keeping them
+              inside .post-body (as article-body.hbs does) left them orphaned
+              under a hidden article once the component mounted. The bottom
+              padding clears the fixed .ix-nav row. --}}
         {{#if tags}}
-        <div class="post-tags my-8 buttons justify-center lg:justify-start">
+        <div class="post-tags mt-8 mb-24 buttons justify-center lg:justify-start max-w-3xl mx-auto">
             {{#foreach tags}}<a href="{{url}}" title="{{name}}" class="button is-black is-outlined is-small uppercase">{{name}}</a>{{/foreach}}
         </div>
         {{/if}}
-
-        {{!-- The interactive component. Unconditional: the template is the gate. --}}
-        {{> "interactive/ix-probe"}}
 
     </section>
 </article>
