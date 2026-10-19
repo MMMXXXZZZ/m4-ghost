@@ -1,0 +1,212 @@
+{{!-- ═══════════════════════════════════════════════════════════════════════
+     HERO EMBERS — WebGL ember field for the guide hero.
+
+     Points only for now; the shader is a placeholder for real sparks.
+
+     Deliberately raw WebGL rather than three.js: this partial is an
+     inline script, while three.js has to come through browserify and the
+     gulp bundle. When the 3D assets land, swap the renderer here — the
+     canvas, lifecycle and degradation logic below stay as they are.
+
+     ── The constraints that shape this ───────────────────────────────────
+     • ONE context. Browsers cap live WebGL contexts (~8–16) and silently
+       drop the oldest, so every scene in this guide shares this canvas.
+       window.M4GL exposes it for the column scenes to draw into later.
+     • Paused by IntersectionObserver AND visibilitychange — a backgrounded
+       tab otherwise burns battery for nothing.
+     • FPS sampling degrades the field (fewer embers) before disabling it,
+       rather than dropping frames on a cheap phone.
+     • prefers-reduced-motion DAMPS drift rather than disabling the scene:
+       ambient particle work doesn't trigger vestibular symptoms, large
+       scroll-coupled camera movement does. Keep that distinction when the
+       real scenes arrive.
+═══════════════════════════════════════════════════════════════════════ --}}
+
+<style>
+  .ix-hero { position: relative; }
+  .ix-hero-fx {
+    position: absolute; inset: 0; z-index: 0;
+    pointer-events: none; display: block; width: 100%; height: 100%;
+  }
+  .ix-hero > *:not(.ix-hero-fx) { position: relative; z-index: 1; }
+</style>
+
+<canvas class="ix-hero-fx" aria-hidden="true"></canvas>
+
+<script>
+(function () {
+  var TAG = '[m4-gl]';
+  var canvas = document.currentScript && document.currentScript.previousElementSibling;
+  if (!canvas || canvas.tagName !== 'CANVAS') {
+    canvas = document.querySelector('.ix-hero-fx');
+  }
+  if (!canvas) return;
+
+  var gl = canvas.getContext('webgl', { alpha: true, antialias: false, premultipliedAlpha: false });
+  if (!gl) { console.log(TAG + ' no webgl; hero stays flat'); return; }
+
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var VERT = [
+    'attribute vec2 a_pos;',
+    'attribute float a_size;',
+    'attribute float a_alpha;',
+    'varying float v_alpha;',
+    'void main() {',
+    '  v_alpha = a_alpha;',
+    '  gl_Position = vec4(a_pos * 2.0 - 1.0, 0.0, 1.0);',
+    '  gl_PointSize = a_size;',
+    '}'
+  ].join('\n');
+
+  var FRAG = [
+    'precision mediump float;',
+    'varying float v_alpha;',
+    'uniform vec3 u_color;',
+    'void main() {',
+    '  vec2 d = gl_PointCoord - vec2(0.5);',
+    '  float r = length(d);',
+    '  if (r > 0.5) discard;',
+    '  float soft = smoothstep(0.5, 0.0, r);',
+    '  gl_FragColor = vec4(u_color, soft * v_alpha);',
+    '}'
+  ].join('\n');
+
+  function compile(type, src) {
+    var s = gl.createShader(type);
+    gl.shaderSource(s, src); gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+      console.warn(TAG + ' shader error', gl.getShaderInfoLog(s)); return null;
+    }
+    return s;
+  }
+  var vs = compile(gl.VERTEX_SHADER, VERT), fs = compile(gl.FRAGMENT_SHADER, FRAG);
+  if (!vs || !fs) return;
+  var prog = gl.createProgram();
+  gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+    console.warn(TAG + ' link error', gl.getProgramInfoLog(prog)); return;
+  }
+  gl.useProgram(prog);
+
+  var MAX = 420;
+  var count = MAX;
+  var pos = new Float32Array(MAX * 2);
+  var size = new Float32Array(MAX);
+  var alpha = new Float32Array(MAX);
+  var vel = new Float32Array(MAX * 2);
+  var life = new Float32Array(MAX);
+
+  function seed(i, fresh) {
+    pos[i * 2] = Math.random();
+    pos[i * 2 + 1] = fresh ? Math.random() : -0.02 - Math.random() * 0.05;
+    vel[i * 2] = (Math.random() - 0.5) * 0.00018;
+    vel[i * 2 + 1] = (0.0009 + Math.random() * 0.0016) * (reduced ? 0.35 : 1);
+    size[i] = 1.2 + Math.random() * 3.4;
+    life[i] = 0.35 + Math.random() * 0.65;
+    alpha[i] = 0;
+  }
+  for (var i = 0; i < MAX; i++) seed(i, true);
+
+  var buf = { pos: gl.createBuffer(), size: gl.createBuffer(), alpha: gl.createBuffer() };
+  var loc = {
+    pos: gl.getAttribLocation(prog, 'a_pos'),
+    size: gl.getAttribLocation(prog, 'a_size'),
+    alpha: gl.getAttribLocation(prog, 'a_alpha'),
+    color: gl.getUniformLocation(prog, 'u_color')
+  };
+
+  function bind(b, data, l, n) {
+    gl.bindBuffer(gl.ARRAY_BUFFER, b);
+    gl.bufferData(gl.ARRAY_BUFFER, data, gl.DYNAMIC_DRAW);
+    gl.enableVertexAttribArray(l);
+    gl.vertexAttribPointer(l, n, gl.FLOAT, false, 0, 0);
+  }
+
+  function resize() {
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var w = canvas.clientWidth, h = canvas.clientHeight;
+    if (!w || !h) return;
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+    gl.viewport(0, 0, canvas.width, canvas.height);
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  // Ember colour follows the theme accent so it stays on-brand in both modes.
+  var accent = getComputedStyle(document.documentElement)
+    .getPropertyValue('--ghost-accent-color').trim() || '#F73E05';
+  function hex2rgb(h) {
+    var m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);
+    return m ? [parseInt(m[1], 16) / 255, parseInt(m[2], 16) / 255, parseInt(m[3], 16) / 255] : [0.97, 0.24, 0.02];
+  }
+  var rgb = hex2rgb(accent);
+
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE);          // additive: embers glow
+
+  // One shared tilt signal (partials/interactive/tilt.hbs) rather than
+  // this scene attaching its own orientation listeners.
+  var tilt = window.M4Tilt || null;
+  if (!tilt) {
+    window.addEventListener('load', function () { tilt = window.M4Tilt || null; }, { once: true });
+  }
+
+  var running = false, rafId = null, visible = true, inView = true;
+  var frames = 0, fpsMark = 0, degraded = 0;
+
+  function step(now) {
+    if (!running) return;
+    for (var i = 0; i < count; i++) {
+      pos[i * 2] += vel[i * 2];
+      pos[i * 2 + 1] += vel[i * 2 + 1];
+      pos[i * 2] += Math.sin((now * 0.0004) + i) * 0.00012;   // lateral drift
+      if (tilt) pos[i * 2] += tilt.x * 0.0006;                 // device lean
+      var y = pos[i * 2 + 1];
+      alpha[i] = y < 0 ? 0 : Math.min(1, y * 4) * (1 - y / life[i]) * 0.9;
+      if (y > life[i]) seed(i, false);
+    }
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.uniform3f(loc.color, rgb[0], rgb[1], rgb[2]);
+    bind(buf.pos, pos, loc.pos, 2);
+    bind(buf.size, size, loc.size, 1);
+    bind(buf.alpha, alpha, loc.alpha, 1);
+    gl.drawArrays(gl.POINTS, 0, count);
+
+    // Degrade before dropping frames: halve the field twice, then stop.
+    frames++;
+    if (!fpsMark) fpsMark = now;
+    else if (now - fpsMark > 2000) {
+      var fps = frames / ((now - fpsMark) / 1000);
+      if (fps < 24) {
+        degraded++;
+        if (degraded >= 3) { console.log(TAG + ' sustained <24fps; stopping embers'); stop(); return; }
+        count = Math.max(60, Math.round(count / 2));
+        console.log(TAG + ' fps ' + fps.toFixed(1) + '; reducing embers to ' + count);
+      }
+      frames = 0; fpsMark = now;
+    }
+    rafId = requestAnimationFrame(step);
+  }
+
+  function start() { if (running) return; running = true; frames = 0; fpsMark = 0; rafId = requestAnimationFrame(step); }
+  function stop() { running = false; if (rafId) cancelAnimationFrame(rafId); rafId = null; }
+  function sync() { (visible && inView) ? start() : stop(); }
+
+  document.addEventListener('visibilitychange', function () { visible = !document.hidden; sync(); });
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver(function (es) {
+      inView = es[0].isIntersecting; sync();
+    }, { threshold: 0 }).observe(canvas);
+  }
+  sync();
+
+  // Shared handle: column scenes draw into this context rather than
+  // creating their own, so we never hit the browser's context cap.
+  window.M4GL = { canvas: canvas, gl: gl, start: start, stop: stop,
+                  get running() { return running; } };
+  console.log(TAG + ' embers up ' + JSON.stringify({ max: MAX, reduced: reduced, accent: accent }));
+})();
+</script>
