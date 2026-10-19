@@ -141,8 +141,15 @@ export default function initTilt () {
 
   requestAnimationFrame(tick)
 
-  const needsPrompt = !!(window.DeviceOrientationEvent &&
+  // Desktop Chrome on Windows also exposes requestPermission as a
+  // function, so its presence says nothing about whether a sensor is
+  // there -- gating on it alone asked desktop readers for motion access.
+  // Pair it with a device that plausibly HAS orientation hardware.
+  const needsPermission = !!(window.DeviceOrientationEvent &&
     typeof window.DeviceOrientationEvent.requestPermission === 'function')
+  const hasSensor = window.matchMedia('(pointer: coarse)').matches ||
+    navigator.maxTouchPoints > 0
+  const needsPrompt = needsPermission && hasSensor
 
   if (!needsPrompt) {
     // Android and desktop: no permission exists, the sensor is just there.
@@ -183,6 +190,6 @@ export default function initTilt () {
     reset () { try { localStorage.removeItem(STORE) } catch (e) {} }
   }
 
-  console.log(`${TAG} ready ${JSON.stringify({ needsPrompt, reduced })}`)
+  console.log(`${TAG} ready ${JSON.stringify({ needsPermission, hasSensor, needsPrompt, reduced })}`)
   return window.M4Tilt
 }
