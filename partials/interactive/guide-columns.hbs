@@ -21,6 +21,12 @@
 
      • Content is MOVED, never copied. The server renders the whole
        article; crawlers get the prose in the main document.
+
+     • COLUMN MARKER: H1 if the post uses any (Ctrl+Alt+1 in the editor),
+       otherwise H2. H1 is the better authoring rule because it leaves
+       both h2 and h3 free for structure inside a column. Each H1 is
+       re-emitted as an h2 in its panel, since the post title is already
+       the page h1.
 ═══════════════════════════════════════════════════════════════════════ --}}
 
 <style>
@@ -68,7 +74,15 @@
     var body = document.getElementById('post-body');
     if (!body) { console.log(TAG + ' no #post-body'); return; }
 
-    // --- Parse: each <h2> starts a section ------------------------------
+    // --- Pick the marker level ------------------------------------------
+    // H1 marks columns when the writer used any (Ctrl+Alt+1 in the Ghost
+    // editor); otherwise H2 does, which keeps the 2025 guide working
+    // untouched. Using H1 frees BOTH h2 and h3 for structure inside a
+    // column -- with H2 as the marker, a writer has only h3 left.
+    var marker = body.querySelector('h1:not(.kg-card h1)') ? 'H1' : 'H2';
+    var markerSel = marker.toLowerCase();
+
+    // --- Parse: each marker heading starts a section ----------------------
     // Headings inside a Koenig card are card furniture, not article
     // structure: a signup card's <h2 class="kg-signup-card-heading"> is
     // its call to action. Treating them as sections produced two bogus
@@ -77,12 +91,12 @@
     // below drained only the card's own children and left the real
     // following prose stranded in #post-body.
     var sections = [];
-    Array.prototype.forEach.call(body.querySelectorAll('h2'), function (h2) {
-      if (h2.closest('.kg-card')) return;
-      var sec = { title: h2.textContent.trim(), id: h2.id || '', head: h2, nodes: [] };
-      var n = h2.nextSibling;
+    Array.prototype.forEach.call(body.querySelectorAll(markerSel), function (h) {
+      if (h.closest('.kg-card')) return;
+      var sec = { title: h.textContent.trim(), id: h.id || '', head: h, nodes: [] };
+      var n = h.nextSibling;
       while (n) {
-        if (n.nodeType === 1 && n.tagName === 'H2') break;
+        if (n.nodeType === 1 && n.tagName === marker) break;
         var next = n.nextSibling;
         sec.nodes.push(n);
         n = next;
@@ -90,7 +104,7 @@
       sections.push(sec);
     });
 
-    console.log(TAG + ' sections parsed: ' + sections.length + ' ' +
+    console.log(TAG + ' marker=' + marker + ' sections parsed: ' + sections.length + ' ' +
       JSON.stringify(sections.map(function (s) { return s.title; })));
 
     if (!sections.length) {
@@ -116,7 +130,24 @@
       // .post-body so theme typography still applies to the moved prose.
       panel.className = 'ix-panel post-body';
       panel.id = slug;
-      panel.appendChild(s.head);                                  // MOVES
+
+      // article-header.hbs:5 already renders the post title as the page
+      // <h1>. If the writer marked columns with H1, re-emit each one as
+      // an <h2> in the panel so the rendered outline stays title > column
+      // > subsection instead of stacking a dozen h1s on one document.
+      var head = s.head;
+      if (head.tagName === 'H1') {
+        var h2 = document.createElement('h2');
+        h2.className = head.className;
+        h2.innerHTML = head.innerHTML;
+        head.parentNode.removeChild(head);
+        head = h2;
+      }
+      // The panel now owns the anchor id. Leaving it on the heading too
+      // would duplicate the id, which is invalid and makes #hash resolve
+      // to whichever comes first.
+      head.removeAttribute('id');
+      panel.appendChild(head);                                    // MOVES
       s.nodes.forEach(function (n) { panel.appendChild(n); });    // MOVES
       panels.appendChild(panel);
 
