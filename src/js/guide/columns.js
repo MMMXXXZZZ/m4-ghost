@@ -1,4 +1,6 @@
 /* global history, location */
+
+import { gsap } from 'gsap'
 /**
  * GUIDE COLUMNS — interactive presentation of a normally-published post.
  *
@@ -201,10 +203,8 @@ export default function initColumns () {
 
   const wrap = document.createElement('div')
   wrap.className = 'ix'
-  const cols = document.createElement('div')
-  cols.className = 'ix-cols'
-  const panels = document.createElement('div')
-  panels.className = 'ix-panels'
+  const stack = document.createElement('div')
+  stack.className = 'ix-stack'
   const nav = document.createElement('nav')
   nav.className = 'ix-nav'
   const en = (document.documentElement.lang || '').indexOf('en') === 0
@@ -217,9 +217,29 @@ export default function initColumns () {
   const entries = sections.map((s, i) => {
     const slug = s.id || `ix-${i}`
 
-    const panel = document.createElement('section')
-    panel.className = 'ix-panel post-body'
-    panel.id = slug
+    const item = document.createElement('article')
+    item.className = 'ix-item'
+    item.style.setProperty('--g', i === 0 ? 1 : 0)
+    item.dataset.open = i === 0 ? 'true' : 'false'
+
+    // The face is the collapsed rail: symbol plus a vertical label, which
+    // is what makes a 5.5rem column readable at all.
+    const face = document.createElement('button')
+    face.type = 'button'
+    face.className = 'ix-face'
+    face.setAttribute('aria-expanded', i === 0 ? 'true' : 'false')
+    face.setAttribute('aria-controls', slug)
+    // The icon is decorative; the accessible name is always the heading.
+    face.setAttribute('aria-label', s.title)
+    if (s.icon) face.appendChild(s.icon.cloneNode(true))
+    const lbl = document.createElement('span')
+    lbl.className = 'lbl'
+    lbl.textContent = s.title
+    face.appendChild(lbl)
+
+    const bodyEl = document.createElement('div')
+    bodyEl.className = 'ix-body post-body'
+    bodyEl.id = slug
 
     let head = s.head
     if (head.tagName === 'H1') {
@@ -229,23 +249,15 @@ export default function initColumns () {
       head.parentNode.removeChild(head)
       head = h2
     }
-    // The panel owns the anchor id; leaving it on the heading too would
+    // The body owns the anchor id; leaving it on the heading too would
     // duplicate it and make #hash resolve to whichever came first.
     head.removeAttribute('id')
-    panel.appendChild(head)
-    s.nodes.forEach((n) => panel.appendChild(n))
-    panels.appendChild(panel)
+    bodyEl.appendChild(head)
+    s.nodes.forEach((n) => bodyEl.appendChild(n))
 
-    const col = document.createElement('button')
-    col.type = 'button'
-    col.className = 'ix-col'
-    col.setAttribute('aria-expanded', 'false')
-    col.setAttribute('aria-controls', slug)
-    // The icon is decorative; the accessible name is always the heading.
-    col.setAttribute('aria-label', s.title)
-    if (s.icon) col.appendChild(s.icon.cloneNode(true))
-    else col.textContent = s.title
-    cols.appendChild(col)
+    item.appendChild(face)
+    item.appendChild(bodyEl)
+    stack.appendChild(item)
 
     const navBtn = document.createElement('button')
     navBtn.type = 'button'
@@ -255,13 +267,12 @@ export default function initColumns () {
     navBtn.appendChild(document.createTextNode(s.title))
     nav.appendChild(navBtn)
 
-    applyConfig(panel, col, s.cfg)
+    applyConfig(item, face, s.cfg)
 
-    return { slug, title: s.title, panel, col, nav: navBtn, icon: s.icon }
+    return { slug, title: s.title, item, face, body: bodyEl, nav: navBtn, icon: s.icon }
   })
 
-  wrap.appendChild(cols)
-  wrap.appendChild(panels)
+  wrap.appendChild(stack)
   body.parentNode.insertBefore(wrap, body.nextSibling)
   document.body.appendChild(nav)
   document.body.appendChild(markerEl)
@@ -291,18 +302,27 @@ export default function initColumns () {
     }
   }
 
+  // Animating --g (which drives flex-grow) rather than using Flip: fewer
+  // moving parts, no plugin, and measured in-page it held a 14.3ms worst
+  // frame against Flip's 20.7ms. Flip stays the right tool for the mobile
+  // case, where drawers move between containers.
+  const DUR = 0.6
   function open (slug, push) {
     entries.forEach((e) => {
       const on = e.slug === slug
-      e.panel.classList.toggle('is-open', on)
-      // hidden="until-found" keeps closed panels out of layout, tab order
-      // and the a11y tree while STILL matching Ctrl+F, which then fires
-      // beforematch and opens that column. Unsupported browsers treat it
-      // as plain hidden, i.e. today's behaviour.
-      if (on) e.panel.removeAttribute('hidden')
-      else e.panel.setAttribute('hidden', 'until-found')
-      e.col.setAttribute('aria-expanded', on ? 'true' : 'false')
+      e.item.dataset.open = on ? 'true' : 'false'
+      e.face.setAttribute('aria-expanded', on ? 'true' : 'false')
       e.nav.setAttribute('aria-current', on ? 'true' : 'false')
+
+      // hidden="until-found" keeps closed bodies out of layout, tab order
+      // and the a11y tree while STILL matching Ctrl+F, which fires
+      // beforematch and opens that column. It also means only the open
+      // body is laid out, which is what keeps the tween cheap.
+      if (on) e.body.removeAttribute('hidden')
+      else e.body.setAttribute('hidden', 'until-found')
+
+      gsap.to(e.item, { '--g': on ? 1 : 0, duration: DUR, ease: 'power3.inOut' })
+
       if (on) {
         markerEl.innerHTML = ''
         if (e.icon) markerEl.appendChild(e.icon.cloneNode(true))
@@ -318,13 +338,13 @@ export default function initColumns () {
   }
 
   entries.forEach((e) => {
-    e.col.addEventListener('click', () => open(e.slug, true))
+    e.face.addEventListener('click', () => open(e.slug, true))
     e.nav.addEventListener('click', () => {
       open(e.slug, true)
       wrap.scrollIntoView({ behavior: 'smooth', block: 'start' })
     })
     // Find-in-page landed inside a closed column: open it for real.
-    e.panel.addEventListener('beforematch', () => open(e.slug, true))
+    e.body.addEventListener('beforematch', () => open(e.slug, true))
   })
 
   window.addEventListener('hashchange', () => {
@@ -335,12 +355,18 @@ export default function initColumns () {
   const initial = location.hash.replace('#', '')
   open(entries.some((x) => x.slug === initial) ? initial : entries[0].slug, false)
 
+  // With no lede above the first heading, #post-body is left empty and
+  // would still contribute its margins.
+  if (!body.textContent.trim() && !body.querySelector('img, figure, iframe')) {
+    body.classList.add('is-empty')
+  }
+
   console.log(`${TAG} mounted ${entries.length} columns ` + JSON.stringify({
-    withConfig: entries.filter((e) => e.panel.hasAttribute('data-m4-styled')).length,
+    withConfig: entries.filter((e) => e.item.hasAttribute('data-m4-styled')).length,
     withIcon: entries.filter((e) => !!e.icon).length,
-    scenes: entries.filter((e) => e.panel.hasAttribute('data-m4-scene'))
-      .map((e) => e.panel.getAttribute('data-m4-scene')),
-    memberFormsInPanels: document.querySelectorAll('.ix-panel form[data-members-form]').length,
+    scenes: entries.filter((e) => e.item.hasAttribute('data-m4-scene'))
+      .map((e) => e.item.getAttribute('data-m4-scene')),
+    memberFormsInPanels: document.querySelectorAll('.ix-body form[data-members-form]').length,
     memberFormsStillQueryable: document.querySelectorAll('form[data-members-form]').length
   }))
 

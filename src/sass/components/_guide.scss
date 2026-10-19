@@ -6,7 +6,7 @@
   /* Column tokens. JS sets --m4-* on the panel; these map them onto the
      theme's own variables so every existing rule in _post.sass repaints
      itself. Dark values fall back to the light ones when unset. */
-  .ix-panel[data-m4-styled] {
+  .ix-body[data-m4-styled] {
     --blank: var(--m4-bg);
     --title-color: var(--m4-title);
     --post-color-link: var(--m4-link);
@@ -14,13 +14,13 @@
     transition: background-color 800ms cubic-bezier(.16, 1, .3, 1),
                 color 800ms cubic-bezier(.16, 1, .3, 1);
   }
-  html.dark .ix-panel[data-m4-styled] {
+  html.dark .ix-body[data-m4-styled] {
     --blank: var(--m4-bg-dark, var(--m4-bg));
     --title-color: var(--m4-title-dark, var(--m4-title));
     --post-color-link: var(--m4-link-dark, var(--m4-link));
     background-color: var(--m4-bg-dark, var(--m4-bg));
   }
-  .ix-panel[data-m4-font] {
+  .ix-body[data-m4-font] {
     font-family: var(--m4-font-family);
     font-weight: var(--m4-font-weight, inherit);
     font-style: var(--m4-font-style, inherit);
@@ -42,6 +42,61 @@
     margin-left: calc(50% - min(calc(50vw - var(--m4-sbw, 0px) / 2), calc(var(--ix-max) / 2)));
   }
 
+
+  // Horizontal accordion. Each item is a column: a fixed-width face that
+  // is always visible, plus a body that only the open column shows.
+  // --g drives flex-grow and is what GSAP tweens.
+  .ix-stack {
+    display: flex; align-items: stretch; gap: 2px;
+    height: min(82vh, 900px); overflow: hidden;
+    background: var(--gray-200, #2a2a2a);
+  }
+  .ix-item {
+    flex: var(--g, 0) 1 5.5rem; min-width: 0; position: relative;
+    overflow: hidden; display: flex;
+    background: var(--m4-bg, var(--blank, #110f16));
+    color: var(--m4-title, inherit);
+  }
+  html.dark .ix-item[data-m4-styled] {
+    background: var(--m4-bg-dark, var(--m4-bg));
+    color: var(--m4-title-dark, var(--m4-title));
+  }
+  .ix-face {
+    appearance: none; border: 0; cursor: pointer; background: transparent;
+    color: inherit; flex: none; width: 5.5rem;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: space-between; padding: 1.1rem .5rem;
+  }
+  .ix-face svg { width: 2rem; height: 2rem; flex: none; color: var(--m4-icon, currentColor); }
+  // Vertical label: the only thing that makes a 5.5rem rail readable.
+  .ix-face .lbl {
+    writing-mode: vertical-rl; transform: rotate(180deg);
+    font: 600 .72rem/1 inherit; text-transform: uppercase; letter-spacing: .06em;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-height: 100%;
+  }
+  .ix-item[data-open="true"] .ix-face {
+    background: var(--m4-link, var(--ghost-accent-color, #F73E05)); color: #fff;
+  }
+  .ix-body {
+    flex: 1 1 auto; min-width: 0;
+    overflow-y: auto; overscroll-behavior: contain;
+    padding: 2rem 1.5rem 3rem;
+  }
+
+  // Mobile: a horizontal rail of 8 vertical labels is unusable on a
+  // phone, so the same DOM stacks vertically until the drawer paging
+  // lands.
+  @media (max-width: 48rem) {
+    .ix-stack { flex-direction: column; height: auto; overflow: visible; }
+    .ix-item { flex: none; }
+    .ix-face {
+      width: 100%; flex-direction: row; justify-content: flex-start;
+      gap: .75rem; padding: 1rem 1.15rem;
+    }
+    .ix-face .lbl { writing-mode: horizontal-tb; transform: none; white-space: normal; text-align: left; }
+    .ix-body { padding: 1.25rem 1.15rem 2rem; }
+  }
+
   // Reading measure. Full bleed is right for the chrome and wrong for
   // prose -- unchecked, paragraphs ran the full 2522px here. _post.sass
   // sets `.post-body > *:not(a) { min-width: 100% }`, so these have to
@@ -50,33 +105,20 @@
   // One shared measure rather than `ch`: ch scales with font-size, so a
   // 72ch heading came out 1306px against a 721px paragraph and their
   // left edges didn't line up.
-  .ix-panel {
+  .ix-body {
     --ix-measure: 45rem;
     --ix-media: 1100px;
     padding-inline: 1.5rem;
   }
-  .ix-panel.post-body > *:not(a) {
+  .ix-body.post-body > *:not(a) {
     min-width: 0; width: 100%;
     max-width: var(--ix-measure); margin-inline: auto;
   }
-  .ix-panel.post-body > figure:not(a),
-  .ix-panel.post-body > .kg-card:not(a) { max-width: min(100%, var(--ix-media)); }
-  .ix-panel.post-body > .kg-width-full:not(a) { max-width: none; }
-  .ix-cols { display: grid; gap: 2px; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); }
-  .ix-col {
-    appearance: none; border: 1px solid var(--gray-200, #2a2a2a);
-    background: var(--m4-bg, var(--blank, #110f16)); color: var(--m4-title, inherit);
-    padding: 1.25rem 1rem; min-height: 7.5rem; cursor: pointer;
-    display: flex; align-items: flex-end; text-align: left;
-    font: 600 .78rem/1.25 inherit; text-transform: uppercase; letter-spacing: .04em;
-    transition: background-color .18s ease, color .18s ease;
-  }
-  .ix-col:hover, .ix-col:focus-visible,
+  .ix-body.post-body > figure:not(a),
+  .ix-body.post-body > .kg-card:not(a) { max-width: min(100%, var(--ix-media)); }
+  .ix-body.post-body > .kg-width-full:not(a) { max-width: none; }
   .ix-col[aria-expanded="true"] { background: var(--m4-link, var(--ghost-accent-color, #F73E05)); color: #fff; }
-  .ix-col svg { width: 2.25rem; height: 2.25rem; display: block; }
 
-  .ix-panel { display: none; }
-  .ix-panel.is-open { display: block; }
 
   /* Locked marker: current column's symbol and title, top-left. */
   .ix-marker {
@@ -106,16 +148,38 @@
   .ix-nav button svg { width: 1.1rem; height: 1.1rem; }
   .ix-nav button[aria-current="true"] { background: var(--ghost-accent-color, #F73E05); color: #fff; }
 
-  @media (max-width: 40rem) { .ix-cols { grid-template-columns: 1fr 1fr; } }
+  
   @media (prefers-reduced-motion: reduce) {
-    .ix-col, .ix-panel[data-m4-styled] { transition: none; }
+    .ix-col, .ix-body[data-m4-styled] { transition: none; }
   }
 
 .cls-1{fill:#231f20}
 
-  .ix-hero { position: relative; }
+  // Hero: a full-viewport opening panel. The feature image is backdrop
+  // texture only -- dimmed hard, because contrast is the one thing a
+  // guide read under stress cannot spend. 100svh, not vh, so mobile
+  // browser chrome doesn't push it taller than the screen.
+  .ix-hero {
+    position: relative; isolation: isolate;
+    min-height: 100vh; min-height: 100svh;
+    display: flex; flex-direction: column; justify-content: center;
+    padding-block: 4rem;
+  }
+  .ix-hero::before {
+    content: ''; position: absolute; inset: 0; z-index: -2;
+    background-image: var(--ix-hero-img, none);
+    background-size: cover; background-position: center;
+    opacity: .18; filter: grayscale(1) contrast(1.1);
+    mask-image: linear-gradient(to bottom, #000 35%, transparent);
+    -webkit-mask-image: linear-gradient(to bottom, #000 35%, transparent);
+  }
+  .ix-hero .post-header { margin-bottom: 0; }
+
+  // Empty once the component lifts every section out of it. Hidden by JS
+  // rather than CSS so a post that still has a lede keeps rendering it.
+  #post-body.is-empty { display: none; }
   .ix-hero-fx {
-    position: absolute; inset: 0; z-index: 0;
+    position: absolute; inset: 0; z-index: -1;
     pointer-events: none; display: block; width: 100%; height: 100%;
   }
   .ix-hero > *:not(.ix-hero-fx) { position: relative; z-index: 1; }

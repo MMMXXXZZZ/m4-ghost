@@ -25,14 +25,18 @@
 <article class="js-post-article {{post_class}}" data-url="{{url}}" data-title="{{title}}" data-id="{{id}}">
     <section class="post container mx-auto my-10 px-4 md:px-0">
 
-        {{!-- Hero. The ember field sits behind the header; .ix-hero is the
-              positioning context its canvas pins to. The feature image is
-              still set on the post for OpenGraph cards regardless of
-              whether article-media renders it here. --}}
-        <div class="ix-hero">
+        {{!-- Hero: title and subtitle over the ember field.
+
+              article-media is deliberately NOT rendered. The feature
+              image stays set on the post, so OpenGraph and Twitter cards
+              still carry it -- ghost_head emits og:image from the post,
+              not from whether the theme draws it. Here it appears only as
+              a heavily dimmed backdrop behind the embers, for texture
+              rather than as a picture to look at. Drop the style
+              attribute to remove it entirely. --}}
+        <div class="ix-hero"{{#if feature_image}} style="--ix-hero-img: url({{img_url feature_image size="xl"}})"{{/if}}>
             <canvas class="ix-hero-fx" aria-hidden="true"></canvas>
             {{> "article/article-header"}}
-            {{> "article/article-media"}}
         </div>
 
         <div id="post-body"
