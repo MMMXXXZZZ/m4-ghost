@@ -149,13 +149,15 @@
       box.remove();
       arm();                              // gesture is live: prompt now
     });
+    // A decline is NOT stored: the reader is asked again on a later
+    // visit, when they may well want it. Only "granted" persists, since
+    // re-asking for a permission already given is pure noise.
     box.querySelector('[data-no]').addEventListener('click', function () {
-      remember('denied');
       box.remove();
-      console.log(TAG + ' reader declined motion');
+      console.log(TAG + ' reader declined motion (will ask again next visit)');
     });
     box.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') { remember('denied'); box.remove(); }
+      if (e.key === 'Escape') box.remove();
     });
 
     document.body.appendChild(box);
@@ -164,9 +166,7 @@
   }
 
   function maybeAsk() {
-    var prior = remembered();
-    if (prior === 'denied') return;
-    if (prior === 'granted') { arm(); return; }   // silent re-arm
+    if (remembered() === 'granted') { arm(); return; }   // silent re-arm
     buildPrompt();
   }
 
@@ -178,7 +178,7 @@
     ['pointerdown', 'touchend', 'keydown'].forEach(function (ev) {
       window.addEventListener(ev, arm, { once: true, passive: true });
     });
-  } else if (remembered() !== 'denied') {
+  } else {
     // Ask once the hero has gone by.
     var hero = document.querySelector('.ix-hero');
     if (hero && 'IntersectionObserver' in window) {
