@@ -149,9 +149,25 @@ function readConfig (head) {
   return { cfg, icon }
 }
 
+/**
+ * 100vw includes the scrollbar, 100% does not, so the full-bleed rule in
+ * _guide.scss overflows horizontally wherever scrollbars take up space.
+ * Publish the difference for CSS to subtract.
+ */
+function trackScrollbarWidth () {
+  const set = () => {
+    const sbw = window.innerWidth - document.documentElement.clientWidth
+    document.documentElement.style.setProperty('--m4-sbw', `${Math.max(0, sbw)}px`)
+  }
+  set()
+  window.addEventListener('resize', set)
+}
+
 export default function initColumns () {
   const body = document.getElementById('post-body')
   if (!body) { console.log(`${TAG} no #post-body`); return }
+
+  trackScrollbarWidth()
 
   const marker = body.querySelector('h1:not(.kg-card h1)') ? 'H1' : 'H2'
 

@@ -26,7 +26,42 @@
     font-style: var(--m4-font-style, inherit);
   }
 
-  .ix { margin: 2rem 0 6rem; }
+  // Full bleed. The column app owns the whole viewport width on desktop,
+  // capped at a standard 21:9 ultrawide (3440x1440) so it stops growing
+  // on wider panels instead of spreading indefinitely.
+  //
+  // 100vw includes the scrollbar while 100% does not, so a naive
+  // full-bleed overflows horizontally wherever scrollbars take space.
+  // --m4-sbw is measured in JS and compensates; it defaults to 0 for
+  // overlay-scrollbar browsers and before the first measurement.
+  .ix {
+    --ix-max: 3440px;
+    margin: 2rem 0 6rem;
+    width: min(calc(100vw - var(--m4-sbw, 0px)), var(--ix-max));
+    max-width: none;
+    margin-left: calc(50% - min(calc(50vw - var(--m4-sbw, 0px) / 2), calc(var(--ix-max) / 2)));
+  }
+
+  // Reading measure. Full bleed is right for the chrome and wrong for
+  // prose -- unchecked, paragraphs ran the full 2522px here. _post.sass
+  // sets `.post-body > *:not(a) { min-width: 100% }`, so these have to
+  // match that specificity to win.
+  //
+  // One shared measure rather than `ch`: ch scales with font-size, so a
+  // 72ch heading came out 1306px against a 721px paragraph and their
+  // left edges didn't line up.
+  .ix-panel {
+    --ix-measure: 45rem;
+    --ix-media: 1100px;
+    padding-inline: 1.5rem;
+  }
+  .ix-panel.post-body > *:not(a) {
+    min-width: 0; width: 100%;
+    max-width: var(--ix-measure); margin-inline: auto;
+  }
+  .ix-panel.post-body > figure:not(a),
+  .ix-panel.post-body > .kg-card:not(a) { max-width: min(100%, var(--ix-media)); }
+  .ix-panel.post-body > .kg-width-full:not(a) { max-width: none; }
   .ix-cols { display: grid; gap: 2px; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); }
   .ix-col {
     appearance: none; border: 1px solid var(--gray-200, #2a2a2a);
