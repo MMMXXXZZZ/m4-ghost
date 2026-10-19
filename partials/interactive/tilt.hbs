@@ -22,6 +22,30 @@
        scene never needs to know which input it is reading.
 ═══════════════════════════════════════════════════════════════════════ --}}
 
+<style>
+  .m4-motion-ask {
+    position: fixed; left: 50%; transform: translateX(-50%);
+    bottom: 4.5rem;                      /* clears the fixed .ix-nav rail */
+    z-index: 50; max-width: min(92vw, 24rem);
+    display: flex; align-items: center; gap: .9rem;
+    padding: .85rem 1rem;
+    background: var(--blank, #110f16); color: var(--title-color, inherit);
+    border: 1px solid var(--gray-200, #2a2a2a); border-radius: .75rem;
+    box-shadow: 0 10px 30px rgba(0,0,0,.35);
+  }
+  .m4-motion-ask p { margin: 0; font-size: .85rem; line-height: 1.3; }
+  .m4-motion-actions { display: flex; gap: .4rem; flex: none; }
+  .m4-motion-ask button {
+    appearance: none; cursor: pointer; border-radius: 999px;
+    padding: .4rem .9rem; font: 600 .78rem/1 inherit;
+    border: 1px solid var(--gray-200, #2a2a2a);
+    background: transparent; color: inherit;
+  }
+  .m4-motion-ask button[data-yes] {
+    background: var(--ghost-accent-color, #F73E05); border-color: transparent; color: #fff;
+  }
+</style>
+
 <script>
 (function () {
   var TAG = '[m4-tilt]';
@@ -88,14 +112,90 @@
     }
   }
 
-  // Non-iOS can start immediately; iOS waits for the gesture.
-  if (window.DeviceOrientationEvent && typeof window.DeviceOrientationEvent.requestPermission !== 'function') {
-    listen(); armed = true;
-  } else {
+  // ── Consent ───────────────────────────────────────────────────────
+  // iOS asks once per origin and a refusal effectively sticks, so we
+  // never spend that single prompt on an unexplained dialog. A priming
+  // step appears after the hero has scrolled past -- by which point the
+  // reader has seen what the animation is for -- and only "Allow" calls
+  // requestPermission(), synchronously inside the click so the gesture
+  // still counts.
+  var STORE = 'm4_motion';
+  function remembered() {
+    try { return localStorage.getItem(STORE); } catch (e) { return null; }
+  }
+  function remember(v) {
+    try { localStorage.setItem(STORE, v); } catch (e) {}
+  }
+
+  var needsPrompt = !!(window.DeviceOrientationEvent &&
+                       typeof window.DeviceOrientationEvent.requestPermission === 'function');
+
+  function buildPrompt() {
+    var en = (document.documentElement.lang || '').indexOf('en') === 0 ||
+             location.pathname.indexOf('/en/') === 0;
+    var box = document.createElement('div');
+    box.className = 'm4-motion-ask';
+    box.setAttribute('role', 'dialog');
+    box.setAttribute('aria-labelledby', 'm4-motion-q');
+    box.innerHTML =
+      '<p id="m4-motion-q">' + (en ? 'Allow site animations?' : '¿Permitir animaciones del sitio?') + '</p>' +
+      '<div class="m4-motion-actions">' +
+        '<button type="button" data-yes>' + (en ? 'Yes' : 'Sí') + '</button>' +
+        '<button type="button" data-no>' + (en ? 'No' : 'No') + '</button>' +
+      '</div>';
+
+    box.querySelector('[data-yes]').addEventListener('click', function () {
+      remember('granted');
+      box.remove();
+      arm();                              // gesture is live: prompt now
+    });
+    box.querySelector('[data-no]').addEventListener('click', function () {
+      remember('denied');
+      box.remove();
+      console.log(TAG + ' reader declined motion');
+    });
+    box.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { remember('denied'); box.remove(); }
+    });
+
+    document.body.appendChild(box);
+    box.querySelector('[data-yes]').focus();
+    return box;
+  }
+
+  function maybeAsk() {
+    var prior = remembered();
+    if (prior === 'denied') return;
+    if (prior === 'granted') { arm(); return; }   // silent re-arm
+    buildPrompt();
+  }
+
+  if (!needsPrompt) {
+    // Android and desktop need no permission; the sensor is simply there.
+    if (window.DeviceOrientationEvent) { listen(); armed = true; }
+  } else if (remembered() === 'granted') {
+    // Already allowed for this origin: re-arm quietly on any gesture.
     ['pointerdown', 'touchend', 'keydown'].forEach(function (ev) {
       window.addEventListener(ev, arm, { once: true, passive: true });
     });
+  } else if (remembered() !== 'denied') {
+    // Ask once the hero has gone by.
+    var hero = document.querySelector('.ix-hero');
+    if (hero && 'IntersectionObserver' in window) {
+      var io = new IntersectionObserver(function (es) {
+        if (!es[0].isIntersecting) { io.disconnect(); maybeAsk(); }
+      }, { threshold: 0 });
+      io.observe(hero);
+    } else {
+      window.addEventListener('scroll', function once() {
+        if (window.scrollY > window.innerHeight * 0.8) {
+          window.removeEventListener('scroll', once);
+          maybeAsk();
+        }
+      }, { passive: true });
+    }
   }
+
   window.addEventListener('pointermove', onPointer, { passive: true });
 
   window.M4Tilt = {
@@ -103,7 +203,9 @@
     get y() { return value.y; },
     get source() { return source; },
     get reduced() { return reduced; },
-    arm: arm
+    arm: arm,
+    ask: maybeAsk,
+    reset: function () { try { localStorage.removeItem(STORE); } catch (e) {} }
   };
   console.log(TAG + ' ready ' + JSON.stringify({
     needsGesture: !!(window.DeviceOrientationEvent && typeof window.DeviceOrientationEvent.requestPermission === 'function'),
