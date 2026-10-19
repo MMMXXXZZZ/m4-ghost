@@ -1,10 +1,9 @@
 {{!-- ═══════════════════════════════════════════════════════════════════════
      IX PROBE — Guide to Protest 2026 proof-of-concept scaffold.
 
-     Rendered only for posts carrying the internal tag #interactivo
-     (gated in post.hbs). Internal tags are not output to readers, so
-     tagging a post is the whole switch: no template dropdown, no slug
-     coupling, no second copy of the content.
+     Rendered for posts tagged "interactivo" (gated in post.hbs), and
+     unconditionally by custom-guide-interactive.hbs, where selecting
+     the template is itself the switch.
 
      What it proves:
        1. Internal-tag gating is server-rendered (so the plain article

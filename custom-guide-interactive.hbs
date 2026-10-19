@@ -1,0 +1,50 @@
+{{!-- Layout --}}
+{{!< default }}
+
+{{!--
+    Guide Interactive — appears in the Ghost editor's Template dropdown as
+    "Guide Interactive".
+
+    Selecting the template IS the switch: nothing here is tag-gated. This
+    deliberately omits the sidebar, the sticky share rail, the comments
+    block and the .js-infinite-container that post.hbs wraps around the
+    article, because a fixed-nav column reader cannot coexist with a
+    feed that appends the next post on scroll.
+
+    The full article still renders server-side inside #post-body, so
+    crawlers get the plain prose; the component re-lays-it-out after
+    paint. Do not fetch a second copy of the content.
+
+    default.hbs:174 loads post.js for any post or page context, so the
+    bundle arrives here unchanged.
+--}}
+
+{{#contentFor "M4_class_body"}}is-article is-guide-interactive{{/contentFor}}
+
+{{#post}}
+<article class="js-post-article {{post_class}}" data-url="{{url}}" data-title="{{title}}" data-id="{{id}}">
+    <section class="post container mx-auto my-10 px-4 md:px-0">
+
+        {{!-- Header and hero are suppressed when the editor's
+              "Show title and feature image" toggle is off (pages only);
+              on posts they always render. --}}
+        {{> "article/article-header"}}
+        {{> "article/article-media"}}
+
+        <div id="post-body"
+             class="post-body min-w-0 js-post-content{{#match @custom.post_font "=" "font-serif"}} font-serif{{else}} font-sans{{/match}}{{#match @custom.post_font_size "=" "20px"}} text-xl{{else}} text-lg{{/match}}">
+            {{content}}
+        </div>
+
+        {{#if tags}}
+        <div class="post-tags my-8 buttons justify-center lg:justify-start">
+            {{#foreach tags}}<a href="{{url}}" title="{{name}}" class="button is-black is-outlined is-small uppercase">{{name}}</a>{{/foreach}}
+        </div>
+        {{/if}}
+
+        {{!-- The interactive component. Unconditional: the template is the gate. --}}
+        {{> "interactive/ix-probe"}}
+
+    </section>
+</article>
+{{/post}}
