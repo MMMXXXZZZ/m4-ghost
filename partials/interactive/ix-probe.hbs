@@ -37,24 +37,34 @@
       supportsViewTransition: !!document.startViewTransition,
       headerMode: document.querySelector('.js-hide-header') ? 'scroll-hide' : 'sticky-or-none'
     };
-    console.log(TAG + ' probe findings', findings);
+    console.log(TAG + ' probe findings ' + JSON.stringify(findings));
 
     if (!body || !findings.supportsShadow) return;
 
     // --- Split the rendered article into sections on <h2> --------------
+    // Walk from each <h2> across ITS OWN siblings. A flat pass over
+    // body.childNodes misses any heading Ghost nests inside a wrapper,
+    // which is how this first read 1 h2 but parsed 0 sections.
     var sections = [];
-    var current = null;
-    Array.prototype.forEach.call(Array.prototype.slice.call(body.childNodes), function (node) {
-      var isH2 = node.nodeType === 1 && node.tagName === 'H2';
-      if (isH2) {
-        current = { title: node.textContent.trim(), id: node.id || '', nodes: [] };
-        sections.push(current);
-        return;
+    Array.prototype.forEach.call(body.querySelectorAll('h2'), function (h2) {
+      var sec = { title: h2.textContent.trim(), id: h2.id || '', nodes: [] };
+      var n = h2.nextSibling;
+      while (n) {
+        if (n.nodeType === 1 && n.tagName === 'H2') break;
+        var next = n.nextSibling;
+        sec.nodes.push(n);
+        n = next;
       }
-      if (current) current.nodes.push(node);
+      sections.push(sec);
     });
-    console.log(TAG + ' sections parsed: ' + sections.length,
-      sections.map(function (s) { return s.title; }));
+    console.log(TAG + ' sections parsed: ' + sections.length + ' ' +
+      JSON.stringify(sections.map(function (s) { return s.title; })));
+
+    // Nothing to lay out -- leave the article alone rather than hiding it.
+    if (!sections.length) {
+      console.log(TAG + ' no <h2> sections; leaving #post-body visible.');
+      return;
+    }
 
     // --- Move (not clone) into a shadow root ---------------------------
     var host = document.createElement('div');
