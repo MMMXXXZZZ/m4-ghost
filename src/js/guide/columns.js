@@ -164,10 +164,23 @@ function applyConfig (panel, col, cfg) {
   else if (cfg.icon) col.style.setProperty('--m4-icon', cfg.icon)
   if (cfg.scene) panel.setAttribute('data-m4-scene', cfg.scene)
 
+  // Contrast has to be solved per mode. Computing it once from the light
+  // value left a column whose light background is bright wearing
+  // near-black text on its dark background. The dark keys are always
+  // written, falling back in JS rather than in CSS, because a custom
+  // property cannot name itself in its own fallback.
   const onBg = readableOn(cfg.bg)
   const onLink = readableOn(cfg.link)
-  if (onBg) panel.style.setProperty('--m4-on-bg', onBg)
-  if (onLink) panel.style.setProperty('--m4-on-link', onLink)
+  const onBgDark = readableOn(cfg.bgDark || cfg.bg)
+  const onLinkDark = readableOn(cfg.linkDark || cfg.link)
+  //
+  // Written as -light/-dark pairs, never as --m4-on-bg directly: an
+  // inline style outranks every stylesheet rule, so a dark-mode override
+  // in CSS could never replace it. The stylesheet picks the pair.
+  if (onBg) panel.style.setProperty('--m4-on-bg-light', onBg)
+  if (onLink) panel.style.setProperty('--m4-on-link-light', onLink)
+  if (onBgDark) panel.style.setProperty('--m4-on-bg-dark', onBgDark)
+  if (onLinkDark) panel.style.setProperty('--m4-on-link-dark', onLinkDark)
 }
 
 /** Read the config card after a heading and detach it from the flow. */

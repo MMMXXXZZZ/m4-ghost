@@ -8,6 +8,9 @@
      itself. Dark values fall back to the light ones when unset. */
   .ix-item[data-m4-styled] .ix-body,
   .ix-item[data-m4-styled] {
+    // The foreground pair solved against the light backgrounds.
+    --m4-on-bg: var(--m4-on-bg-light);
+    --m4-on-link: var(--m4-on-link-light);
     --blank: var(--m4-bg);
     --title-color: var(--m4-title);
     --post-color-link: var(--m4-link);
@@ -17,6 +20,9 @@
   }
   html.dark .ix-item[data-m4-styled] .ix-body,
   html.dark .ix-item[data-m4-styled] {
+    // Swap in the foregrounds solved against the DARK backgrounds.
+    --m4-on-bg: var(--m4-on-bg-dark);
+    --m4-on-link: var(--m4-on-link-dark);
     --blank: var(--m4-bg-dark, var(--m4-bg));
     --title-color: var(--m4-title-dark, var(--m4-title));
     --post-color-link: var(--m4-link-dark, var(--m4-link));
