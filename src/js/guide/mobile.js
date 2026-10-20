@@ -1,4 +1,4 @@
-/* global getComputedStyle, requestAnimationFrame, IntersectionObserver, setTimeout, clearTimeout */
+/* global getComputedStyle, requestAnimationFrame, IntersectionObserver */
 
 /**
  * MOBILE — one document, a sticky face rail, and lag between the two.
@@ -165,21 +165,31 @@ export default function initMobile (entries, stack, nav, onBack) {
   }
 
   // Dragging the rail moves the read, without opening anything.
-  let railIdle = null
+  /**
+   * Switch as soon as the next face reaches the middle of the rail, not
+   * after the drag has stopped. Waiting for an idle moment made the
+   * column change feel disconnected from the gesture that caused it.
+   * The document still follows on the lag -- that part SHOULD trail.
+   */
+  function centredEntry () {
+    const mid = nav.scrollLeft + nav.clientWidth / 2
+    let best = null
+    let bestD = Infinity
+    entries.forEach((e) => {
+      const b = railBtn(e)
+      const d = Math.abs((b.offsetLeft + b.offsetWidth / 2) - mid)
+      if (d < bestD) { bestD = d; best = e }
+    })
+    return best
+  }
+
   nav.addEventListener('scroll', () => {
-    if (railSettling || !stack.dataset.mobileOpen) return
-    clearTimeout(railIdle)
-    railIdle = setTimeout(() => {
-      const mid = nav.scrollLeft + nav.clientWidth / 2
-      let best = null
-      let bestD = Infinity
-      entries.forEach((e) => {
-        const b = railBtn(e)
-        const d = Math.abs((b.offsetLeft + b.offsetWidth / 2) - mid)
-        if (d < bestD) { bestD = d; best = e }
-      })
-      if (best && best !== active) { setActive(best, 'rail'); goToColumn(best) }
-    }, 110)
+    if (railSettling || stack.dataset.mobileOpen !== 'true') return
+    const best = centredEntry()
+    if (best && best !== active) {
+      setActive(best, 'rail')
+      goToColumn(best)
+    }
   }, { passive: true })
 
   console.log(`${TAG} ready ${JSON.stringify({ columns: entries.length, lag: LAG })}`)

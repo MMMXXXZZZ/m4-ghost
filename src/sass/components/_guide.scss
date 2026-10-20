@@ -69,6 +69,7 @@
     background: var(--gray-200, #2a2a2a);
   }
   .ix-item {
+    -webkit-tap-highlight-color: transparent;
     flex: var(--g, 0) 1 var(--ix-rail); min-width: 0; position: relative;
     overflow: hidden; display: flex;
     background: var(--m4-bg, var(--blank, #110f16));
@@ -132,7 +133,11 @@
       font: 600 clamp(.82rem, 1vw, 1.05rem)/1.25 inherit;
       text-transform: uppercase; letter-spacing: .04em;
     }
-    .ix-item:hover { background: var(--m4-link, var(--ghost-accent-color, #F73E05)); color: #fff; }
+    // Only where hover is real. On a touch screen :hover sticks after a
+    // tap, so reading a column lit its background with the accent.
+    @media (hover: hover) {
+      .ix-item:hover { background: var(--m4-link, var(--ghost-accent-color, #F73E05)); color: #fff; }
+    }
   }
 
   // Preset name, flashed while comparing switching animations.
@@ -156,7 +161,9 @@
   // Hover and open swap the BACKGROUND to --m4-link, so the label has to
   // swap with it. Pinned to --m4-on-bg it stayed white against a bright
   // column colour and became unreadable.
-  .ix-stack[data-all-collapsed="true"] .ix-item:hover { color: var(--m4-on-link, #fff); }
+  @media (hover: hover) {
+    .ix-stack[data-all-collapsed="true"] .ix-item:hover { color: var(--m4-on-link, #fff); }
+  }
   .ix-stack[data-all-collapsed="true"] .ix-item:hover .ix-face-title,
   .ix-stack[data-all-collapsed="true"] .ix-item:hover .lbl,
   .ix-stack[data-all-collapsed="true"] .ix-item:hover svg,
@@ -593,13 +600,15 @@
     .ix-nav.is-rail::after { content: ''; flex: 0 0 38vw; }
 
     // Back to the three-drawer pages.
-    .ix-rail-back {
+    // .ix-nav button sets a transparent background and outranks a bare
+    // .ix-rail-back, so the circle never drew.
+    .ix-nav.is-rail .ix-rail-back {
       appearance: none; border: 0; cursor: pointer; flex: 0 0 auto;
       inline-size: 2.1rem; block-size: 2.1rem; border-radius: 50%;
       display: grid; place-items: center; margin-right: .35rem;
       background: var(--gray-150, #1b1c20); color: inherit;
     }
-    .ix-rail-back svg { width: 1.1rem; height: 1.1rem; }
+    .ix-nav.is-rail .ix-rail-back svg { width: 1.1rem; height: 1.1rem; }
     .ix-nav.is-rail::before { content: none; }
 
     // Pagination dots. These replace the footer entirely while the
