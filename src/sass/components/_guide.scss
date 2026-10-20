@@ -494,6 +494,18 @@
   .ix-lab-col[open] { border-color: var(--ghost-accent-color, #F73E05); }
   .ix-lab-col-fields { padding: .3rem .45rem .5rem; }
 
+  .ix-lab-group { margin-top: .4rem; padding: .3rem .4rem; border-radius: .3rem; border: 1px solid #26272c; }
+  .ix-lab-group.is-active { border-color: #3c3d45; background: rgba(255,255,255,.03); }
+  .ix-lab-group-h {
+    margin: 0 0 .15rem; font-size: .55rem; letter-spacing: .08em;
+    text-transform: uppercase; opacity: .45;
+  }
+  .ix-lab-group.is-active .ix-lab-group-h { opacity: .75; }
+  // An unset key inherits; say so rather than showing a colour that is
+  // not actually in effect.
+  .ix-lab-field.is-unset input[type="color"] { opacity: .3; }
+  .ix-lab-field.is-unset span { opacity: .45; font-style: italic; }
+
   .ix-lab-field {
     display: grid; grid-template-columns: 1fr auto auto; align-items: center;
     gap: .4rem; margin-top: .25rem; font-size: .62rem;

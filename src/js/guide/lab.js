@@ -90,9 +90,12 @@ export function labEnabled () {
  * palette arrived at by eye can be made permanent without translation.
  */
 function buildColumns (wrap, columns, onColumnChange) {
-  const COLOURS = [
-    ['bg', 'background'], ['title', 'text'], ['link', 'accent'],
-    ['bgDark', 'background · dark'], ['titleDark', 'text · dark'], ['linkDark', 'accent · dark']
+  // Grouped by mode, because the three base keys apply to BOTH modes --
+  // dark falls back to light when unset -- and six flat rows gave no
+  // hint of that, which read as the values being tangled together.
+  const GROUPS = [
+    ['light', [['bg', 'background'], ['title', 'text'], ['link', 'accent']]],
+    ['dark', [['bgDark', 'background'], ['titleDark', 'text'], ['linkDark', 'accent']]]
   ]
 
   return columns.map((col) => {
@@ -136,18 +139,37 @@ function buildColumns (wrap, columns, onColumnChange) {
       onColumnChange(col, clean)
     }
 
-    COLOURS.forEach(([key, label]) => {
-      const f = document.createElement('label')
-      f.className = 'ix-lab-field'
-      f.innerHTML = `<span>${label}</span>` +
-        `<input type="color" data-k="${key}" value="${cfg[key] || '#000000'}">` +
-        '<button type="button" class="clr" title="unset">×</button>'
-      const input = f.querySelector('input')
-      input.addEventListener('input', () => { cfg[key] = input.value; emit() })
-      f.querySelector('.clr').addEventListener('click', (e) => {
-        e.preventDefault(); delete cfg[key]; emit()
+    GROUPS.forEach(([mode, keys]) => {
+      const g = document.createElement('div')
+      g.className = 'ix-lab-group'
+      g.dataset.mode = mode
+      const h = document.createElement('p')
+      h.className = 'ix-lab-group-h'
+      h.textContent = mode === 'dark' ? 'dark mode · unset inherits light' : 'light mode'
+      g.appendChild(h)
+
+      keys.forEach(([key, label]) => {
+        const f = document.createElement('label')
+        f.className = 'ix-lab-field'
+        f.innerHTML = `<span>${label}</span>` +
+          `<input type="color" data-k="${key}" value="${cfg[key] || '#000000'}">` +
+          '<button type="button" class="clr" title="unset">×</button>'
+        const input = f.querySelector('input')
+        const mark = () => f.classList.toggle('is-unset', !cfg[key])
+        mark()
+        input.addEventListener('input', () => { cfg[key] = input.value; mark(); emit() })
+        f.querySelector('.clr').addEventListener('click', (e) => {
+          e.preventDefault()
+          delete cfg[key]
+          // Show what it will actually inherit rather than a stale value.
+          const base = key.endsWith('Dark') ? cfg[key.replace('Dark', '')] : null
+          input.value = base || '#000000'
+          mark()
+          emit()
+        })
+        g.appendChild(f)
       })
-      fields.appendChild(f)
+      fields.appendChild(g)
     })
 
     ;[['font.family', 'font family'], ['font.weight', 'font weight'], ['scene', 'scene']]
@@ -199,6 +221,9 @@ export function createLab (settings, presets, onChange, columns, onColumnChange)
       <div class="ix-lab-fx"></div>
       </details>
       <details class="ix-lab-sec" open><summary>columns</summary>
+      <button type="button" class="ix-lab-toggle" data-darkpreview aria-pressed="false">
+        <span class="dot"></span> preview dark mode
+      </button>
       <div class="ix-lab-cols"></div>
       </details>
       <p class="ix-lab-note">?lab=1 only · saved locally</p>
@@ -283,6 +308,18 @@ export function createLab (settings, presets, onChange, columns, onColumnChange)
     onChange('cycle', settings.cycle)
   })
 
+  // Previewing dark is the only way to judge the dark values while
+  // setting them.
+  const darkBtn = panel.querySelector('[data-darkpreview]')
+  darkBtn.addEventListener('click', () => {
+    const on = darkBtn.getAttribute('aria-pressed') !== 'true'
+    darkBtn.setAttribute('aria-pressed', on ? 'true' : 'false')
+    document.documentElement.classList.toggle('dark', on)
+    panel.querySelectorAll('.ix-lab-group').forEach((g) => {
+      g.classList.toggle('is-active', g.dataset.mode === (on ? 'dark' : 'light'))
+    })
+  })
+
   panel.querySelector('[data-min]').addEventListener('click', () => {
     panel.classList.toggle('is-min')
   })
@@ -309,6 +346,9 @@ export function createLab (settings, presets, onChange, columns, onColumnChange)
   }
 
   document.body.appendChild(panel)
+  panel.querySelectorAll('.ix-lab-group').forEach((g) => {
+    g.classList.toggle('is-active', g.dataset.mode === (document.documentElement.classList.contains('dark') ? 'dark' : 'light'))
+  })
   applyDims(settings)
   sync()
   return { panel, sync, focusColumn }
