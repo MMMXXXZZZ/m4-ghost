@@ -54,6 +54,12 @@ export default function initPanels () {
   // systems deciding where the page rests fight each other.
   document.documentElement.style.setProperty('scroll-snap-type', 'none')
 
+  // And scroll-behavior:smooth has to go for the same reason. GSAP
+  // assigns scrollTop every frame; with smooth on, the browser animates
+  // each of those assignments with ITS curve, so the easing set here was
+  // never what you saw -- and it cost 786ms before anything moved.
+  document.documentElement.style.setProperty('scroll-behavior', 'auto')
+
   let moving = false
   let lastMoveEnd = 0
 

@@ -324,7 +324,7 @@ export default function initColumns () {
 
     applyConfig(item, face, s.cfg)
 
-    return { slug, title: s.title, item, face, body: bodyEl, nav: navBtn, icon: s.icon }
+    return { slug, title: s.title, item, face, body: bodyEl, nav: navBtn, icon: s.icon, cfg: s.cfg }
   })
 
   wrap.appendChild(stack)
@@ -544,6 +544,7 @@ export default function initColumns () {
         label.textContent = e.title
         markerEl.appendChild(label)
         if (!immediate) playContent(e, preset)
+        if (lab && lab.focusColumn) lab.focusColumn(slug)
         if (!opened[slug]) { opened[slug] = true; track(e.title) }
       }
     })
@@ -587,13 +588,30 @@ export default function initColumns () {
 
   applyDims(FX)
 
+  let lab = null
   if (labEnabled()) {
-    createLab(FX, PRESETS, (key) => {
+    lab = createLab(FX, PRESETS, (key) => {
       // Re-run the current state so a change is visible immediately.
       const current = entries.find((x) => x.item.dataset.open === 'true')
       if (key !== 'cycle' && current) {
         open(null, false, true)
         requestAnimationFrame(() => open(current.slug, false))
+      }
+    },
+    entries.map((e) => ({ slug: e.slug, title: e.title, cfg: e.cfg })),
+    // Writes from the lab go straight to the live column.
+    (col, cfg) => {
+      const e = entries.find((x) => x.slug === col.slug)
+      if (!e) return
+      PALETTE.forEach((v) => e.item.style.removeProperty(v))
+      e.item.removeAttribute('data-m4-styled')
+      applyConfig(e.item, e.face, cfg)
+      if (e.item.dataset.open === 'true') {
+        const root = document.documentElement
+        PALETTE.forEach((v) => {
+          const val = e.item.style.getPropertyValue(v)
+          if (val) root.style.setProperty(v, val); else root.style.removeProperty(v)
+        })
       }
     })
   }

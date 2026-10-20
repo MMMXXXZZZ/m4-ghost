@@ -75,6 +75,11 @@
   .ix-face {
     appearance: none; border: 0; cursor: pointer; background: transparent;
     color: inherit; flex: none; width: var(--ix-rail);
+    // Without this the face jumps straight from the full-width grid tile
+    // to the rail while --g is still animating, so the open transition
+    // read as a cut.
+    transition: width 600ms cubic-bezier(.16, 1, .3, 1),
+                background-color 400ms ease, color 400ms ease;
     display: flex; flex-direction: column;
     align-items: center; justify-content: space-between; padding: 1.1rem .5rem;
   }
@@ -85,7 +90,12 @@
     font: 600 .72rem/1 inherit; text-transform: uppercase; letter-spacing: .06em;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-height: 100%;
   }
-  .ix-face-title { display: none; }
+  // Cross-faded rather than display-toggled, so the label change rides
+  // the same transition as the width.
+  .ix-face-title { display: none; opacity: 0; transition: opacity 300ms ease; }
+  .ix-stack[data-all-collapsed="true"] .ix-face-title { opacity: 1; }
+  .ix-face .lbl { transition: opacity 300ms ease; }
+  .ix-stack[data-all-collapsed="true"] .ix-face .lbl { opacity: 0; }
 
   // Entry state: nothing open, every column equal, each showing a large
   // symbol and its heading. The rail labels are for when a column opens.
@@ -101,7 +111,6 @@
       gap: 1.5rem; padding: 2rem 1rem; text-align: center;
     }
     .ix-face svg { width: clamp(3rem, 7vw, 6rem); height: clamp(3rem, 7vw, 6rem); }
-    .ix-face .lbl { display: none; }
     .ix-face-title {
       display: block; max-width: 18ch;
       font: 600 clamp(.82rem, 1vw, 1.05rem)/1.25 inherit;
@@ -461,3 +470,53 @@
     .ix-nav { display: none; }
   }
 
+  // Lab sections and the per-column palette editor.
+  .ix-lab-sec { border-top: 1px solid #26272c; }
+  .ix-lab-sec > summary {
+    cursor: pointer; list-style: none; padding: .5rem 0 .4rem;
+    text-transform: uppercase; letter-spacing: .09em; font-size: .6rem; opacity: .6;
+  }
+  .ix-lab-sec > summary::-webkit-details-marker { display: none; }
+  .ix-lab-sec[open] > summary { opacity: .9; }
+
+  .ix-lab-col { border: 1px solid #26272c; border-radius: .4rem; margin-top: .3rem; }
+  .ix-lab-col > summary {
+    cursor: pointer; list-style: none; display: flex; align-items: center;
+    gap: .45rem; padding: .35rem .45rem; font-size: .63rem;
+  }
+  .ix-lab-col > summary::-webkit-details-marker { display: none; }
+  .ix-lab-col .sw { display: flex; flex: none; gap: 2px; }
+  .ix-lab-col .sw i {
+    inline-size: .7rem; block-size: .7rem; border-radius: 2px;
+    border: 1px solid #3a3b42;
+  }
+  .ix-lab-col .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ix-lab-col[open] { border-color: var(--ghost-accent-color, #F73E05); }
+  .ix-lab-col-fields { padding: .3rem .45rem .5rem; }
+
+  .ix-lab-field {
+    display: grid; grid-template-columns: 1fr auto auto; align-items: center;
+    gap: .4rem; margin-top: .25rem; font-size: .62rem;
+  }
+  .ix-lab-field input[type="color"] {
+    inline-size: 1.6rem; block-size: 1.1rem; padding: 0; border: 0;
+    background: none; cursor: pointer;
+  }
+  .ix-lab-field.is-text { grid-template-columns: 1fr; gap: .15rem; }
+  .ix-lab-field.is-text input {
+    width: 100%; font: inherit; font-size: .62rem; padding: .2rem .3rem;
+    background: #141519; color: inherit; border: 1px solid #2d2e34; border-radius: .25rem;
+  }
+  .ix-lab-field .clr {
+    appearance: none; border: 0; background: none; color: inherit;
+    cursor: pointer; opacity: .4; font-size: .7rem; line-height: 1; padding: 0 .2rem;
+  }
+  .ix-lab-field .clr:hover { opacity: .9; }
+
+  // The exact block to paste back into the post.
+  .ix-lab-block {
+    width: 100%; margin-top: .5rem; resize: vertical;
+    font: 500 .58rem/1.35 ui-monospace, SFMono-Regular, Menlo, monospace;
+    background: #0f1013; color: #cfd2d8;
+    border: 1px solid #2d2e34; border-radius: .3rem; padding: .35rem;
+  }

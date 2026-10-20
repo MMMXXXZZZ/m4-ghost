@@ -80,7 +80,104 @@ export function labEnabled () {
  * @param {Array}  presets   [{ name, dur, ease, stagger }]
  * @param {Function} onChange called after any change
  */
-export function createLab (settings, presets, onChange) {
+/**
+ * Build the per-column palette editor.
+ *
+ * One row per column, collapsed to a swatch strip and expanded for the
+ * column that is currently open, so the panel tracks what is on screen.
+ * Each field writes straight through to the live column, and the block
+ * at the bottom is the exact JSON to paste back into the post, so a
+ * palette arrived at by eye can be made permanent without translation.
+ */
+function buildColumns (wrap, columns, onColumnChange) {
+  const COLOURS = [
+    ['bg', 'background'], ['title', 'text'], ['link', 'accent'],
+    ['bgDark', 'background · dark'], ['titleDark', 'text · dark'], ['linkDark', 'accent · dark']
+  ]
+
+  return columns.map((col) => {
+    const cfg = Object.assign({}, col.cfg || {})
+    const row = document.createElement('details')
+    row.className = 'ix-lab-col'
+    row.dataset.slug = col.slug
+
+    const sum = document.createElement('summary')
+    sum.innerHTML = '<span class="sw"></span><span class="t"></span>'
+    sum.querySelector('.t').textContent = col.title
+    row.appendChild(sum)
+
+    const fields = document.createElement('div')
+    fields.className = 'ix-lab-col-fields'
+    row.appendChild(fields)
+
+    const out = document.createElement('textarea')
+    out.className = 'ix-lab-block'
+    out.readOnly = true
+    out.rows = 6
+    out.spellcheck = false
+
+    function swatches () {
+      sum.querySelector('.sw').innerHTML = ['bg', 'title', 'link']
+        .map((k) => `<i style="background:${cfg[k] || 'transparent'}"></i>`).join('')
+    }
+
+    function emit () {
+      const clean = {}
+      Object.keys(cfg).forEach((k) => {
+        const v = cfg[k]
+        if (v !== '' && v !== null && v !== undefined) clean[k] = v
+      })
+      // Split so the closing tag cannot terminate this script when the
+      // bundle is parsed inline anywhere.
+      const OPEN = '<' + 'script type="application/json" data-m4-col>'
+      const CLOSE = '<' + '/script>'
+      out.value = OPEN + '\n' + JSON.stringify(clean, null, 2) + '\n' + CLOSE
+      swatches()
+      onColumnChange(col, clean)
+    }
+
+    COLOURS.forEach(([key, label]) => {
+      const f = document.createElement('label')
+      f.className = 'ix-lab-field'
+      f.innerHTML = `<span>${label}</span>` +
+        `<input type="color" data-k="${key}" value="${cfg[key] || '#000000'}">` +
+        '<button type="button" class="clr" title="unset">×</button>'
+      const input = f.querySelector('input')
+      input.addEventListener('input', () => { cfg[key] = input.value; emit() })
+      f.querySelector('.clr').addEventListener('click', (e) => {
+        e.preventDefault(); delete cfg[key]; emit()
+      })
+      fields.appendChild(f)
+    })
+
+    ;[['font.family', 'font family'], ['font.weight', 'font weight'], ['scene', 'scene']]
+      .forEach(([path, label]) => {
+        const f = document.createElement('label')
+        f.className = 'ix-lab-field is-text'
+        const cur = path === 'scene' ? (cfg.scene || '') : ((cfg.font || {})[path.split('.')[1]] || '')
+        f.innerHTML = `<span>${label}</span><input type="text" value="${cur}">`
+        f.querySelector('input').addEventListener('input', (e) => {
+          const v = e.target.value
+          if (path === 'scene') { if (v) cfg.scene = v; else delete cfg.scene } else {
+            cfg.font = Object.assign({}, cfg.font)
+            const k = path.split('.')[1]
+            if (v) cfg.font[k] = k === 'weight' ? Number(v) || v : v
+            else delete cfg.font[k]
+            if (!Object.keys(cfg.font).length) delete cfg.font
+          }
+          emit()
+        })
+        fields.appendChild(f)
+      })
+
+    fields.appendChild(out)
+    wrap.appendChild(row)
+    emit()
+    return { row, slug: col.slug }
+  })
+}
+
+export function createLab (settings, presets, onChange, columns, onColumnChange) {
   const panel = document.createElement('aside')
   panel.className = 'ix-lab'
   panel.innerHTML = `
@@ -89,15 +186,21 @@ export function createLab (settings, presets, onChange) {
       <button type="button" data-min aria-label="Minimise">–</button>
     </header>
     <div class="ix-lab-body">
-      <p class="ix-lab-legend">transition</p>
+      <details class="ix-lab-sec"><summary>transition</summary>
       <div class="ix-lab-presets"></div>
       <button type="button" class="ix-lab-toggle" data-cycle aria-pressed="false">
         <span class="dot"></span> cycle on each switch
       </button>
-      <p class="ix-lab-legend">dimensions</p>
+      </details>
+      <details class="ix-lab-sec"><summary>dimensions</summary>
       <div class="ix-lab-dims"></div>
-      <p class="ix-lab-legend">effects</p>
+      </details>
+      <details class="ix-lab-sec"><summary>effects</summary>
       <div class="ix-lab-fx"></div>
+      </details>
+      <details class="ix-lab-sec" open><summary>columns</summary>
+      <div class="ix-lab-cols"></div>
+      </details>
       <p class="ix-lab-note">?lab=1 only · saved locally</p>
     </div>`
 
@@ -195,8 +298,18 @@ export function createLab (settings, presets, onChange) {
     })
   }
 
+  let colRows = []
+  if (columns && columns.length) {
+    colRows = buildColumns(panel.querySelector('.ix-lab-cols'), columns, onColumnChange)
+  }
+
+  /** Expand the row for whichever column is open; collapse the rest. */
+  function focusColumn (slug) {
+    colRows.forEach((r) => { r.row.open = r.slug === slug })
+  }
+
   document.body.appendChild(panel)
   applyDims(settings)
   sync()
-  return { panel, sync }
+  return { panel, sync, focusColumn }
 }
