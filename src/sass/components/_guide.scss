@@ -320,9 +320,20 @@
   @media (prefers-reduced-motion: reduce) {
     html:has(body.is-guide-interactive) { scroll-behavior: auto; }
   }
+  // Kept as the no-JS fallback. panels.js sets scroll-snap-type:none on
+  // <html> when it takes over, because two systems both deciding where
+  // the page rests will fight each other.
   .ix-hero,
   .ix-stack,
   .ix-outro { scroll-snap-align: start; scroll-snap-stop: always; }
+
+  // The site header is hidden while a column is open, so nothing
+  // overlays the reading panel. It returns on the hero and the outro.
+  body.ix-in-stack .header {
+    opacity: 0; pointer-events: none;
+    transform: translateY(-100%);
+    transition: opacity .35s ease, transform .35s ease;
+  }
 
   // The outro is a panel, not a tail: as a short block it sat past the
   // document's maximum scroll offset and was unreachable under mandatory.

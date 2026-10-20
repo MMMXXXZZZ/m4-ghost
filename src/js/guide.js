@@ -12,11 +12,13 @@
 import initTilt from './guide/tilt'
 import initEmbers from './guide/embers'
 import initColumns from './guide/columns'
+import initPanels from './guide/panels'
 
 function boot () {
   initTilt()
   initEmbers(document.querySelector('.ix-hero-fx'))
   initColumns()
+  initPanels()
 }
 
 if (document.readyState === 'loading') {

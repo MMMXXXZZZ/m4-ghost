@@ -623,7 +623,7 @@ export default function initColumns () {
   let rearm = null
 
   /**
-   * Hand scrolling back to the browser rather than animating it.
+   * Leaving a column.
    *
    * The earlier version tweened window scroll with GSAP, which threw
    * away the gesture's momentum and arrived at a fixed pace however hard
@@ -636,20 +636,19 @@ export default function initColumns () {
    * its real trackpad or touch momentum, carries the page out. The
    * snap rule on .ix-stack decides where it settles.
    */
-  function release () {
+  function release (dir) {
     if (releasing) return
     releasing = true
-    entries.forEach((e) => { e.body.style.overscrollBehavior = 'auto' })
     gsap.to(stack, { y: 0, duration: 0.3, ease: 'pbs', overwrite: 'auto' })
-
-    // Re-arm once the gesture has finished, so the next column read gets
-    // its threshold back.
+    // Panel navigation owns travel between panels now, so a column read
+    // to its end hands over to it instead of releasing the page to a
+    // browser scroll that no longer snaps anywhere.
+    if (window.M4Panels) {
+      if (dir > 0) window.M4Panels.toOutro()
+      else window.M4Panels.goTo(0)
+    }
     clearTimeout(rearm)
-    rearm = setTimeout(() => {
-      entries.forEach((e) => { e.body.style.removeProperty('overscroll-behavior') })
-      edgeAcc = 0
-      releasing = false
-    }, 1100)
+    rearm = setTimeout(() => { edgeAcc = 0; releasing = false }, 1100)
   }
 
   Observer.create({
@@ -669,7 +668,7 @@ export default function initColumns () {
       if (!atEdge(bodyEl, dir)) { if (edgeAcc) springBack(); return }
       if (ev.cancelable) ev.preventDefault()
       edgeAcc += Math.abs(self.deltaY)
-      if (edgeAcc >= EDGE_TOL) release()
+      if (edgeAcc >= EDGE_TOL) release(dir)
       else gsap.to(stack, { y: -dir * Math.min(34, edgeAcc * 0.34), duration: 0.12, ease: 'power2.out', overwrite: 'auto' })
     }
   })
