@@ -502,6 +502,7 @@ export default function initColumns () {
         }
         if (!opened[slug]) { opened[slug] = true; track(entry.title) }
         requestAnimationFrame(syncDots)
+        requestAnimationFrame(syncPeek)
         return
       }
     }
@@ -595,6 +596,7 @@ export default function initColumns () {
       history.replaceState(null, '', anyOpen ? `#${slug}` : location.pathname + location.search)
     }
     if (typeof syncDots === 'function') requestAnimationFrame(syncDots)
+    if (typeof syncPeek === 'function') requestAnimationFrame(syncPeek)
   }
 
   entries.forEach((e) => {
@@ -691,6 +693,31 @@ export default function initColumns () {
   // descendants -- the dots anchored to it instead of the viewport and
   // sat 2364px down the page.
   document.body.appendChild(dots)
+  /**
+   * Which drawers belong to the page on screen, and which are the
+   * slivers either side. Recomputed on every scroll: the same element
+   * is on-page one moment and a sliver the next, so this cannot be
+   * decided once and stored.
+   */
+  function syncPeek () {
+    if (!isPhone() || stack.dataset.allCollapsed !== 'true') {
+      entries.forEach((e) => e.item.removeAttribute('data-peek'))
+      return
+    }
+    const left = stack.scrollLeft
+    const right = left + stack.clientWidth
+    entries.forEach((e) => {
+      const x = e.item.offsetLeft
+      const w = e.item.offsetWidth
+      // On-page means essentially all of it is within the viewport.
+      const onPage = x >= left - 4 && x + w <= right + 4
+      e.item.dataset.peek = onPage ? 'false' : 'true'
+    })
+  }
+  stack.addEventListener('scroll', syncPeek, { passive: true })
+  window.addEventListener('resize', syncPeek)
+  requestAnimationFrame(syncPeek)
+
   stack.addEventListener('scroll', syncDots, { passive: true })
   window.addEventListener('resize', syncDots)
 

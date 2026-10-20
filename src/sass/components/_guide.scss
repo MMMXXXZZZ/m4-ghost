@@ -570,7 +570,11 @@
       display: grid;
       grid-auto-flow: column;
       grid-template-rows: repeat(3, 1fr);
-      grid-auto-columns: 100%;
+      // Short of a full screen, so the next page's edge shows and it is
+      // obvious there is more sideways. --ix-peek is the sliver.
+      --ix-peek: 2.25rem;
+      grid-auto-columns: calc(100% - var(--ix-peek));
+      scroll-padding-inline: 0;
       height: calc(100svh - var(--ix-pad) * 2);
       overflow-x: auto; overflow-y: hidden;
       scroll-snap-type: x mandatory;
@@ -579,6 +583,19 @@
     }
     .ix-stack[data-all-collapsed="true"]::-webkit-scrollbar { display: none; }
     .ix-stack[data-all-collapsed="true"] .ix-item { scroll-snap-align: start; }
+    // A drawer on a neighbouring page is a rectangle, not a label: the
+    // sliver is too narrow to read and half a word is worse than none.
+    // Page membership is recomputed on every scroll rather than stored,
+    // since the page changes under the same elements.
+    .ix-stack[data-all-collapsed="true"] .ix-item[data-peek="true"] .ix-face-title,
+    .ix-stack[data-all-collapsed="true"] .ix-item[data-peek="true"] .ix-face-icon {
+      opacity: 0;
+    }
+    .ix-stack[data-all-collapsed="true"] .ix-item .ix-face-title,
+    .ix-stack[data-all-collapsed="true"] .ix-item .ix-face-icon {
+      transition: opacity .35s ease;
+    }
+
 
     // Open: every column unwraps into ONE document. There is no single
     // open column on a phone -- only a position within a continuous
