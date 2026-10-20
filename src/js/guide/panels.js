@@ -135,6 +135,12 @@ export default function initPanels () {
     preventDefault: false,
     onChangeY (self) {
       if (moving || performance.now() - lastMoveEnd < COOLDOWN) return
+      // The phone's unwrapped read owns its own scrolling. The app is
+      // many screens tall there, so "mostly visible" is true the whole
+      // way down and every upward gesture was read as a request to
+      // leave for the hero.
+      const stk = document.querySelector('.ix-stack')
+      if (stk && stk.dataset.mobileOpen === 'true') return
       const dir = gestureDir(self)
       if (innerStillScrolling(self.event, dir)) return
 

@@ -14,6 +14,43 @@
 
 const STORE = 'm4_ix_lab'
 
+/** #rrggbb -> {h,s,l} with h in degrees. */
+function hexToHsl (hex) {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex || '')
+  if (!m) return null
+  const [r, g, b] = [m[1], m[2], m[3]].map((x) => parseInt(x, 16) / 255)
+  const max = Math.max(r, g, b)
+  const min = Math.min(r, g, b)
+  const l = (max + min) / 2
+  const d = max - min
+  let h = 0
+  let sat = 0
+  if (d) {
+    sat = l > 0.5 ? d / (2 - max - min) : d / (max + min)
+    if (max === r) h = ((g - b) / d + (g < b ? 6 : 0))
+    else if (max === g) h = (b - r) / d + 2
+    else h = (r - g) / d + 4
+    h *= 60
+  }
+  return { h, s: sat, l }
+}
+
+function hslToHex (h, s, l) {
+  const a = s * Math.min(l, 1 - l)
+  const f = (n) => {
+    const k = (n + h / 30) % 12
+    const c = l - a * Math.max(-1, Math.min(k - 3, Math.min(9 - k, 1)))
+    return Math.round(255 * c).toString(16).padStart(2, '0')
+  }
+  return `#${f(0)}${f(8)}${f(4)}`
+}
+
+/** Move a colour onto another's hue, keeping its own saturation and lightness. */
+function reHue (hex, hue) {
+  const c = hexToHsl(hex)
+  return c ? hslToHex(hue, c.s, c.l) : hex
+}
+
 export const DEFAULTS = {
   preset: 'pbs',
   cycle: false,
@@ -127,6 +164,22 @@ function buildColumns (wrap, columns, onColumnChange) {
     fields.className = 'ix-lab-col-fields'
     row.appendChild(fields)
 
+    // Hue lock. On by default: a column reads as one palette when its
+    // six values share a hue and differ only in saturation and
+    // lightness. Turn it off to pick them independently.
+    const lock = document.createElement('button')
+    lock.type = 'button'
+    lock.className = 'ix-lab-toggle'
+    lock.setAttribute('aria-pressed', cfg.hueLock === false ? 'false' : 'true')
+    lock.innerHTML = '<span class="dot"></span> lock hue across all six'
+    lock.addEventListener('click', () => {
+      const on = lock.getAttribute('aria-pressed') !== 'true'
+      lock.setAttribute('aria-pressed', on ? 'true' : 'false')
+      cfg.hueLock = on
+      emit()
+    })
+    fields.appendChild(lock)
+
     const out = document.createElement('textarea')
     out.className = 'ix-lab-block'
     out.readOnly = true
@@ -142,6 +195,9 @@ function buildColumns (wrap, columns, onColumnChange) {
       const clean = {}
       Object.keys(cfg).forEach((k) => {
         const v = cfg[k]
+        // hueLock drives the pickers, not the column; it never reaches
+        // the block that gets pasted back into the post.
+        if (k === 'hueLock') return
         if (v !== '' && v !== null && v !== undefined) clean[k] = v
       })
       // Split so the closing tag cannot terminate this script when the
@@ -171,7 +227,26 @@ function buildColumns (wrap, columns, onColumnChange) {
         const input = f.querySelector('input')
         const mark = () => f.classList.toggle('is-unset', !cfg[key])
         mark()
-        input.addEventListener('input', () => { cfg[key] = input.value; mark(); emit() })
+        input.addEventListener('input', () => {
+          cfg[key] = input.value
+          // With the lock on, the edited colour sets the hue and every
+          // other value is rotated onto it, keeping its own saturation
+          // and lightness so the palette's structure survives.
+          if (cfg.hueLock !== false) {
+            const h = hexToHsl(input.value)
+            if (h) {
+              GROUPS.forEach(([, ks]) => ks.forEach(([k2]) => {
+                if (k2 !== key && cfg[k2]) cfg[k2] = reHue(cfg[k2], h.h)
+              }))
+              fields.querySelectorAll('input[type="color"]').forEach((i2) => {
+                const k2 = i2.dataset.k
+                if (cfg[k2]) i2.value = cfg[k2]
+              })
+            }
+          }
+          mark()
+          emit()
+        })
         f.querySelector('.clr').addEventListener('click', (e) => {
           e.preventDefault()
           delete cfg[key]
