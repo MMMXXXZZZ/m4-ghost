@@ -51,14 +51,28 @@ function save (settings) {
 export function applyDims (settings) {
   const app = document.querySelector('.ix')
   if (!app) return
+  // Re-solve on resize: crossing the phone breakpoint changes which
+  // overrides are allowed to apply.
+  if (!applyDims._bound) {
+    applyDims._bound = true
+    window.addEventListener('resize', () => applyDims(settings))
+  }
   const map = {
     pad: ['--ix-pad', 'rem'],
     rail: ['--ix-rail', 'rem'],
     measure: ['--ix-measure', 'rem'],
     media: ['--ix-media', 'px']
   }
+  // Padding and rail width are desktop decisions. Applied inline they
+  // outrank the phone rules, so a 5rem desktop padding followed the app
+  // onto a 630px screen and ate the room the drawers need.
+  const phone = window.matchMedia('(max-width: 64rem)').matches
   Object.keys(map).forEach((k) => {
     const [prop, unit] = map[k]
+    if (phone && (k === 'pad' || k === 'rail')) {
+      document.querySelectorAll('.ix').forEach((el) => el.style.removeProperty(prop))
+      return
+    }
     const target = k === 'measure' || k === 'media'
       ? document.querySelectorAll('.ix-body')
       : [app]
