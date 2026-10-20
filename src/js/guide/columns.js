@@ -293,7 +293,13 @@ export default function initColumns () {
     face.setAttribute('aria-controls', slug)
     // The icon is decorative; the accessible name is always the heading.
     face.setAttribute('aria-label', s.title)
-    if (s.icon) face.appendChild(s.icon.cloneNode(true))
+    // The slot is always present, with or without a symbol, so every
+    // title starts at the same height instead of riding on whatever
+    // happens to sit above it.
+    const iconSlot = document.createElement('span')
+    iconSlot.className = 'ix-face-icon'
+    if (s.icon) iconSlot.appendChild(s.icon.cloneNode(true))
+    face.appendChild(iconSlot)
     // Two labels: the horizontal one reads in the all-collapsed grid,
     // the vertical one in a 5.5rem rail. CSS shows whichever fits.
     const title = document.createElement('span')

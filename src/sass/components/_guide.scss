@@ -90,6 +90,7 @@
     align-items: center; justify-content: space-between; padding: 1.1rem .5rem;
   }
   .ix-face svg { width: 2rem; height: 2rem; flex: none; color: var(--m4-icon, currentColor); }
+  .ix-face-icon { display: grid; place-items: center; flex: none; }
   // Vertical label: the only thing that makes a 5.5rem rail readable.
   .ix-face .lbl {
     writing-mode: vertical-rl; transform: rotate(180deg);
@@ -112,9 +113,18 @@
 
   .ix-stack[data-all-collapsed="true"] {
     .ix-item { cursor: pointer; }
+    // Anchored from the top rather than centred: centring moved every
+    // title by whatever sat above it, so a column with a symbol and a
+    // column without, or a title that wrapped to two lines, all started
+    // at different heights.
     .ix-face {
-      width: 100%; flex-direction: column; justify-content: center;
-      gap: 1.5rem; padding: 2rem 1rem; text-align: center;
+      width: 100%; flex-direction: column; justify-content: flex-start;
+      align-items: center; gap: 1.5rem;
+      padding: clamp(2rem, 16vh, 9rem) 1rem 2rem; text-align: center;
+    }
+    .ix-face-icon {
+      display: grid; place-items: center; flex: none;
+      block-size: clamp(3rem, 7vw, 6rem); inline-size: 100%;
     }
     .ix-face svg { width: clamp(3rem, 7vw, 6rem); height: clamp(3rem, 7vw, 6rem); }
     .ix-face-title {
