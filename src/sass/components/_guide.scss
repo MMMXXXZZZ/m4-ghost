@@ -332,6 +332,14 @@
   .ix-lab-presets button[aria-pressed="true"] {
     background: var(--ghost-accent-color, #F73E05); border-color: transparent; color: #fff;
   }
-  .ix-lab-check { display: flex; align-items: center; gap: .4rem; margin-top: .3rem; cursor: pointer; }
+  // The row is a flex container, so the checkbox needs flex:none or it
+  // stretches to fill it -- which rendered each one as a 149x40 white
+  // slab with the label shoved aside.
+  .ix-lab-check { display: flex; align-items: center; gap: .45rem; margin-top: .3rem; cursor: pointer; }
+  .ix-lab-check input[type="checkbox"] {
+    flex: none; inline-size: .9rem; block-size: .9rem; margin: 0;
+    accent-color: var(--ghost-accent-color, #F73E05);
+  }
+  .ix-lab-presets button { flex: 0 0 auto; }
   .ix-lab-note { margin: .7rem 0 0; font-size: .6rem; opacity: .45; }
   @media (max-width: 48rem) { .ix-lab { left: 1rem; right: 1rem; width: auto; } }
