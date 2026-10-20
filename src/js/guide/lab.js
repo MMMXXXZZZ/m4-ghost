@@ -17,10 +17,12 @@ const STORE = 'm4_ix_lab'
 export const DEFAULTS = {
   preset: 'pbs',
   cycle: false,
+  // Prose stagger is the one that earns its place; the others stay in
+  // the lab so they can be re-judged, but off by default.
   proseStagger: true,
-  headingMask: true,
-  symbolMotion: true,
-  railRipple: true
+  headingMask: false,
+  symbolMotion: false,
+  railRipple: false
 }
 
 export function loadSettings () {
@@ -55,7 +57,9 @@ export function createLab (settings, presets, onChange) {
     <div class="ix-lab-body">
       <p class="ix-lab-legend">transition</p>
       <div class="ix-lab-presets"></div>
-      <label class="ix-lab-check"><input type="checkbox" data-cycle> cycle on each switch</label>
+      <button type="button" class="ix-lab-toggle" data-cycle aria-pressed="false">
+        <span class="dot"></span> cycle on each switch
+      </button>
       <p class="ix-lab-legend">effects</p>
       <div class="ix-lab-fx"></div>
       <p class="ix-lab-note">?lab=1 only · saved locally</p>
@@ -84,23 +88,31 @@ export function createLab (settings, presets, onChange) {
     ['symbolMotion', 'symbol motion'],
     ['railRipple', 'collapse ripple']
   ]
+  // Buttons with aria-pressed rather than native checkboxes: a checkbox
+  // in a flex row needs careful sizing to stay legible, and its on/off
+  // state is far less readable at this scale than a filled pill.
   const fxWrap = panel.querySelector('.ix-lab-fx')
   FX.forEach(([key, label]) => {
-    const l = document.createElement('label')
-    l.className = 'ix-lab-check'
-    l.innerHTML = `<input type="checkbox" data-fx="${key}"> ${label}`
-    l.querySelector('input').addEventListener('change', (e) => {
-      settings[key] = e.target.checked
+    const b = document.createElement('button')
+    b.type = 'button'
+    b.className = 'ix-lab-toggle'
+    b.dataset.fx = key
+    b.setAttribute('aria-pressed', 'false')
+    b.innerHTML = `<span class="dot"></span> ${label}`
+    b.addEventListener('click', () => {
+      settings[key] = !settings[key]
+      sync()
       save(settings)
-      onChange(key, e.target.checked)
+      onChange(key, settings[key])
     })
-    fxWrap.appendChild(l)
+    fxWrap.appendChild(b)
   })
 
-  panel.querySelector('[data-cycle]').addEventListener('change', (e) => {
-    settings.cycle = e.target.checked
+  panel.querySelector('[data-cycle]').addEventListener('click', () => {
+    settings.cycle = !settings.cycle
+    sync()
     save(settings)
-    onChange('cycle', e.target.checked)
+    onChange('cycle', settings.cycle)
   })
 
   panel.querySelector('[data-min]').addEventListener('click', () => {
@@ -111,9 +123,10 @@ export function createLab (settings, presets, onChange) {
     presetWrap.querySelectorAll('button').forEach((b) => {
       b.setAttribute('aria-pressed', b.dataset.preset === settings.preset ? 'true' : 'false')
     })
-    panel.querySelector('[data-cycle]').checked = !!settings.cycle
+    panel.querySelector('[data-cycle]').setAttribute('aria-pressed', settings.cycle ? 'true' : 'false')
     FX.forEach(([key]) => {
-      panel.querySelector(`[data-fx="${key}"]`).checked = !!settings[key]
+      panel.querySelector(`[data-fx="${key}"]`)
+        .setAttribute('aria-pressed', settings[key] ? 'true' : 'false')
     })
   }
 

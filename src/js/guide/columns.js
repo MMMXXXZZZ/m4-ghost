@@ -1,13 +1,12 @@
-/* global history, location, getComputedStyle, URLSearchParams, requestAnimationFrame */
+/* global history, location, getComputedStyle, URLSearchParams, requestAnimationFrame, setTimeout, clearTimeout */
 
 import { gsap } from 'gsap'
 import { Observer } from 'gsap/Observer'
 import { CustomEase } from 'gsap/CustomEase'
-import { ScrollToPlugin } from 'gsap/ScrollToPlugin'
 import { SplitText } from 'gsap/SplitText'
 import { loadSettings, labEnabled, createLab } from './lab'
 
-gsap.registerPlugin(Observer, CustomEase, ScrollToPlugin, SplitText)
+gsap.registerPlugin(Observer, CustomEase, SplitText)
 
 // PBS's signature easing, cubic-bezier(0.16, 1, 0.3, 1). In that project
 // it drives the 800ms palette cross-fade; recreated here so our motion
@@ -581,36 +580,36 @@ export default function initColumns () {
     gsap.to(stack, { y: 0, duration: 0.9, ease: 'elastic.out(1, 0.5)', overwrite: 'auto' })
   }
 
-  function release (dir) {
+  let rearm = null
+
+  /**
+   * Hand scrolling back to the browser rather than animating it.
+   *
+   * The earlier version tweened window scroll with GSAP, which threw
+   * away the gesture's momentum and arrived at a fixed pace however hard
+   * you pushed -- then a velocity-matched duration tried to simulate the
+   * momentum back. PBS does none of that: it never animates scroll, it
+   * lets the browser scroll with its own inertia and uses scroll-snap to
+   * catch where that lands. So here, crossing the threshold just lifts
+   * the barrier -- overscroll-behavior goes back to auto and we stop
+   * calling preventDefault -- and the rest of the reader's gesture, with
+   * its real trackpad or touch momentum, carries the page out. The
+   * snap rule on .ix-stack decides where it settles.
+   */
+  function release () {
     if (releasing) return
     releasing = true
-    const after = wrap.nextElementSibling
-    const root = document.documentElement
-    const target = dir > 0
-      ? (after
-          ? after.getBoundingClientRect().top + window.scrollY
-          : root.scrollHeight - window.innerHeight)
-      : 0
+    entries.forEach((e) => { e.body.style.overscrollBehavior = 'auto' })
+    gsap.to(stack, { y: 0, duration: 0.3, ease: 'pbs', overwrite: 'auto' })
 
-    // CSS scroll-behavior:smooth and a GSAP scroll tween fight each
-    // other: GSAP assigns scrollTop every frame and the browser animates
-    // each assignment, so the position sits frozen until GSAP's target
-    // pulls far enough ahead. Measured going back to the hero, that cost
-    // 786ms before anything moved, against 61ms with it off. GSAP owns
-    // the easing here, so stand the CSS down for the duration.
-    root.style.scrollBehavior = 'auto'
-
-    gsap.to(stack, { y: 0, duration: 0.35, ease: 'pbs', overwrite: 'auto' })
-    gsap.to(window, {
-      duration: 0.85,
-      ease: 'pbs',
-      scrollTo: { y: target, autoKill: false },
-      onComplete () {
-        root.style.removeProperty('scroll-behavior')
-        edgeAcc = 0
-        releasing = false
-      }
-    })
+    // Re-arm once the gesture has finished, so the next column read gets
+    // its threshold back.
+    clearTimeout(rearm)
+    rearm = setTimeout(() => {
+      entries.forEach((e) => { e.body.style.removeProperty('overscroll-behavior') })
+      edgeAcc = 0
+      releasing = false
+    }, 1100)
   }
 
   Observer.create({
@@ -623,11 +622,14 @@ export default function initColumns () {
       if (!ev || !ev.target || !ev.target.closest) return
       const bodyEl = ev.target.closest('.ix-body')
       if (!bodyEl || bodyEl.hasAttribute('hidden')) return
+      // Already released: keep out of the way so the browser's own
+      // momentum carries the page.
+      if (releasing) return
       const dir = self.deltaY > 0 ? 1 : -1
       if (!atEdge(bodyEl, dir)) { if (edgeAcc) springBack(); return }
       if (ev.cancelable) ev.preventDefault()
       edgeAcc += Math.abs(self.deltaY)
-      if (edgeAcc >= EDGE_TOL) release(dir)
+      if (edgeAcc >= EDGE_TOL) release()
       else gsap.to(stack, { y: -dir * Math.min(34, edgeAcc * 0.34), duration: 0.12, ease: 'power2.out', overwrite: 'auto' })
     }
   })
