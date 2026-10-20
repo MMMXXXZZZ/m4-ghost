@@ -93,6 +93,37 @@ function fitSvg (svg) {
     (declared ? ` (was ${declared.join(' ')})` : ' (none declared)'))
 }
 
+/**
+ * Relative luminance (WCAG). Used to pick a foreground that stays
+ * readable on whatever colour a column's config block supplies.
+ */
+function luminance (colour) {
+  if (!colour) return null
+  let hex = colour.trim()
+  const rgb = hex.match(/^rgba?\(([^)]+)\)/i)
+  if (rgb) {
+    const n = rgb[1].split(',').map((v) => parseInt(v, 10))
+    hex = '#' + n.slice(0, 3).map((v) => v.toString(16).padStart(2, '0')).join('')
+  }
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+  if (!m) return null
+  const ch = [m[1], m[2], m[3]].map((h) => {
+    const v = parseInt(h, 16) / 255
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)
+  })
+  return 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2]
+}
+
+/**
+ * 0.45 sits between the theme accent (#da4912, 0.197 -> white) and a
+ * bright column colour such as #7fffd4 (0.808 -> near-black), which is
+ * the threshold the brief asked for.
+ */
+function readableOn (colour) {
+  const l = luminance(colour)
+  return l === null ? null : (l > 0.45 ? '#0a0a0a' : '#ffffff')
+}
+
 function applyConfig (panel, col, cfg) {
   if (!cfg) return
   const map = {
@@ -132,6 +163,11 @@ function applyConfig (panel, col, cfg) {
   if (cfg.icon === 'accent') col.style.setProperty('--m4-icon', 'var(--m4-link)')
   else if (cfg.icon) col.style.setProperty('--m4-icon', cfg.icon)
   if (cfg.scene) panel.setAttribute('data-m4-scene', cfg.scene)
+
+  const onBg = readableOn(cfg.bg)
+  const onLink = readableOn(cfg.link)
+  if (onBg) panel.style.setProperty('--m4-on-bg', onBg)
+  if (onLink) panel.style.setProperty('--m4-on-link', onLink)
 }
 
 /** Read the config card after a heading and detach it from the flow. */
@@ -420,9 +456,13 @@ export default function initColumns () {
     const faces = stack.querySelectorAll('.ix-face')
     if (!faces.length) return
     const gap = parseFloat(getComputedStyle(stack).gap) || 0
-    const faceW = faces[0].getBoundingClientRect().width
+    const rail = faces[0].getBoundingClientRect().width
+    // Every column keeps its rail, including the open one -- the body
+    // sits beside its own face, not on top of it. Forgetting that last
+    // rail ran the body 86px under the next column, so content measured
+    // centred while looking shifted.
     const openW = stack.getBoundingClientRect().width -
-      (entries.length - 1) * (faceW + gap) - gap
+      (entries.length - 1) * (rail + gap) - gap - rail
     stack.style.setProperty('--ix-open-w', `${Math.max(240, Math.round(openW))}px`)
   }
 

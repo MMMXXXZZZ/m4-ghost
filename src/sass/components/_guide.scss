@@ -36,6 +36,12 @@
   // overlay-scrollbar browsers and before the first measurement.
   .ix {
     --ix-max: 3440px;
+    // One rail width for both the face and the item's flex-basis. They
+    // were set separately and drifted apart, leaving 88px items holding
+    // 64px faces and throwing every width calculation off.
+    --ix-rail: 4rem;
+    --ix-pad: clamp(.75rem, 1.2vw, 1.5rem);
+    padding: 0 var(--ix-pad) var(--ix-pad);
     margin: 0 0 4rem;
     width: min(calc(100vw - var(--m4-sbw, 0px)), var(--ix-max));
     max-width: none;
@@ -49,12 +55,13 @@
   // The app owns the screen once you are past the hero.
   .ix-stack {
     display: flex; align-items: stretch; gap: 2px;
-    height: 100vh; height: 100svh; overflow: hidden;
+    height: calc(100svh - var(--ix-pad)); overflow: hidden;
+    border-radius: 1rem;
     background: var(--gray-200, #2a2a2a);
   }
   .ix-item {
-    flex: var(--g, 0) 1 5.5rem; min-width: 0; position: relative;
-    overflow: hidden; display: flex;
+    flex: var(--g, 0) 1 var(--ix-rail); min-width: 0; position: relative;
+    overflow: hidden; display: flex; border-radius: .85rem;
     background: var(--m4-bg, var(--blank, #110f16));
     color: var(--m4-title, inherit);
   }
@@ -64,7 +71,7 @@
   }
   .ix-face {
     appearance: none; border: 0; cursor: pointer; background: transparent;
-    color: inherit; flex: none; width: 5.5rem;
+    color: inherit; flex: none; width: var(--ix-rail);
     display: flex; flex-direction: column;
     align-items: center; justify-content: space-between; padding: 1.1rem .5rem;
   }
@@ -104,9 +111,24 @@
     font: 600 .72rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
     letter-spacing: .06em;
   }
+  .ix-item[data-open="true"] { border-radius: 1rem; }
   .ix-item[data-open="true"] .ix-face {
-    background: var(--m4-link, var(--ghost-accent-color, #F73E05)); color: #fff;
+    background: var(--m4-link, var(--ghost-accent-color, #F73E05));
+    color: var(--m4-on-link, #fff);
   }
+
+  // Foreground picked from the background's relative luminance in JS, so
+  // a bright column colour does not get white text on it.
+  .ix-face-title, .ix-face .lbl { color: var(--m4-on-bg, currentColor); }
+  .ix-stack[data-all-collapsed="true"] .ix-item:hover {
+    color: var(--m4-on-link, #fff);
+  }
+
+  // Ghost sizes an image card to its own natural width inside a figure
+  // that we have widened, leaving the image flush left while its caption
+  // centres -- which is what reads as a broken figure.
+  .ix-body figure img,
+  .ix-body .kg-card img { margin-inline: auto; }
   // Fixed to the open width (set by JS) so text never re-wraps mid-tween;
   // the item clips it instead.
   .ix-body {
