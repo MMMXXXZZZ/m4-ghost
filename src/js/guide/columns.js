@@ -643,12 +643,16 @@ export default function initColumns () {
     // Panel navigation owns travel between panels now, so a column read
     // to its end hands over to it instead of releasing the page to a
     // browser scroll that no longer snaps anywhere.
-    if (window.M4Panels) {
-      if (dir > 0) window.M4Panels.toOutro()
-      else window.M4Panels.goTo(0)
-    }
+    // Up from the top of a column returns to the top of the document.
+    // Down is simply released: below the app, scrolling is ordinary.
+    if (dir < 0 && window.M4Panels) window.M4Panels.toTop()
+    else entries.forEach((e) => { e.body.style.overscrollBehavior = 'auto' })
     clearTimeout(rearm)
-    rearm = setTimeout(() => { edgeAcc = 0; releasing = false }, 1100)
+    rearm = setTimeout(() => {
+      entries.forEach((e) => { e.body.style.removeProperty('overscroll-behavior') })
+      edgeAcc = 0
+      releasing = false
+    }, 1100)
   }
 
   Observer.create({

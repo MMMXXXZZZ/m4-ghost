@@ -124,9 +124,17 @@
   // Foreground picked from the background's relative luminance in JS, so
   // a bright column colour does not get white text on it.
   .ix-face-title, .ix-face .lbl { color: var(--m4-on-bg, currentColor); }
-  .ix-stack[data-all-collapsed="true"] .ix-item:hover {
-    color: var(--m4-on-link, #fff);
-  }
+
+  // Hover and open swap the BACKGROUND to --m4-link, so the label has to
+  // swap with it. Pinned to --m4-on-bg it stayed white against a bright
+  // column colour and became unreadable.
+  .ix-stack[data-all-collapsed="true"] .ix-item:hover { color: var(--m4-on-link, #fff); }
+  .ix-stack[data-all-collapsed="true"] .ix-item:hover .ix-face-title,
+  .ix-stack[data-all-collapsed="true"] .ix-item:hover .lbl,
+  .ix-stack[data-all-collapsed="true"] .ix-item:hover svg,
+  .ix-item[data-open="true"] .ix-face .ix-face-title,
+  .ix-item[data-open="true"] .ix-face .lbl,
+  .ix-item[data-open="true"] .ix-face svg { color: var(--m4-on-link, #fff); }
 
   // Ghost sizes an image card to its own natural width inside a figure
   // that we have widened, leaving the image flush left while its caption
@@ -325,7 +333,7 @@
   // the page rests will fight each other.
   .ix-hero,
   .ix-stack,
-  .ix-outro { scroll-snap-align: start; scroll-snap-stop: always; }
+  .ix-outro { scroll-snap-align: none; }
 
   // The site header is hidden while a column is open, so nothing
   // overlays the reading panel. It returns on the hero and the outro.

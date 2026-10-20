@@ -1,24 +1,29 @@
 /* global location, requestAnimationFrame */
 
 /**
- * PANELS — gesture-driven navigation between the guide's three panels.
+ * PANELS — two magnetic anchors, and free scrolling everywhere else.
  *
- * CSS scroll-snap cannot do this. The browser always scrolls first and
- * only decides where the motion settles, so a light wheel drifts before
- * anything snaps -- the behaviour that made the page feel loose rather
- * than taken over. PBS has the same drift for the same reason.
+ * Not PBS's model. PBS has no wheel interception whatsoever: its only
+ * programmatic scrolls are two calls in its header for nav clicks. It
+ * feels instant because EVERY region there is a 100vh panel under
+ * scroll-snap-type:mandatory with scroll-snap-stop:always, so a single
+ * notch has nowhere to rest except the next panel. That works precisely
+ * because nothing on that page scrolls freely.
  *
- * So the wheel is intercepted instead: past a threshold the page is
- * animated straight to the next panel, one gesture to one panel, with no
- * drift in between. This is the GSAP Observer section-navigation
- * pattern (https://gsap.com/docs/v3/Plugins/Observer/).
+ * This page does scroll freely below the app, so uniform snapping cannot
+ * express the wanted behaviour. There are two magnetic destinations --
+ * the top of the document and the app itself -- and everything past the
+ * app is ordinary scrolling:
  *
- * Native scrolling is preserved where it belongs: inside an open column
- * the reader scrolls the prose normally, and only a push past the end of
- * that content hands over to the next panel.
+ *   above the app, scrolling down   -> animate to the app
+ *   in the app, scrolling up        -> animate to the top
+ *   in the app, scrolling down      -> release, free scrolling below
+ *   below the app, scrolling up     -> animate to the app, but only once
+ *                                      it is REVEAL_RATIO in view
+ *   anywhere else                   -> never intercepted
  *
- * CSS snapping is switched off while this runs. Two systems both deciding
- * where the page should rest will fight each other.
+ * The wheel is only ever preventDefault-ed on a gesture that is about to
+ * be answered, so free regions keep the platform's own scrolling.
  */
 
 import { gsap } from 'gsap'
@@ -29,50 +34,52 @@ gsap.registerPlugin(Observer, ScrollToPlugin)
 
 const TAG = '[m4-panels]'
 
-export default function initPanels () {
-  const panels = ['.ix-hero', '.ix-stack', '.ix-outro']
-    .map((s) => document.querySelector(s))
-    .filter(Boolean)
-  if (panels.length < 2) return null
+// How much of the app must be on screen before scrolling up is caught.
+const REVEAL_RATIO = 0.8
+const DURATION = 0.8
 
-  // Hand-off from CSS: Observer owns resting position from here.
+export default function initPanels () {
+  const app = document.querySelector('.ix')
+  if (!app) return null
+
+  // CSS snapping stays in the stylesheet as a no-JS fallback, but two
+  // systems deciding where the page rests fight each other.
   document.documentElement.style.setProperty('scroll-snap-type', 'none')
 
-  const top = (el) => Math.round(el.getBoundingClientRect().top + window.scrollY)
-  let index = 0
   let moving = false
 
-  function sync () {
-    // The site header is hidden while a column is open so nothing
-    // overlays the reading panel; it returns on the hero and the outro.
-    document.body.classList.toggle('ix-in-stack', panels[index].classList.contains('ix-stack'))
+  const appTop = () => Math.round(app.getBoundingClientRect().top + window.scrollY)
+
+  /** How much of the app is within the viewport, 0..1. */
+  function appVisibility () {
+    const r = app.getBoundingClientRect()
+    const vh = window.innerHeight
+    const seen = Math.min(r.bottom, vh) - Math.max(r.top, 0)
+    return Math.max(0, seen) / Math.min(r.height, vh)
   }
 
-  function goTo (i, immediate) {
-    const n = gsap.utils.clamp(0, panels.length - 1, i)
-    if (n === index && !immediate) return false
-    index = n
-    sync()
-    if (immediate) {
-      window.scrollTo({ top: top(panels[n]), behavior: 'auto' })
-      return true
-    }
+  /** Is the app the thing we are looking at? */
+  function inApp () {
+    return appVisibility() > 0.6
+  }
+
+  function animateTo (y) {
     moving = true
+    document.body.classList.toggle('ix-in-stack', Math.abs(y - appTop()) < 4)
     gsap.to(window, {
-      duration: 0.9,
+      duration: DURATION,
       ease: 'pbs',
-      scrollTo: { y: () => top(panels[n]), autoKill: false },
+      scrollTo: { y, autoKill: false },
       onComplete () { moving = false }
     })
-    return true
   }
 
   /**
-   * An open column scrolls its own prose. Only when that inner scroller
-   * is at the end in the direction being pushed does the gesture belong
-   * to the panels.
+   * An open column scrolls its own prose. The gesture only belongs to
+   * the page once that inner scroller has reached its end in the
+   * direction being pushed.
    */
-  function innerHandles (ev, dir) {
+  function innerStillScrolling (ev, dir) {
     const body = ev && ev.target && ev.target.closest
       ? ev.target.closest('.ix-body')
       : null
@@ -85,40 +92,53 @@ export default function initPanels () {
 
   Observer.create({
     type: 'wheel,touch',
-    // Threshold, so a stray nudge does not change panel; preventDefault
-    // is what stops the page drifting before we take over.
-    tolerance: 24,
-    preventDefault: true,
+    tolerance: 12,
+    // Claimed per gesture below, so free regions scroll natively.
+    preventDefault: false,
     onChangeY (self) {
       if (moving) return
       const dir = self.deltaY > 0 ? 1 : -1
-      if (innerHandles(self.event, dir)) {
-        // Give the gesture back to the column's own scroller.
-        if (self.event && self.event.cancelable === false) return
-        const body = self.event.target.closest('.ix-body')
-        body.scrollTop += self.deltaY
+      if (innerStillScrolling(self.event, dir)) return
+
+      const top = appTop()
+      const y = window.scrollY
+      const above = y < top - 4
+      const claim = () => { if (self.event && self.event.cancelable) self.event.preventDefault() }
+
+      if (dir > 0) {
+        // Down. One gesture from the top lands on the app; past the app
+        // nothing is magnetic.
+        if (above) { claim(); animateTo(top) }
         return
       }
-      goTo(index + dir)
+
+      // Up.
+      if (above) return // already past it, leave alone
+      if (inApp()) {
+        // One gesture from the app returns to the top of the document.
+        claim()
+        animateTo(0)
+        return
+      }
+      // Below the app: only catch it once the app is mostly revealed.
+      if (appVisibility() >= REVEAL_RATIO) { claim(); animateTo(top) }
     }
   })
 
-  // Deep links and the column component can ask for a specific panel.
+  function syncHeader () {
+    document.body.classList.toggle('ix-in-stack', inApp())
+  }
+  window.addEventListener('scroll', syncHeader, { passive: true })
+  syncHeader()
+
   window.M4Panels = {
-    goTo,
-    toStack: () => goTo(panels.findIndex((p) => p.classList.contains('ix-stack'))),
-    toOutro: () => goTo(panels.length - 1),
-    get index () { return index }
+    toApp: () => animateTo(appTop()),
+    toTop: () => animateTo(0),
+    get visibility () { return appVisibility() }
   }
 
-  // Land on the right panel when arriving with a column in the hash.
-  if (location.hash) {
-    requestAnimationFrame(() => {
-      goTo(panels.findIndex((p) => p.classList.contains('ix-stack')), true)
-    })
-  }
-  sync()
+  if (location.hash) requestAnimationFrame(() => window.scrollTo({ top: appTop(), behavior: 'auto' }))
 
-  console.log(`${TAG} ready ${JSON.stringify({ panels: panels.length })}`)
+  console.log(`${TAG} ready ${JSON.stringify({ revealRatio: REVEAL_RATIO })}`)
   return window.M4Panels
 }
