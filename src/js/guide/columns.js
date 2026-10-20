@@ -2,11 +2,13 @@
 
 import { gsap } from 'gsap'
 import { Observer } from 'gsap/Observer'
+import { ScrollToPlugin } from 'gsap/ScrollToPlugin'
 import { CustomEase } from 'gsap/CustomEase'
 import { SplitText } from 'gsap/SplitText'
 import { loadSettings, labEnabled, createLab, applyDims } from './lab'
+import initMobile, { isPhone } from './mobile'
 
-gsap.registerPlugin(Observer, CustomEase, SplitText)
+gsap.registerPlugin(Observer, CustomEase, SplitText, ScrollToPlugin)
 
 // PBS's signature easing, cubic-bezier(0.16, 1, 0.3, 1). In that project
 // it drives the 800ms palette cross-fade; recreated here so our motion
@@ -486,6 +488,22 @@ export default function initColumns () {
   }
 
   function open (slug, push, immediate) {
+    // On a phone there is no single open column: pressing a drawer
+    // unwraps every column into one document and the rail becomes a
+    // sticky header. mobile.js owns that mode.
+    if (mobile && isPhone() && slug) {
+      const entry = entries.find((x) => x.slug === slug)
+      if (entry) {
+        mobile.unwrapAll(entry)
+        if (push && window.history && history.replaceState) {
+          history.replaceState(null, '', `#${slug}`)
+        }
+        if (!opened[slug]) { opened[slug] = true; track(entry.title) }
+        return
+      }
+    }
+    if (mobile && isPhone() && !slug) mobile.wrapAll()
+
     const preset = PRESETS[presetIndex()]
     const anyOpen = !!slug
     stack.dataset.allCollapsed = anyOpen ? 'false' : 'true'
@@ -604,6 +622,8 @@ export default function initColumns () {
 
   sizeBodies()
   window.addEventListener('resize', sizeBodies)
+
+  const mobile = initMobile(entries, stack, nav)
 
   applyDims(FX)
 
