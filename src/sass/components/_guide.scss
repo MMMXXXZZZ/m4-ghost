@@ -187,15 +187,17 @@
 
   /* Locked marker: current column's symbol and title, top-left. */
   // Mobile only. On desktop the rail is permanently on screen and names
-  // the open column itself, so this would just say it twice.
-  .ix-marker { display: none; }
-  @media (max-width: 64rem) { .ix-marker { display: flex; } }
+  // the open column itself, so this would just say it twice. The
+  // display:flex lives in the media query below, after this rule --
+  // declaring it here would override it, media queries adding no
+  // specificity of their own.
   .ix-marker {
     position: fixed; top: 4.5rem; left: 1rem; z-index: 30;
-    display: flex; align-items: center; gap: .55rem;
+    display: none; align-items: center; gap: .55rem;
     pointer-events: none; max-width: min(60vw, 26rem);
   }
   .ix-marker svg { width: 1.6rem; height: 1.6rem; flex: none; color: var(--m4-link, var(--ghost-accent-color, #F73E05)); }
+  @media (max-width: 64rem) { .ix-marker { display: flex; } }
   .ix-marker span {
     font: 600 .72rem/1.2 inherit; text-transform: uppercase; letter-spacing: .05em;
     color: var(--title-color); opacity: .85;
