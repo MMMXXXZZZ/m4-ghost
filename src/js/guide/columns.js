@@ -4,7 +4,7 @@ import { gsap } from 'gsap'
 import { Observer } from 'gsap/Observer'
 import { CustomEase } from 'gsap/CustomEase'
 import { SplitText } from 'gsap/SplitText'
-import { loadSettings, labEnabled, createLab } from './lab'
+import { loadSettings, labEnabled, createLab, applyDims } from './lab'
 
 gsap.registerPlugin(Observer, CustomEase, SplitText)
 
@@ -584,6 +584,8 @@ export default function initColumns () {
 
   sizeBodies()
   window.addEventListener('resize', sizeBodies)
+
+  applyDims(FX)
 
   if (labEnabled()) {
     createLab(FX, PRESETS, (key) => {

@@ -426,6 +426,16 @@
     border-color: var(--ghost-accent-color, #F73E05);
   }
   .ix-lab-presets button { flex: 0 0 auto; }
+  .ix-lab-dim {
+    display: grid; grid-template-columns: 1fr auto; align-items: center;
+    gap: .15rem .5rem; margin-top: .45rem; font-size: .64rem;
+  }
+  .ix-lab-dim .k { opacity: .75; }
+  .ix-lab-dim output { font-variant-numeric: tabular-nums; opacity: .9; }
+  .ix-lab-dim input[type="range"] {
+    grid-column: 1 / -1; width: 100%; margin: 0;
+    accent-color: var(--ghost-accent-color, #F73E05);
+  }
   .ix-lab-note { margin: .7rem 0 0; font-size: .6rem; opacity: .45; }
   @media (max-width: 48rem) { .ix-lab { left: 1rem; right: 1rem; width: auto; } }
 

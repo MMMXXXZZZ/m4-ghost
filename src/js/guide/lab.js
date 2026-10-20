@@ -1,4 +1,4 @@
-/* global localStorage, location, URLSearchParams */
+/* global localStorage, location, URLSearchParams, Event */
 
 /**
  * LAB — a build-time panel for choosing the accordion's motion.
@@ -19,6 +19,12 @@ export const DEFAULTS = {
   cycle: false,
   // Prose stagger is the one that earns its place; the others stay in
   // the lab so they can be re-judged, but off by default.
+  // Dimensions, in rem except media (px). null means "leave the
+  // stylesheet's own value alone".
+  pad: null,
+  rail: null,
+  measure: null,
+  media: null,
   proseStagger: true,
   headingMask: false,
   symbolMotion: false,
@@ -35,6 +41,34 @@ export function loadSettings () {
 
 function save (settings) {
   try { localStorage.setItem(STORE, JSON.stringify(settings)) } catch (e) {}
+}
+
+/**
+ * Push the lab's dimension overrides onto the app element. They drive
+ * the same custom properties the stylesheet declares, so nothing needs a
+ * parallel code path.
+ */
+export function applyDims (settings) {
+  const app = document.querySelector('.ix')
+  if (!app) return
+  const map = {
+    pad: ['--ix-pad', 'rem'],
+    rail: ['--ix-rail', 'rem'],
+    measure: ['--ix-measure', 'rem'],
+    media: ['--ix-media', 'px']
+  }
+  Object.keys(map).forEach((k) => {
+    const [prop, unit] = map[k]
+    const target = k === 'measure' || k === 'media'
+      ? document.querySelectorAll('.ix-body')
+      : [app]
+    target.forEach((el) => {
+      if (settings[k] === null || settings[k] === undefined) el.style.removeProperty(prop)
+      else el.style.setProperty(prop, settings[k] + unit)
+    })
+  })
+  // Rail and padding change the arithmetic behind the open body's width.
+  window.dispatchEvent(new Event('resize'))
 }
 
 export function labEnabled () {
@@ -60,6 +94,8 @@ export function createLab (settings, presets, onChange) {
       <button type="button" class="ix-lab-toggle" data-cycle aria-pressed="false">
         <span class="dot"></span> cycle on each switch
       </button>
+      <p class="ix-lab-legend">dimensions</p>
+      <div class="ix-lab-dims"></div>
       <p class="ix-lab-legend">effects</p>
       <div class="ix-lab-fx"></div>
       <p class="ix-lab-note">?lab=1 only · saved locally</p>
@@ -80,6 +116,35 @@ export function createLab (settings, presets, onChange) {
       onChange('preset', p.name)
     })
     presetWrap.appendChild(b)
+  })
+
+  // key, label, min, max, step, default-if-unset
+  const DIMS = [
+    ['pad', 'app padding', 0, 8, 0.25, 1.25],
+    ['rail', 'rail width', 2, 10, 0.25, 4],
+    ['measure', 'text measure', 28, 80, 1, 45],
+    ['media', 'media width', 500, 2000, 20, 1100]
+  ]
+  const dimWrap = panel.querySelector('.ix-lab-dims')
+  DIMS.forEach(([key, label, min, max, step, dflt]) => {
+    const row = document.createElement('label')
+    row.className = 'ix-lab-dim'
+    row.innerHTML = `<span class="k">${label}</span>` +
+      `<input type="range" data-dim="${key}" min="${min}" max="${max}" step="${step}">` +
+      '<output></output>'
+    const input = row.querySelector('input')
+    const out = row.querySelector('output')
+    const unit = key === 'media' ? 'px' : 'rem'
+    const show = () => { out.textContent = input.value + unit }
+    input.value = settings[key] === null || settings[key] === undefined ? dflt : settings[key]
+    show()
+    input.addEventListener('input', () => {
+      settings[key] = parseFloat(input.value)
+      show()
+      applyDims(settings)
+      save(settings)
+    })
+    dimWrap.appendChild(row)
   })
 
   const FX = [
@@ -131,6 +196,7 @@ export function createLab (settings, presets, onChange) {
   }
 
   document.body.appendChild(panel)
+  applyDims(settings)
   sync()
   return { panel, sync }
 }
