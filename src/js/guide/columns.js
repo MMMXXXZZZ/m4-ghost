@@ -484,17 +484,31 @@ export default function initColumns () {
     if (releasing) return
     releasing = true
     const after = wrap.nextElementSibling
+    const root = document.documentElement
     const target = dir > 0
       ? (after
           ? after.getBoundingClientRect().top + window.scrollY
-          : document.documentElement.scrollHeight - window.innerHeight)
+          : root.scrollHeight - window.innerHeight)
       : 0
+
+    // CSS scroll-behavior:smooth and a GSAP scroll tween fight each
+    // other: GSAP assigns scrollTop every frame and the browser animates
+    // each assignment, so the position sits frozen until GSAP's target
+    // pulls far enough ahead. Measured going back to the hero, that cost
+    // 786ms before anything moved, against 61ms with it off. GSAP owns
+    // the easing here, so stand the CSS down for the duration.
+    root.style.scrollBehavior = 'auto'
+
     gsap.to(stack, { y: 0, duration: 0.35, ease: 'pbs', overwrite: 'auto' })
     gsap.to(window, {
       duration: 0.85,
       ease: 'pbs',
       scrollTo: { y: target, autoKill: false },
-      onComplete () { edgeAcc = 0; releasing = false }
+      onComplete () {
+        root.style.removeProperty('scroll-behavior')
+        edgeAcc = 0
+        releasing = false
+      }
     })
   }
 
