@@ -138,12 +138,19 @@
     // Press on touch, hover only where hover is real. The foreground
     // comes from the column's own contrast pair rather than a hard
     // -coded white, which went invisible on a pale accent.
-    .ix-item:active {
+    //
+    // Painted on .ix-face, never .ix-item. The face IS the control and
+    // stretches to fill a collapsed drawer, so this looks identical --
+    // but the body is reading surface and can never be painted by it.
+    // Derive state, don't assume it: when the phone left `data-all
+    // -collapsed` stale on open, an .ix-item rule washed the whole
+    // article accent under a finger that was only starting a scroll.
+    .ix-face:active {
       background: var(--m4-link, var(--ghost-accent-color, #F73E05));
       color: var(--m4-on-link, #fff);
     }
     @media (hover: hover) {
-      .ix-item:hover {
+      .ix-face:hover {
         background: var(--m4-link, var(--ghost-accent-color, #F73E05));
         color: var(--m4-on-link, #fff);
       }
@@ -171,16 +178,16 @@
   // Hover and open swap the BACKGROUND to --m4-link, so the label has to
   // swap with it. Pinned to --m4-on-bg it stayed white against a bright
   // column colour and became unreadable.
-  .ix-stack[data-all-collapsed="true"] .ix-item:active { color: var(--m4-on-link, #fff); }
+  .ix-stack[data-all-collapsed="true"] .ix-face:active { color: var(--m4-on-link, #fff); }
   @media (hover: hover) {
-    .ix-stack[data-all-collapsed="true"] .ix-item:hover { color: var(--m4-on-link, #fff); }
+    .ix-stack[data-all-collapsed="true"] .ix-face:hover { color: var(--m4-on-link, #fff); }
   }
-  .ix-stack[data-all-collapsed="true"] .ix-item:active .ix-face-title,
-  .ix-stack[data-all-collapsed="true"] .ix-item:active .lbl,
-  .ix-stack[data-all-collapsed="true"] .ix-item:active svg,
-  .ix-stack[data-all-collapsed="true"] .ix-item:hover .ix-face-title,
-  .ix-stack[data-all-collapsed="true"] .ix-item:hover .lbl,
-  .ix-stack[data-all-collapsed="true"] .ix-item:hover svg,
+  .ix-stack[data-all-collapsed="true"] .ix-face:active .ix-face-title,
+  .ix-stack[data-all-collapsed="true"] .ix-face:active .lbl,
+  .ix-stack[data-all-collapsed="true"] .ix-face:active svg,
+  .ix-stack[data-all-collapsed="true"] .ix-face:hover .ix-face-title,
+  .ix-stack[data-all-collapsed="true"] .ix-face:hover .lbl,
+  .ix-stack[data-all-collapsed="true"] .ix-face:hover svg,
   .ix-item[data-open="true"] .ix-face .ix-face-title,
   .ix-item[data-open="true"] .ix-face .lbl,
   .ix-item[data-open="true"] .ix-face svg { color: var(--m4-on-link, #fff); }

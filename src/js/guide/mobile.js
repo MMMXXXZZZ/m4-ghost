@@ -124,6 +124,11 @@ export default function initMobile (entries, stack, nav, onBack, onReveal) {
    */
   function unwrapAll (target) {
     stack.dataset.mobileOpen = 'true'
+    // Derive state, don't assume it. open() in columns.js returns on the
+    // phone branch before it writes this, so without the line here the
+    // stack stays flagged all-collapsed while a full-height article is
+    // on screen, and the collapsed-state press affordance paints it.
+    stack.dataset.allCollapsed = 'false'
     dockRail()
     if (back.parentElement !== nav) nav.insertBefore(back, nav.firstChild)
     entries.forEach((e) => {
@@ -147,6 +152,7 @@ export default function initMobile (entries, stack, nav, onBack, onReveal) {
 
   function wrapAll () {
     stack.dataset.mobileOpen = 'false'
+    stack.dataset.allCollapsed = 'true'
     nav.classList.remove('is-rail')
     undockRail()
     if (back.parentElement) back.remove()
