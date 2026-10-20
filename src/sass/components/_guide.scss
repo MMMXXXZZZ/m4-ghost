@@ -177,27 +177,6 @@
     padding: 2rem 1.5rem 6rem;
   }
 
-  // Tablet and phone. A tablet in portrait is 820-834px, which sat just
-  // above the old 48rem breakpoint and got seven rails in ~37% of the
-  // screen, so the vertical layout now covers everything under 64rem.
-  @media (max-width: 64rem) {
-    .ix-stack { flex-direction: column; height: auto; overflow: visible; }
-    // .ix-item is display:flex and defaults to row, so the face and the
-    // body sat side by side: the body went off-screen and the face
-    // stretched to its height, filling the viewport with one colour.
-    .ix-item { flex: none; flex-direction: column; }
-    .ix-face {
-      width: 100%; flex-direction: row;
-      justify-content: flex-start; align-items: center;
-      gap: .75rem; padding: 1rem 1.15rem;
-    }
-    .ix-face .lbl {
-      writing-mode: horizontal-tb; transform: none; white-space: normal;
-      text-align: left; max-height: none; font-size: .78rem;
-    }
-    .ix-body { width: 100%; padding: 1.25rem 1.15rem 2rem; }
-  }
-
   // Reading measure. Full bleed is right for the chrome and wrong for
   // prose -- unchecked, paragraphs ran the full 2522px here. _post.sass
   // sets `.post-body > *:not(a) { min-width: 100% }`, so these have to
@@ -548,3 +527,44 @@
     background: #0f1013; color: #cfd2d8;
     border: 1px solid #2d2e34; border-radius: .3rem; padding: .35rem;
   }
+
+  // Tablet and phone, LAST in the file: media queries add no specificity,
+  // so this block has to follow every rule it overrides.
+  // A tablet in portrait is 820-834px, which sat just above the old
+  // 48rem breakpoint, so the vertical layout covers everything under 64rem.
+  @media (max-width: 64rem) {
+    .ix-stack { flex-direction: column; height: auto; overflow: visible; }
+    // .ix-item is display:flex and defaults to row, so the face and the
+    // body sat side by side: the body went off-screen and the face
+    // stretched to its height, filling the viewport with one colour.
+    .ix-item { flex: none; flex-direction: column; }
+    // These have to match the entry grid's specificity, not merely come
+    // after it: .ix-stack[data-all-collapsed] .ix-face outranks a bare
+    // .ix-face, so phones were getting the desktop tile layout stacked
+    // vertically -- eight 296px tiles.
+    .ix-stack .ix-face,
+    .ix-stack[data-all-collapsed="true"] .ix-face {
+      width: 100%; flex-direction: row;
+      justify-content: flex-start; align-items: center;
+      gap: .8rem; padding: .95rem 1.1rem; text-align: left;
+    }
+    .ix-stack .ix-face-icon,
+    .ix-stack[data-all-collapsed="true"] .ix-face-icon {
+      inline-size: 1.9rem; block-size: 1.9rem;
+    }
+    .ix-stack .ix-face svg,
+    .ix-stack[data-all-collapsed="true"] .ix-face svg { width: 1.7rem; height: 1.7rem; }
+    // There are no rails on a phone, so the rail label has nothing to say
+    // and the title is always the thing to show.
+    .ix-stack .ix-face-title,
+    .ix-stack[data-all-collapsed="true"] .ix-face-title {
+      display: block; opacity: 1; max-width: none; font-size: .82rem;
+    }
+    .ix-stack .ix-face .lbl { display: none; }
+    .ix-face .lbl {
+      writing-mode: horizontal-tb; transform: none; white-space: normal;
+      text-align: left; max-height: none; font-size: .78rem;
+    }
+    .ix-body { width: 100%; padding: 1.25rem 1.15rem 2rem; }
+  }
+
