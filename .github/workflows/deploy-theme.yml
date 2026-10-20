@@ -4,6 +4,20 @@ on:
     branches:
       - master
       - main
+
+# Deploys must never overlap. Each run wipes content/themes/m4-ghost and
+# restarts Ghost, so two in flight will fight: on 2026-10-20 three
+# deploys landed within 75 seconds and one run's delayed `systemctl stop`
+# killed the instance a later run had already started, leaving the site
+# on 502 until the deploy was re-run.
+#
+# cancel-in-progress stays false on purpose. Cancelling a run mid-deploy
+# could leave the theme directory deleted and nothing put back; queueing
+# is the safe failure mode.
+concurrency:
+  group: deploy-theme
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-22.04
