@@ -1,11 +1,13 @@
-/* global history, location, getComputedStyle, URLSearchParams */
+/* global history, location, getComputedStyle, URLSearchParams, requestAnimationFrame */
 
 import { gsap } from 'gsap'
 import { Observer } from 'gsap/Observer'
 import { CustomEase } from 'gsap/CustomEase'
 import { ScrollToPlugin } from 'gsap/ScrollToPlugin'
+import { SplitText } from 'gsap/SplitText'
+import { loadSettings, labEnabled, createLab } from './lab'
 
-gsap.registerPlugin(Observer, CustomEase, ScrollToPlugin)
+gsap.registerPlugin(Observer, CustomEase, ScrollToPlugin, SplitText)
 
 // PBS's signature easing, cubic-bezier(0.16, 1, 0.3, 1). In that project
 // it drives the 800ms palette cross-fade; recreated here so our motion
@@ -340,9 +342,10 @@ export default function initColumns () {
     { name: 'power2.out snap', dur: 0.32, ease: 'power2.out', stagger: 0 },
     { name: 'pbs + stagger', dur: 0.6, ease: 'pbs', stagger: 0.035 }
   ]
+  const FX = loadSettings()
   const pinned = new URLSearchParams(location.search).get('anim')
-  let presetIdx = Math.max(0, PRESETS.findIndex((p) => p.name === pinned))
-  const cycling = !pinned
+  if (pinned) { FX.preset = pinned; FX.cycle = false }
+  const presetIndex = () => Math.max(0, PRESETS.findIndex((p) => p.name === FX.preset))
 
   const flash = document.createElement('div')
   flash.className = 'ix-anim-flash'
@@ -353,6 +356,55 @@ export default function initColumns () {
     flash.textContent = name
     gsap.killTweensOf(flash)
     gsap.fromTo(flash, { autoAlpha: 1 }, { autoAlpha: 0, duration: 1.6, ease: 'power2.in', delay: 0.35 })
+  }
+
+  /**
+   * Content choreography inside the column that just opened.
+   *
+   * Transform and opacity only, on a handful of block-level children --
+   * never on split prose. Splitting paragraphs multiplies DOM nodes and
+   * re-splits on width change, which is exactly the reflow the pinned
+   * body width exists to avoid. The heading is the one exception, and
+   * its width is pinned for the same reason.
+   */
+  function playContent (entry, preset) {
+    const el = entry.body
+    const reveal = preset.dur * 0.45 // wait until the column is ~half open
+
+    if (FX.headingMask) {
+      const h = el.querySelector('h2')
+      if (h && !h.dataset.ixSplit) {
+        h.dataset.ixSplit = '1'
+        try {
+          const split = SplitText.create(h, { type: 'lines', mask: 'lines', autoSplit: false })
+          entry.split = split
+        } catch (e) { /* SplitText unavailable: fall through to the block stagger */ }
+      }
+      if (entry.split) {
+        gsap.fromTo(entry.split.lines,
+          { yPercent: 110 },
+          { yPercent: 0, duration: 0.8, stagger: 0.08, ease: 'expo.out', delay: reveal })
+      }
+    }
+
+    if (FX.proseStagger) {
+      const blocks = Array.from(el.children)
+        .filter((n) => !FX.headingMask || n.tagName !== 'H2')
+        .slice(0, 8) // only the first screenful is worth animating
+      gsap.fromTo(blocks,
+        { y: 24, autoAlpha: 0 },
+        {
+          y: 0,
+          autoAlpha: 1,
+          duration: 0.7,
+          stagger: 0.06,
+          ease: 'expo.out',
+          delay: reveal,
+          // Leftover transforms create stacking contexts, which break
+          // the Ghost signup card's focus handling.
+          clearProps: 'transform,opacity,visibility'
+        })
+    }
   }
 
   const PALETTE = ['--m4-bg', '--m4-title', '--m4-link',
@@ -376,11 +428,12 @@ export default function initColumns () {
   }
 
   function open (slug, push, immediate) {
-    const preset = PRESETS[presetIdx]
+    const preset = PRESETS[presetIndex()]
     const anyOpen = !!slug
     stack.dataset.allCollapsed = anyOpen ? 'false' : 'true'
 
     if (!immediate && anyOpen) announce(preset.name)
+    const originIdx = entries.findIndex((x) => x.slug === slug)
 
     entries.forEach((e, i) => {
       // With nothing open every column shares the width equally; that is
@@ -400,6 +453,21 @@ export default function initColumns () {
         if (e.item.dataset.open === 'false') e.body.setAttribute('hidden', 'until-found')
       }
 
+      // The symbol shrinks and turns as its column becomes a rail, so
+      // the glyph lands on the same axis as the rotated label.
+      const svg = e.face.querySelector('svg')
+      if (svg && FX.symbolMotion && !immediate) {
+        gsap.to(svg, {
+          scale: anyOpen ? (isOpen ? 0.8 : 0.62) : 1,
+          rotate: anyOpen && !isOpen ? 90 : 0,
+          duration: preset.dur,
+          ease: preset.ease,
+          overwrite: 'auto'
+        })
+      } else if (svg && immediate) {
+        gsap.set(svg, { scale: 1, rotate: 0 })
+      }
+
       const g = anyOpen ? (isOpen ? 1 : 0) : 1
       if (immediate) {
         gsap.set(e.item, { '--g': g })
@@ -409,7 +477,10 @@ export default function initColumns () {
           '--g': g,
           duration: preset.dur,
           ease: preset.ease,
-          delay: preset.stagger ? Math.abs(i - entries.findIndex((x) => x.slug === slug)) * preset.stagger : 0,
+          // Ripple: neighbours start a few ms after the column you
+          // clicked, so the collapse spreads outwards from it.
+          delay: (FX.railRipple ? Math.abs(i - originIdx) * 0.03 : 0) +
+            (preset.stagger ? Math.abs(i - originIdx) * preset.stagger : 0),
           onComplete: done
         })
       }
@@ -433,6 +504,7 @@ export default function initColumns () {
         const label = document.createElement('span')
         label.textContent = e.title
         markerEl.appendChild(label)
+        if (!immediate) playContent(e, preset)
         if (!opened[slug]) { opened[slug] = true; track(e.title) }
       }
     })
@@ -443,7 +515,9 @@ export default function initColumns () {
       PALETTE.forEach((v) => document.documentElement.style.removeProperty(v))
     }
 
-    if (cycling && !immediate && anyOpen) presetIdx = (presetIdx + 1) % PRESETS.length
+    if (FX.cycle && !immediate && anyOpen) {
+      FX.preset = PRESETS[(presetIndex() + 1) % PRESETS.length].name
+    }
 
     if (push && window.history && history.replaceState) {
       history.replaceState(null, '', anyOpen ? `#${slug}` : location.pathname + location.search)
@@ -471,6 +545,17 @@ export default function initColumns () {
 
   sizeBodies()
   window.addEventListener('resize', sizeBodies)
+
+  if (labEnabled()) {
+    createLab(FX, PRESETS, (key) => {
+      // Re-run the current state so a change is visible immediately.
+      const current = entries.find((x) => x.item.dataset.open === 'true')
+      if (key !== 'cycle' && current) {
+        open(null, false, true)
+        requestAnimationFrame(() => open(current.slug, false))
+      }
+    })
+  }
 
   /**
    * Over the open body, reaching either end of the content and pushing
