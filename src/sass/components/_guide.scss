@@ -135,8 +135,18 @@
     }
     // Only where hover is real. On a touch screen :hover sticks after a
     // tap, so reading a column lit its background with the accent.
+    // Press on touch, hover only where hover is real. The foreground
+    // comes from the column's own contrast pair rather than a hard
+    // -coded white, which went invisible on a pale accent.
+    .ix-item:active {
+      background: var(--m4-link, var(--ghost-accent-color, #F73E05));
+      color: var(--m4-on-link, #fff);
+    }
     @media (hover: hover) {
-      .ix-item:hover { background: var(--m4-link, var(--ghost-accent-color, #F73E05)); color: #fff; }
+      .ix-item:hover {
+        background: var(--m4-link, var(--ghost-accent-color, #F73E05));
+        color: var(--m4-on-link, #fff);
+      }
     }
   }
 
@@ -161,9 +171,13 @@
   // Hover and open swap the BACKGROUND to --m4-link, so the label has to
   // swap with it. Pinned to --m4-on-bg it stayed white against a bright
   // column colour and became unreadable.
+  .ix-stack[data-all-collapsed="true"] .ix-item:active { color: var(--m4-on-link, #fff); }
   @media (hover: hover) {
     .ix-stack[data-all-collapsed="true"] .ix-item:hover { color: var(--m4-on-link, #fff); }
   }
+  .ix-stack[data-all-collapsed="true"] .ix-item:active .ix-face-title,
+  .ix-stack[data-all-collapsed="true"] .ix-item:active .lbl,
+  .ix-stack[data-all-collapsed="true"] .ix-item:active svg,
   .ix-stack[data-all-collapsed="true"] .ix-item:hover .ix-face-title,
   .ix-stack[data-all-collapsed="true"] .ix-item:hover .lbl,
   .ix-stack[data-all-collapsed="true"] .ix-item:hover svg,
@@ -610,6 +624,8 @@
     // .ix-nav button sets a transparent background and outranks a bare
     // .ix-rail-back, so the circle never drew.
     .ix-nav.is-rail .ix-rail-back {
+      // Sticky inside the scroller: it was sliding away with the faces.
+      position: sticky; left: 0; z-index: 2;
       appearance: none; border: 0; cursor: pointer; flex: 0 0 auto;
       inline-size: 2.1rem; block-size: 2.1rem; border-radius: 50%;
       display: grid; place-items: center; margin-right: .35rem;

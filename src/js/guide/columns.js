@@ -568,19 +568,12 @@ export default function initColumns () {
       }
 
       if (isOpen) {
-        // HomepageShell drives a data-section attribute on <html> from a
-        // ScrollTrigger at the 50% line, and [data-section] carries an
-        // 800ms cubic-bezier(.16,1,.3,1) transition, so the whole page
-        // cross-fades to the active panel's palette. Same idea here, with
-        // the open column as the trigger.
-        const root = document.documentElement
-        PALETTE.forEach((v) => {
-          const val = e.item.style.getPropertyValue(v)
-          if (val) root.style.setProperty(v, val)
-          else root.style.removeProperty(v)
-        })
-        root.setAttribute('data-ix-section', e.slug)
-
+        // The palette is NOT written to <html> any more. Unstyled
+        // columns inherit from there, so hovering one resolved
+        // var(--m4-link) to whichever column was last open -- a pale
+        // colour under hard-coded white text, invisible in light mode.
+        // Nothing outside the app reads these now that the page is no
+        // longer tinted.
         markerEl.innerHTML = ''
         if (e.icon) markerEl.appendChild(e.icon.cloneNode(true))
         const label = document.createElement('span')
@@ -592,11 +585,7 @@ export default function initColumns () {
       }
     })
 
-    if (!anyOpen) {
-      markerEl.innerHTML = ''
-      document.documentElement.removeAttribute('data-ix-section')
-      PALETTE.forEach((v) => document.documentElement.style.removeProperty(v))
-    }
+    if (!anyOpen) markerEl.innerHTML = ''
 
     if (FX.cycle && !immediate && anyOpen) {
       FX.preset = PRESETS[(presetIndex() + 1) % PRESETS.length].name
@@ -641,6 +630,20 @@ export default function initColumns () {
 
   sizeBodies()
   window.addEventListener('resize', sizeBodies)
+
+  // The phone and desktop models are chosen when a column is opened, so
+  // resizing across the breakpoint used to leave whichever one was
+  // already running -- the accordion stayed in the phone's unwrapped
+  // read until a reload.
+  let wasPhone = isPhone()
+  window.addEventListener('resize', () => {
+    const now = isPhone()
+    if (now === wasPhone) return
+    wasPhone = now
+    const current = entries.find((x) => x.item.dataset.open === 'true')
+    if (mobile) mobile.wrapAll()
+    open(current && !now ? current.slug : null, false, true)
+  })
 
   // Back returns to the three-drawer pages.
   const mobile = initMobile(entries, stack, nav, () => open(null, true),
@@ -818,6 +821,13 @@ export default function initColumns () {
       const touch = /touch|pointer|drag/.test((ev && ev.type) || '')
       const dy = touch ? -self.deltaY : self.deltaY
       const dir = dy > 0 ? 1 : -1
+      // In the phone's unwrapped read the bodies are not their own
+      // scrollers, so atEdge is trivially true and every upward drag
+      // asked to leave. Only the top of the FIRST column may.
+      if (stack.dataset.mobileOpen === 'true') {
+        const firstTop = entries[0].body.getBoundingClientRect().top + window.scrollY
+        if (dir > 0 || window.scrollY > firstTop + 8) return
+      }
       if (!atEdge(bodyEl, dir)) { if (edgeAcc) springBack(); return }
       if (ev.cancelable) ev.preventDefault()
       edgeAcc += Math.abs(dy)
