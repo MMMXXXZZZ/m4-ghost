@@ -607,6 +607,26 @@ export default function initColumns () {
 
   applyDims(FX)
 
+  /**
+   * Phone only: the footer rail slides away while reading and returns on
+   * scroll-up, the same bargain the site header makes. The rail is the
+   * only way back to another column once the drawers have stepped
+   * aside, so it must never be gone for good.
+   */
+  function watchRail () {
+    if (!window.matchMedia('(max-width: 64rem)').matches) return
+    let last = 0
+    entries.forEach((e) => {
+      e.body.addEventListener('scroll', () => {
+        const y = e.body.scrollTop
+        if (Math.abs(y - last) < 8) return
+        nav.classList.toggle('is-hidden', y > last && y > 40)
+        last = y
+      }, { passive: true })
+    })
+  }
+  watchRail()
+
   let lab = null
   if (labEnabled()) {
     lab = createLab(FX, PRESETS, (key) => {
