@@ -499,10 +499,14 @@ export default function initColumns () {
           history.replaceState(null, '', `#${slug}`)
         }
         if (!opened[slug]) { opened[slug] = true; track(entry.title) }
+        requestAnimationFrame(syncDots)
         return
       }
     }
-    if (mobile && isPhone() && !slug) mobile.wrapAll()
+    if (mobile && isPhone() && !slug) {
+      mobile.wrapAll()
+      requestAnimationFrame(syncDots)
+    }
 
     const preset = PRESETS[presetIndex()]
     const anyOpen = !!slug
@@ -652,7 +656,11 @@ export default function initColumns () {
     Array.from(dots.children).forEach((d, i) => d.classList.toggle('is-here', i === here))
     dots.classList.add('is-on')
   }
-  stack.parentElement.appendChild(dots)
+  // Body, not .ix: main.site-main carries an identity transform, and any
+  // transform makes an element the containing block for fixed-position
+  // descendants -- the dots anchored to it instead of the viewport and
+  // sat 2364px down the page.
+  document.body.appendChild(dots)
   stack.addEventListener('scroll', syncDots, { passive: true })
   window.addEventListener('resize', syncDots)
 
