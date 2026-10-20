@@ -593,15 +593,16 @@
     }
     .ix-stack .ix-face-icon,
     .ix-stack[data-all-collapsed="true"] .ix-face-icon {
-      inline-size: 1.9rem; block-size: 1.9rem;
+      inline-size: 7rem; block-size: 7rem;
     }
     .ix-stack .ix-face svg,
-    .ix-stack[data-all-collapsed="true"] .ix-face svg { width: 1.7rem; height: 1.7rem; }
+    .ix-stack[data-all-collapsed="true"] .ix-face svg { width: 3rem; height: 3rem; }
     // There are no rails on a phone, so the rail label has nothing to say
     // and the title is always the thing to show.
     .ix-stack .ix-face-title,
     .ix-stack[data-all-collapsed="true"] .ix-face-title {
-      display: block; opacity: 1; max-width: none; font-size: .82rem;
+      display: block; opacity: 1; max-width: none;
+      font-size: clamp(1rem, 4.2vw, 1.3rem); line-height: 1.2;
     }
     .ix-stack .ix-face .lbl { display: none; }
     .ix-face .lbl {

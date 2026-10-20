@@ -34,6 +34,18 @@ gsap.registerPlugin(Observer, ScrollToPlugin)
 
 const TAG = '[m4-panels]'
 
+/**
+ * Observer reports wheel and touch with opposite senses: a wheel's
+ * positive deltaY means "scrolling down", while dragging a finger UP --
+ * which is also scrolling down -- reports negative. Taken at face value
+ * the page went the wrong way on every phone gesture.
+ */
+function gestureDir (self) {
+  const t = (self.event && self.event.type) || ''
+  const d = /touch|pointer|drag/.test(t) ? -self.deltaY : self.deltaY
+  return d > 0 ? 1 : -1
+}
+
 // How much of the app must be on screen before scrolling up is caught.
 const REVEAL_RATIO = 0.8
 // expo.out rather than the 'pbs' curve: it front-loads harder, so the
@@ -123,7 +135,7 @@ export default function initPanels () {
     preventDefault: false,
     onChangeY (self) {
       if (moving || performance.now() - lastMoveEnd < COOLDOWN) return
-      const dir = self.deltaY > 0 ? 1 : -1
+      const dir = gestureDir(self)
       if (innerStillScrolling(self.event, dir)) return
 
       const top = appTop()

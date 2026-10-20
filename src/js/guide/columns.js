@@ -727,10 +727,14 @@ export default function initColumns () {
       // Already released: keep out of the way so the browser's own
       // momentum carries the page.
       if (releasing) return
-      const dir = self.deltaY > 0 ? 1 : -1
+      // Wheel and touch report opposite senses; see gestureDir in
+      // panels.js. Dragging a finger up is scrolling down.
+      const touch = /touch|pointer|drag/.test((ev && ev.type) || '')
+      const dy = touch ? -self.deltaY : self.deltaY
+      const dir = dy > 0 ? 1 : -1
       if (!atEdge(bodyEl, dir)) { if (edgeAcc) springBack(); return }
       if (ev.cancelable) ev.preventDefault()
-      edgeAcc += Math.abs(self.deltaY)
+      edgeAcc += Math.abs(dy)
       if (edgeAcc >= EDGE_TOL) release(dir)
       else gsap.to(stack, { y: -dir * Math.min(34, edgeAcc * 0.34), duration: 0.12, ease: 'power2.out', overwrite: 'auto' })
     }
