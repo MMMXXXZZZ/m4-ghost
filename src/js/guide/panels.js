@@ -1,4 +1,4 @@
-/* global location, requestAnimationFrame */
+/* global location, requestAnimationFrame, performance */
 
 /**
  * PANELS — two magnetic anchors, and free scrolling everywhere else.
@@ -36,7 +36,15 @@ const TAG = '[m4-panels]'
 
 // How much of the app must be on screen before scrolling up is caught.
 const REVEAL_RATIO = 0.8
-const DURATION = 0.8
+// expo.out rather than the 'pbs' curve: it front-loads harder, so the
+// move reads as decisive instead of drifting into place.
+const DURATION = 0.65
+const EASE = 'expo.out'
+// How close to the app's top counts as settled.
+const SETTLE_TOL = 6
+// Quiet period after an animation, so the tail of the same flick does
+// not immediately qualify as the next gesture.
+const COOLDOWN = 450
 
 export default function initPanels () {
   const app = document.querySelector('.ix')
@@ -47,6 +55,7 @@ export default function initPanels () {
   document.documentElement.style.setProperty('scroll-snap-type', 'none')
 
   let moving = false
+  let lastMoveEnd = 0
 
   const appTop = () => Math.round(app.getBoundingClientRect().top + window.scrollY)
 
@@ -58,7 +67,18 @@ export default function initPanels () {
     return Math.max(0, seen) / Math.min(r.height, vh)
   }
 
-  /** Is the app the thing we are looking at? */
+  /**
+   * Settled means the app's top is flush with the viewport top -- not
+   * merely that the app is mostly visible. Treating "mostly visible" as
+   * being in the app meant that catching it from below qualified
+   * instantly as the next go-to-top, so it ran on to the hero and never
+   * came to rest.
+   */
+  function isSettled () {
+    return Math.abs(window.scrollY - appTop()) <= SETTLE_TOL
+  }
+
+  /** Is the app the thing we are looking at? (header state only) */
   function inApp () {
     return appVisibility() > 0.6
   }
@@ -68,9 +88,9 @@ export default function initPanels () {
     document.body.classList.toggle('ix-in-stack', Math.abs(y - appTop()) < 4)
     gsap.to(window, {
       duration: DURATION,
-      ease: 'pbs',
+      ease: EASE,
       scrollTo: { y, autoKill: false },
-      onComplete () { moving = false }
+      onComplete () { moving = false; lastMoveEnd = performance.now() }
     })
   }
 
@@ -96,7 +116,7 @@ export default function initPanels () {
     // Claimed per gesture below, so free regions scroll natively.
     preventDefault: false,
     onChangeY (self) {
-      if (moving) return
+      if (moving || performance.now() - lastMoveEnd < COOLDOWN) return
       const dir = self.deltaY > 0 ? 1 : -1
       if (innerStillScrolling(self.event, dir)) return
 
@@ -114,13 +134,15 @@ export default function initPanels () {
 
       // Up.
       if (above) return // already past it, leave alone
-      if (inApp()) {
-        // One gesture from the app returns to the top of the document.
+      if (isSettled()) {
+        // Only once the app is actually at rest does an up-scroll mean
+        // "go to the top".
         claim()
         animateTo(0)
         return
       }
-      // Below the app: only catch it once the app is mostly revealed.
+      // Coming up from below: catch the app once it is mostly revealed
+      // and bring it to rest. The next gesture is what leaves for the top.
       if (appVisibility() >= REVEAL_RATIO) { claim(); animateTo(top) }
     }
   })
