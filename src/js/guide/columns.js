@@ -1,4 +1,4 @@
-/* global history, location, getComputedStyle, performance */
+/* global history, location, getComputedStyle, URLSearchParams */
 
 import { gsap } from 'gsap'
 import { Observer } from 'gsap/Observer'
@@ -244,6 +244,12 @@ export default function initColumns () {
     // The icon is decorative; the accessible name is always the heading.
     face.setAttribute('aria-label', s.title)
     if (s.icon) face.appendChild(s.icon.cloneNode(true))
+    // Two labels: the horizontal one reads in the all-collapsed grid,
+    // the vertical one in a 5.5rem rail. CSS shows whichever fits.
+    const title = document.createElement('span')
+    title.className = 'ix-face-title'
+    title.textContent = s.title
+    face.appendChild(title)
     const lbl = document.createElement('span')
     lbl.className = 'lbl'
     lbl.textContent = s.title
@@ -318,7 +324,37 @@ export default function initColumns () {
   // moving parts, no plugin, and measured in-page it held a 14.3ms worst
   // frame against Flip's 20.7ms. Flip stays the right tool for the mobile
   // case, where drawers move between containers.
-  const DUR = 0.6
+  /**
+   * Switching-animation presets, cycled so they can be compared on real
+   * content. The name is flashed on screen as each one runs.
+   * Pin one with ?anim=<name>; the cycler is a build-time tool, not
+   * something to ship to readers.
+   */
+  const PRESETS = [
+    { name: 'pbs', dur: 0.6, ease: 'pbs', stagger: 0 },
+    { name: 'power4.inOut', dur: 0.7, ease: 'power4.inOut', stagger: 0 },
+    { name: 'expo.out', dur: 0.55, ease: 'expo.out', stagger: 0 },
+    { name: 'circ.inOut', dur: 0.65, ease: 'circ.inOut', stagger: 0 },
+    { name: 'back.out(1.4)', dur: 0.75, ease: 'back.out(1.4)', stagger: 0 },
+    { name: 'elastic.out(1,0.75)', dur: 1.1, ease: 'elastic.out(1,0.75)', stagger: 0 },
+    { name: 'power2.out snap', dur: 0.32, ease: 'power2.out', stagger: 0 },
+    { name: 'pbs + stagger', dur: 0.6, ease: 'pbs', stagger: 0.035 }
+  ]
+  const pinned = new URLSearchParams(location.search).get('anim')
+  let presetIdx = Math.max(0, PRESETS.findIndex((p) => p.name === pinned))
+  const cycling = !pinned
+
+  const flash = document.createElement('div')
+  flash.className = 'ix-anim-flash'
+  flash.setAttribute('aria-hidden', 'true')
+  document.body.appendChild(flash)
+
+  function announce (name) {
+    flash.textContent = name
+    gsap.killTweensOf(flash)
+    gsap.fromTo(flash, { autoAlpha: 1 }, { autoAlpha: 0, duration: 1.6, ease: 'power2.in', delay: 0.35 })
+  }
+
   const PALETTE = ['--m4-bg', '--m4-title', '--m4-link',
     '--m4-bg-dark', '--m4-title-dark', '--m4-link-dark']
 
@@ -340,37 +376,50 @@ export default function initColumns () {
   }
 
   function open (slug, push, immediate) {
-    entries.forEach((e) => {
-      const on = e.slug === slug
-      e.item.dataset.open = on ? 'true' : 'false'
-      e.face.setAttribute('aria-expanded', on ? 'true' : 'false')
-      e.nav.setAttribute('aria-current', on ? 'true' : 'false')
+    const preset = PRESETS[presetIdx]
+    const anyOpen = !!slug
+    stack.dataset.allCollapsed = anyOpen ? 'false' : 'true'
+
+    if (!immediate && anyOpen) announce(preset.name)
+
+    entries.forEach((e, i) => {
+      // With nothing open every column shares the width equally; that is
+      // the entry state, where each one shows a large symbol and its
+      // heading rather than a vertical sliver.
+      const isOpen = anyOpen && e.slug === slug
+      e.item.dataset.open = isOpen ? 'true' : 'false'
+      e.face.setAttribute('aria-expanded', isOpen ? 'true' : 'false')
+      e.nav.setAttribute('aria-current', isOpen ? 'true' : 'false')
 
       // Reveal the opening body up front; hide a closing one only once it
       // has finished collapsing. Hiding on the way down is what made the
       // outgoing content vanish instantly instead of sliding away.
-      if (on) e.body.removeAttribute('hidden')
+      if (isOpen) e.body.removeAttribute('hidden')
 
       const done = () => {
-        // Re-check rather than trust the closure: a fast second click can
-        // land while this tween is still running.
         if (e.item.dataset.open === 'false') e.body.setAttribute('hidden', 'until-found')
       }
 
+      const g = anyOpen ? (isOpen ? 1 : 0) : 1
       if (immediate) {
-        gsap.set(e.item, { '--g': on ? 1 : 0 })
+        gsap.set(e.item, { '--g': g })
         done()
       } else {
-        gsap.to(e.item, { '--g': on ? 1 : 0, duration: DUR, ease: 'power3.inOut', onComplete: done })
+        gsap.to(e.item, {
+          '--g': g,
+          duration: preset.dur,
+          ease: preset.ease,
+          delay: preset.stagger ? Math.abs(i - entries.findIndex((x) => x.slug === slug)) * preset.stagger : 0,
+          onComplete: done
+        })
       }
 
-      if (on) {
+      if (isOpen) {
         // HomepageShell drives a data-section attribute on <html> from a
         // ScrollTrigger at the 50% line, and [data-section] carries an
         // 800ms cubic-bezier(.16,1,.3,1) transition, so the whole page
         // cross-fades to the active panel's palette. Same idea here, with
-        // the open column as the trigger: the chrome follows the column
-        // instead of only the column repainting.
+        // the open column as the trigger.
         const root = document.documentElement
         PALETTE.forEach((v) => {
           const val = e.item.style.getPropertyValue(v)
@@ -387,13 +436,26 @@ export default function initColumns () {
         if (!opened[slug]) { opened[slug] = true; track(e.title) }
       }
     })
+
+    if (!anyOpen) {
+      markerEl.innerHTML = ''
+      document.documentElement.removeAttribute('data-ix-section')
+      PALETTE.forEach((v) => document.documentElement.style.removeProperty(v))
+    }
+
+    if (cycling && !immediate && anyOpen) presetIdx = (presetIdx + 1) % PRESETS.length
+
     if (push && window.history && history.replaceState) {
-      history.replaceState(null, '', `#${slug}`)
+      history.replaceState(null, '', anyOpen ? `#${slug}` : location.pathname + location.search)
     }
   }
 
   entries.forEach((e) => {
-    e.face.addEventListener('click', () => open(e.slug, true))
+    e.face.addEventListener('click', () => {
+      // Clicking the column that is already open returns to the all-
+      // collapsed grid, so there is a way back without a nav control.
+      open(e.item.dataset.open === 'true' ? null : e.slug, true)
+    })
     e.nav.addEventListener('click', () => {
       open(e.slug, true)
       wrap.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -409,52 +471,6 @@ export default function initColumns () {
 
   sizeBodies()
   window.addEventListener('resize', sizeBodies)
-
-  /**
-   * Wheel over a COLLAPSED rail walks the columns sideways. Over the open
-   * body the wheel is left alone, so reading still scrolls normally.
-   *
-   * Threshold plus cooldown rather than raw delta: a trackpad emits a
-   * long tail of small deltas, and without both, one flick would skip
-   * half the guide. Below the threshold the stack rubber-bands and
-   * springs back, so the gesture is acknowledged even when it doesn't
-   * commit.
-   */
-  const TOLERANCE = 35
-  const LOCK_MS = 520
-  let lastStep = 0
-  let band = 0
-
-  function rubber (dir) {
-    band = gsap.utils.clamp(-26, 26, band + dir * 6)
-    gsap.to(stack, {
-      x: band,
-      duration: 0.18,
-      ease: 'power2.out',
-      overwrite: 'auto',
-      onComplete () {
-        gsap.to(stack, {
-          x: 0,
-          duration: 0.9,
-          ease: 'elastic.out(1, 0.45)',
-          overwrite: 'auto',
-          onComplete () { band = 0 }
-        })
-      }
-    })
-  }
-
-  function stepColumn (dir) {
-    const now = performance.now()
-    if (now - lastStep < LOCK_MS) return false
-    const i = entries.findIndex((e) => e.item.dataset.open === 'true')
-    const n = gsap.utils.clamp(0, entries.length - 1, i + dir)
-    if (n === i) { rubber(dir); return false }
-    lastStep = now
-    gsap.to(stack, { x: 0, duration: 0.5, ease: 'pbs', overwrite: 'auto' })
-    open(entries[n].slug, true)
-    return true
-  }
 
   /**
    * Over the open body, reaching either end of the content and pushing
@@ -515,36 +531,21 @@ export default function initColumns () {
   Observer.create({
     target: stack,
     type: 'wheel,touch',
-    tolerance: TOLERANCE,
+    tolerance: 0,
     preventDefault: false,
     onChangeY (self) {
       const ev = self.event
       if (!ev || !ev.target || !ev.target.closest) return
-      const dir = self.deltaY > 0 ? 1 : -1
-
-      // Over the open body: edge release.
       const bodyEl = ev.target.closest('.ix-body')
-      if (bodyEl && !bodyEl.hasAttribute('hidden')) {
-        if (!atEdge(bodyEl, dir)) { if (edgeAcc) springBack(); return }
-        if (ev.cancelable) ev.preventDefault()
-        edgeAcc += Math.abs(self.deltaY)
-        if (edgeAcc >= EDGE_TOL) release(dir)
-        else gsap.to(stack, { y: -dir * Math.min(34, edgeAcc * 0.34), duration: 0.12, ease: 'power2.out', overwrite: 'auto' })
-        return
-      }
-
-      // Over a collapsed rail: walk the columns sideways.
-      const over = ev.target.closest('.ix-item')
-      if (!over || over.dataset.open === 'true') return
+      if (!bodyEl || bodyEl.hasAttribute('hidden')) return
+      const dir = self.deltaY > 0 ? 1 : -1
+      if (!atEdge(bodyEl, dir)) { if (edgeAcc) springBack(); return }
       if (ev.cancelable) ev.preventDefault()
-      if (!stepColumn(dir)) rubber(dir)
+      edgeAcc += Math.abs(self.deltaY)
+      if (edgeAcc >= EDGE_TOL) release(dir)
+      else gsap.to(stack, { y: -dir * Math.min(34, edgeAcc * 0.34), duration: 0.12, ease: 'power2.out', overwrite: 'auto' })
     }
   })
-
-  const initial = location.hash.replace('#', '')
-  // immediate: at mount there is nothing to animate from, and tweening
-  // would leave every closed body visible in a 5.5rem rail for 600ms.
-  open(entries.some((x) => x.slug === initial) ? initial : entries[0].slug, false, true)
 
   // With no lede above the first heading, #post-body is left empty and
   // would still contribute its margins.
