@@ -206,7 +206,6 @@ export default function initMobile (entries, stack, nav, onBack, onReveal) {
     }
   }, { passive: true })
 
-
   console.log(`${TAG} ready ${JSON.stringify({ columns: entries.length, lag: LAG })}`)
   return { unwrapAll, wrapAll, goToColumn, centreRail, setActive, get active () { return active } }
 }
