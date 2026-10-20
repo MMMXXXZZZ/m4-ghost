@@ -159,7 +159,10 @@ export default function initPanels () {
     get visibility () { return appVisibility() }
   }
 
-  if (location.hash) requestAnimationFrame(() => window.scrollTo({ top: appTop(), behavior: 'auto' }))
+  const nav = performance.getEntriesByType('navigation')[0]
+  if (location.hash && !(nav && nav.type === 'reload')) {
+    requestAnimationFrame(() => window.scrollTo({ top: appTop(), behavior: 'auto' }))
+  }
 
   console.log(`${TAG} ready ${JSON.stringify({ revealRatio: REVEAL_RATIO })}`)
   return window.M4Panels

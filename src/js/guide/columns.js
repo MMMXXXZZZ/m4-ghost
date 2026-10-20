@@ -1,4 +1,4 @@
-/* global history, location, getComputedStyle, URLSearchParams, requestAnimationFrame, setTimeout, clearTimeout */
+/* global history, location, getComputedStyle, URLSearchParams, requestAnimationFrame, setTimeout, clearTimeout, performance */
 
 import { gsap } from 'gsap'
 import { Observer } from 'gsap/Observer'
@@ -678,6 +678,16 @@ export default function initColumns () {
       else gsap.to(stack, { y: -dir * Math.min(34, edgeAcc * 0.34), duration: 0.12, ease: 'power2.out', overwrite: 'auto' })
     }
   })
+
+  // Entry state is every column collapsed. A deep link still opens its
+  // column, but a RELOAD does not: replaceState leaves the last opened
+  // column in the URL, so refreshing kept re-opening it -- and tinting
+  // the hero with that column's colour -- instead of showing the
+  // accordion.
+  const navEntry = performance.getEntriesByType('navigation')[0]
+  const fromReload = !!(navEntry && navEntry.type === 'reload')
+  const initial = fromReload ? '' : location.hash.replace('#', '')
+  open(entries.some((x) => x.slug === initial) ? initial : null, false, true)
 
   // With no lede above the first heading, #post-body is left empty and
   // would still contribute its margins.

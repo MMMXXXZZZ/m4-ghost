@@ -6,7 +6,8 @@
   /* Column tokens. JS sets --m4-* on the panel; these map them onto the
      theme's own variables so every existing rule in _post.sass repaints
      itself. Dark values fall back to the light ones when unset. */
-  .ix-body[data-m4-styled] {
+  .ix-item[data-m4-styled] .ix-body,
+  .ix-item[data-m4-styled] {
     --blank: var(--m4-bg);
     --title-color: var(--m4-title);
     --post-color-link: var(--m4-link);
@@ -14,12 +15,14 @@
     transition: background-color 800ms cubic-bezier(.16, 1, .3, 1),
                 color 800ms cubic-bezier(.16, 1, .3, 1);
   }
-  html.dark .ix-body[data-m4-styled] {
+  html.dark .ix-item[data-m4-styled] .ix-body,
+  html.dark .ix-item[data-m4-styled] {
     --blank: var(--m4-bg-dark, var(--m4-bg));
     --title-color: var(--m4-title-dark, var(--m4-title));
     --post-color-link: var(--m4-link-dark, var(--m4-link));
     background-color: var(--m4-bg-dark, var(--m4-bg));
   }
+  .ix-item[data-m4-font] .ix-body,
   .ix-body[data-m4-font] {
     font-family: var(--m4-font-family);
     font-weight: var(--m4-font-weight, inherit);
@@ -39,8 +42,8 @@
     // One rail width for both the face and the item's flex-basis. They
     // were set separately and drifted apart, leaving 88px items holding
     // 64px faces and throwing every width calculation off.
-    --ix-rail: 4rem;
-    --ix-pad: clamp(1.25rem, 2.2vw, 3rem);
+    --ix-rail: 3rem;
+    --ix-pad: clamp(1.5rem, 3.5vw, 5rem);
     padding: var(--ix-pad);
     margin: 0 0 4rem;
     width: min(calc(100vw - var(--m4-sbw, 0px)), var(--ix-max));
@@ -88,8 +91,8 @@
   // symbol and its heading. The rail labels are for when a column opens.
   // Seven rails at 4rem take 37% of a 1208px viewport and squeeze the
   // prose to the body's edges, so they narrow as the screen does.
-  @media (max-width: 1500px) { .ix { --ix-rail: 3.25rem; } .ix-face .lbl { font-size: .66rem; } }
-  @media (max-width: 1200px) { .ix { --ix-rail: 2.75rem; } }
+  @media (max-width: 1500px) { .ix { --ix-rail: 2.75rem; } .ix-face .lbl { font-size: .66rem; } }
+  @media (max-width: 1200px) { .ix { --ix-rail: 2.5rem; } }
 
   .ix-stack[data-all-collapsed="true"] {
     .ix-item { cursor: pointer; }
@@ -335,13 +338,19 @@
   .ix-stack,
   .ix-outro { scroll-snap-align: none; }
 
-  // The site header is hidden while a column is open, so nothing
-  // overlays the reading panel. It returns on the hero and the outro.
-  body.ix-in-stack .header {
-    opacity: 0; pointer-events: none;
-    transform: translateY(-100%);
-    transition: opacity .35s ease, transform .35s ease;
-  }
+  // The sticky header takes 64px of flow, which is why the hero started
+  // below it instead of running behind it the way the image-single
+  // template's hero does. Fixed takes it out of flow; the app's own
+  // padding already accounts for its height.
+  //
+  // It is NOT hidden inside a column any more: hiding it left it
+  // revealed-but-unclickable when the theme's scroll-hide brought it
+  // back, which is worse than simply leaving it alone.
+  body.is-guide-interactive .header { position: fixed; }
+  body.is-guide-interactive .site-main { margin-top: -4rem; }
+
+  // The page-level palette tint bleeds behind the hero, so the hero
+  // keeps the page background and only the app takes a column's colour.
 
   // The outro is a panel, not a tail: as a short block it sat past the
   // document's maximum scroll offset and was unreachable under mandatory.
@@ -351,23 +360,21 @@
     gap: 2rem; padding-block: 3rem;
   }
 
-  // Page-level palette cross-fade, lifted from PBS's [data-section]
-  // treatment. The open column writes its tokens onto <html>, and these
-  // transitions carry the chrome across to the new palette over 800ms
-  // instead of cutting to it.
+  // A column's palette tints the APP, not the site. The page background
+  // deliberately does NOT follow it: PBS can repaint the whole document
+  // because the document IS the panel, whereas here the hero and
+  // everything below the app would take a tint that belongs to one
+  // column. The tokens still land on <html> so the chrome can read them,
+  // but nothing paints the body with them.
   body.is-guide-interactive {
-    transition:
-      background-color 800ms cubic-bezier(.16, 1, .3, 1),
-      color 800ms cubic-bezier(.16, 1, .3, 1);
+    transition: color 800ms cubic-bezier(.16, 1, .3, 1);
   }
-  html[data-ix-section] body.is-guide-interactive {
-    background-color: var(--m4-bg, var(--bg));
-  }
-  html.dark[data-ix-section] body.is-guide-interactive {
-    background-color: var(--m4-bg-dark, var(--m4-bg, var(--bg)));
+  .ix-item {
+    transition: background-color 800ms cubic-bezier(.16, 1, .3, 1),
+                color 800ms cubic-bezier(.16, 1, .3, 1);
   }
   @media (prefers-reduced-motion: reduce) {
-    body.is-guide-interactive { transition: none; }
+    body.is-guide-interactive, .ix-item { transition: none; }
   }
 
   // Motion lab: build-time panel, shown only with ?lab=1.
