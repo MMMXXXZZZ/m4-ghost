@@ -3,8 +3,9 @@
 import { gsap } from 'gsap'
 import { Observer } from 'gsap/Observer'
 import { CustomEase } from 'gsap/CustomEase'
+import { ScrollToPlugin } from 'gsap/ScrollToPlugin'
 
-gsap.registerPlugin(Observer, CustomEase)
+gsap.registerPlugin(Observer, CustomEase, ScrollToPlugin)
 
 // PBS's signature easing, cubic-bezier(0.16, 1, 0.3, 1). In that project
 // it drives the 800ms palette cross-fade; recreated here so our motion
@@ -455,6 +456,48 @@ export default function initColumns () {
     return true
   }
 
+  /**
+   * Over the open body, reaching either end of the content and pushing
+   * further releases the page out of the app -- down to the related
+   * reading and comments, up to the hero. Without this the stack is a
+   * trap: overscroll-behavior:contain stops the browser chaining, so the
+   * reader would simply hit a wall.
+   *
+   * It takes a deliberate push. Below the threshold the stack resists
+   * and springs back, so brushing the end of a column doesn't eject you.
+   */
+  const EDGE_TOL = 110
+  let edgeAcc = 0
+  let releasing = false
+
+  function atEdge (el, dir) {
+    if (dir < 0) return el.scrollTop <= 0
+    return Math.ceil(el.scrollTop + el.clientHeight) >= el.scrollHeight - 1
+  }
+
+  function springBack () {
+    edgeAcc = 0
+    gsap.to(stack, { y: 0, duration: 0.9, ease: 'elastic.out(1, 0.5)', overwrite: 'auto' })
+  }
+
+  function release (dir) {
+    if (releasing) return
+    releasing = true
+    const after = wrap.nextElementSibling
+    const target = dir > 0
+      ? (after
+          ? after.getBoundingClientRect().top + window.scrollY
+          : document.documentElement.scrollHeight - window.innerHeight)
+      : 0
+    gsap.to(stack, { y: 0, duration: 0.35, ease: 'pbs', overwrite: 'auto' })
+    gsap.to(window, {
+      duration: 0.85,
+      ease: 'pbs',
+      scrollTo: { y: target, autoKill: false },
+      onComplete () { edgeAcc = 0; releasing = false }
+    })
+  }
+
   Observer.create({
     target: stack,
     type: 'wheel,touch',
@@ -462,10 +505,24 @@ export default function initColumns () {
     preventDefault: false,
     onChangeY (self) {
       const ev = self.event
-      const over = ev && ev.target && ev.target.closest ? ev.target.closest('.ix-item') : null
+      if (!ev || !ev.target || !ev.target.closest) return
+      const dir = self.deltaY > 0 ? 1 : -1
+
+      // Over the open body: edge release.
+      const bodyEl = ev.target.closest('.ix-body')
+      if (bodyEl && !bodyEl.hasAttribute('hidden')) {
+        if (!atEdge(bodyEl, dir)) { if (edgeAcc) springBack(); return }
+        if (ev.cancelable) ev.preventDefault()
+        edgeAcc += Math.abs(self.deltaY)
+        if (edgeAcc >= EDGE_TOL) release(dir)
+        else gsap.to(stack, { y: -dir * Math.min(34, edgeAcc * 0.34), duration: 0.12, ease: 'power2.out', overwrite: 'auto' })
+        return
+      }
+
+      // Over a collapsed rail: walk the columns sideways.
+      const over = ev.target.closest('.ix-item')
       if (!over || over.dataset.open === 'true') return
       if (ev.cancelable) ev.preventDefault()
-      const dir = self.deltaY > 0 ? 1 : -1
       if (!stepColumn(dir)) rubber(dir)
     }
   })

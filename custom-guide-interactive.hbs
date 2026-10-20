@@ -55,7 +55,21 @@
         {{/if}}
 
     </section>
+
+    {{!-- Past the stack. Scrolling down from the foot of a column
+          releases the page to here, so there has to be something worth
+          landing on: related reading and the comment thread, the same
+          two blocks article-body.hbs gives an ordinary post. --}}
+    <div class="post-footer container mx-auto max-w-3xl">
+        {{#if comments}}
+        <div class="gh-comments gh-canvas">
+            {{comments}}
+        </div>
+        {{/if}}
+    </div>
 </article>
+
+{{> "article/article-related"}}
 {{/post}}
 
 {{!-- All behaviour for this template lives in one bundle: the column
