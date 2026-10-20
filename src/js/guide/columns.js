@@ -599,6 +599,7 @@ export default function initColumns () {
     if (push && window.history && history.replaceState) {
       history.replaceState(null, '', anyOpen ? `#${slug}` : location.pathname + location.search)
     }
+    if (typeof syncDots === 'function') requestAnimationFrame(syncDots)
   }
 
   entries.forEach((e) => {
@@ -623,7 +624,37 @@ export default function initColumns () {
   sizeBodies()
   window.addEventListener('resize', sizeBodies)
 
-  const mobile = initMobile(entries, stack, nav)
+  // Back returns to the three-drawer pages.
+  const mobile = initMobile(entries, stack, nav, () => open(null, true))
+
+  /**
+   * Pagination dots for the drawer pages. They replace the footer rail
+   * entirely in that mode: the grid is the navigation, so the dots only
+   * need to say where you are, not offer a way anywhere.
+   */
+  const dots = document.createElement('div')
+  dots.className = 'ix-dots'
+  dots.setAttribute('aria-hidden', 'true')
+  function syncDots () {
+    if (!isPhone() || stack.dataset.allCollapsed !== 'true') {
+      dots.classList.remove('is-on')
+      return
+    }
+    const pages = Math.max(1, Math.round(stack.scrollWidth / stack.clientWidth))
+    if (dots.children.length !== pages) {
+      dots.innerHTML = ''
+      for (let i = 0; i < pages; i++) {
+        const d = document.createElement('i')
+        dots.appendChild(d)
+      }
+    }
+    const here = Math.round(stack.scrollLeft / Math.max(1, stack.clientWidth))
+    Array.from(dots.children).forEach((d, i) => d.classList.toggle('is-here', i === here))
+    dots.classList.add('is-on')
+  }
+  stack.parentElement.appendChild(dots)
+  stack.addEventListener('scroll', syncDots, { passive: true })
+  window.addEventListener('resize', syncDots)
 
   applyDims(FX)
 

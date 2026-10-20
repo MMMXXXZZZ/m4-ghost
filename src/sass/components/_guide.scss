@@ -592,6 +592,34 @@
     .ix-nav.is-rail::before,
     .ix-nav.is-rail::after { content: ''; flex: 0 0 38vw; }
 
+    // Back to the three-drawer pages.
+    .ix-rail-back {
+      appearance: none; border: 0; cursor: pointer; flex: 0 0 auto;
+      inline-size: 2.1rem; block-size: 2.1rem; border-radius: 50%;
+      display: grid; place-items: center; margin-right: .35rem;
+      background: var(--gray-150, #1b1c20); color: inherit;
+    }
+    .ix-rail-back svg { width: 1.1rem; height: 1.1rem; }
+    .ix-nav.is-rail::before { content: none; }
+
+    // Pagination dots. These replace the footer entirely while the
+    // drawers are closed: the grid is the navigation, so the dots only
+    // have to say where you are.
+    .ix-dots {
+      position: fixed; left: 0; right: 0; bottom: 1.1rem; z-index: 45;
+      display: flex; justify-content: center; align-items: center; gap: .5rem;
+      pointer-events: none; opacity: 0;
+      transition: opacity .5s ease;
+    }
+    .ix-dots.is-on { opacity: 1; }
+    .ix-dots i {
+      inline-size: .3rem; block-size: .3rem; border-radius: 50%;
+      background: currentColor; opacity: .32;
+      transition: opacity .4s ease, transform .4s ease;
+    }
+    .ix-dots i.is-here { opacity: 1; transform: scale(1.5); }
+
+
     // The grid IS the navigation while nothing is open, so the rail only
     // appears once a column has been entered. It slides away as you read
     // and comes back on scroll-up.

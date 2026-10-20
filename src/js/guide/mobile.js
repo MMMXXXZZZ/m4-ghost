@@ -32,8 +32,34 @@ const FOLLOW = 0.55
 
 export const isPhone = () => window.matchMedia('(max-width: 64rem)').matches
 
-export default function initMobile (entries, stack, nav) {
+export default function initMobile (entries, stack, nav, onBack) {
   if (!entries.length) return null
+
+  const app = stack.parentElement
+
+  // A sticky element only sticks within its own parent's box. The rail
+  // is appended to <body> as its last child, so sticky parked it at the
+  // bottom of the document -- measured at top 12365 of 13123. It has to
+  // live inside the app to stick to the top of the read.
+  function dockRail () {
+    if (nav.parentElement !== app) app.insertBefore(nav, stack)
+  }
+  function undockRail () {
+    if (nav.parentElement !== document.body) document.body.appendChild(nav)
+  }
+
+  // Back out of the continuous read to the three-drawer pages.
+  const back = document.createElement('button')
+  back.type = 'button'
+  back.className = 'ix-rail-back'
+  back.setAttribute('aria-label', 'Volver')
+  back.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
+    '<path d="M15 5 L8 12 L15 19" fill="none" stroke="currentColor" stroke-width="2" ' +
+    'stroke-linecap="round" stroke-linejoin="round"/></svg>'
+  back.addEventListener('click', (e) => {
+    e.stopPropagation()
+    if (onBack) onBack()
+  })
 
   let active = null
   let railSettling = false
@@ -95,6 +121,8 @@ export default function initMobile (entries, stack, nav) {
    */
   function unwrapAll (target) {
     stack.dataset.mobileOpen = 'true'
+    dockRail()
+    if (back.parentElement !== nav) nav.insertBefore(back, nav.firstChild)
     entries.forEach((e) => {
       e.body.removeAttribute('hidden')
       e.item.dataset.open = 'true'
@@ -112,6 +140,8 @@ export default function initMobile (entries, stack, nav) {
   function wrapAll () {
     stack.dataset.mobileOpen = 'false'
     nav.classList.remove('is-rail')
+    undockRail()
+    if (back.parentElement) back.remove()
     entries.forEach((e) => { e.item.dataset.reading = 'false' })
   }
 
