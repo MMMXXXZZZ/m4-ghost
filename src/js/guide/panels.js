@@ -167,6 +167,12 @@ export default function initPanels () {
 
   function syncHeader () {
     document.body.classList.toggle('ix-in-stack', inApp())
+    // iOS rubber-banding past the top settles back to 0 while the
+    // theme's scroll-hide still reads the bounce as an upward scroll and
+    // hides the header. At the top of the document there is nothing to
+    // hide it for.
+    const header = document.querySelector('.header')
+    if (header) header.classList.toggle('ix-pinned', window.scrollY < 4)
   }
   window.addEventListener('scroll', syncHeader, { passive: true })
   syncHeader()

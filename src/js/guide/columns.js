@@ -1,4 +1,4 @@
-/* global history, location, getComputedStyle, URLSearchParams, requestAnimationFrame, setTimeout, clearTimeout, performance */
+/* global history, location, getComputedStyle, URLSearchParams, requestAnimationFrame, setTimeout, clearTimeout, performance, IntersectionObserver */
 
 import { gsap } from 'gsap'
 import { Observer } from 'gsap/Observer'
@@ -194,7 +194,9 @@ function readConfig (head) {
 
   while (n && scanned < 4) {
     const next = n.nextElementSibling
-    if (n.matches('script[type="application/json"][data-m4-col]')) {
+    // Ghost's editor does not always preserve type="application/json" on
+    // a pasted card. The data-m4-col attribute is what identifies it.
+    if (n.matches('script[data-m4-col]')) {
       try {
         cfg = JSON.parse(n.textContent)
       } catch (e) {
@@ -612,7 +614,19 @@ export default function initColumns () {
       // collapsed grid, so there is a way back without a nav control.
       open(e.item.dataset.open === 'true' ? null : e.slug, true)
     })
-    e.nav.addEventListener('click', () => {
+    e.nav.addEventListener('click', (ev) => {
+      // A finger resting on the rail to drag it lands on a face, and the
+      // browser calls that a click. Anything that moved the rail is a
+      // drag, not a tap.
+      if (nav.dataset.dragged === 'true') { ev.preventDefault(); return }
+      if (mobile && isPhone() && stack.dataset.mobileOpen === 'true') {
+        // Already reading: glide there rather than jumping, and leave
+        // the page alone otherwise.
+        mobile.setActive(e, 'rail')
+        mobile.goToColumn(e)
+        mobile.centreRail(e)
+        return
+      }
       open(e.slug, true)
       wrap.scrollIntoView({ behavior: 'smooth', block: 'start' })
     })
@@ -629,7 +643,10 @@ export default function initColumns () {
   window.addEventListener('resize', sizeBodies)
 
   // Back returns to the three-drawer pages.
-  const mobile = initMobile(entries, stack, nav, () => open(null, true))
+  const mobile = initMobile(entries, stack, nav, () => open(null, true),
+    // The phone path returns before the desktop reveal runs, so the
+    // stagger has to be handed to it explicitly.
+    (entry) => playContent(entry, PRESETS[presetIndex()]))
 
   /**
    * Pagination dots for the drawer pages. They replace the footer rail
@@ -639,8 +656,18 @@ export default function initColumns () {
   const dots = document.createElement('div')
   dots.className = 'ix-dots'
   dots.setAttribute('aria-hidden', 'true')
+  let appOnScreen = false
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver((r) => {
+      appOnScreen = r[0].isIntersecting
+      syncDots()
+    }, { threshold: 0.6 }).observe(stack)
+  }
+
   function syncDots () {
-    if (!isPhone() || stack.dataset.allCollapsed !== 'true') {
+    // Only while the app is what you are looking at: they were showing
+    // over the hero and over the content below it.
+    if (!isPhone() || !appOnScreen || stack.dataset.allCollapsed !== 'true') {
       dots.classList.remove('is-on')
       return
     }

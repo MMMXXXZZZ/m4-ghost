@@ -1,4 +1,4 @@
-/* global getComputedStyle, requestAnimationFrame, IntersectionObserver */
+/* global getComputedStyle, requestAnimationFrame, IntersectionObserver, setTimeout, clearTimeout */
 
 /**
  * MOBILE — one document, a sticky face rail, and lag between the two.
@@ -32,7 +32,7 @@ const FOLLOW = 0.55
 
 export const isPhone = () => window.matchMedia('(max-width: 64rem)').matches
 
-export default function initMobile (entries, stack, nav, onBack) {
+export default function initMobile (entries, stack, nav, onBack, onReveal) {
   if (!entries.length) return null
 
   const app = stack.parentElement
@@ -132,7 +132,12 @@ export default function initMobile (entries, stack, nav, onBack) {
 
     // Let layout settle before measuring a scroll target.
     requestAnimationFrame(() => {
-      if (target) { goToColumn(target, true); setActive(target, 'init'); centreRail(target, true) }
+      if (target) {
+        goToColumn(target, true)
+        setActive(target, 'init')
+        centreRail(target, true)
+        if (onReveal) onReveal(target)
+      }
       watchReadingPosition()
     })
   }
@@ -183,7 +188,13 @@ export default function initMobile (entries, stack, nav, onBack) {
     return best
   }
 
+  // Mark the rail as dragged for a moment after it moves, so the click
+  // the browser synthesises under a dragging finger is ignored.
+  let dragClear = null
   nav.addEventListener('scroll', () => {
+    nav.dataset.dragged = 'true'
+    clearTimeout(dragClear)
+    dragClear = setTimeout(() => { nav.dataset.dragged = 'false' }, 220)
     if (railSettling || stack.dataset.mobileOpen !== 'true') return
     const best = centredEntry()
     if (best && best !== active) {
@@ -191,6 +202,26 @@ export default function initMobile (entries, stack, nav, onBack) {
       goToColumn(best)
     }
   }, { passive: true })
+
+  /**
+   * The rail sits under the site header, which comes and goes on scroll.
+   * Pinned at a constant offset it left a strip of body visible above
+   * itself whenever the header had slid away.
+   */
+  function trackHeader () {
+    const header = document.querySelector('.header')
+    if (!header) return
+    const sync = () => {
+      const r = header.getBoundingClientRect()
+      const visible = r.bottom > 0 && getComputedStyle(header).opacity !== '0'
+      document.documentElement.style.setProperty(
+        '--ix-rail-top', visible ? `${Math.max(0, Math.round(r.bottom))}px` : '0px')
+    }
+    sync()
+    window.addEventListener('scroll', sync, { passive: true })
+    window.addEventListener('resize', sync)
+  }
+  trackHeader()
 
   console.log(`${TAG} ready ${JSON.stringify({ columns: entries.length, lag: LAG })}`)
   return { unwrapAll, wrapAll, goToColumn, centreRail, setActive, get active () { return active } }

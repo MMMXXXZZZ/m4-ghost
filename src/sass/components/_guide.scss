@@ -358,6 +358,11 @@
   // revealed-but-unclickable when the theme's scroll-hide brought it
   // back, which is worse than simply leaving it alone.
   body.is-guide-interactive .header { position: fixed; }
+  // Held open at the top of the document, whatever the scroll-hide
+  // thinks an iOS rubber-band bounce meant.
+  body.is-guide-interactive .header.ix-pinned {
+    transform: none !important; opacity: 1 !important; visibility: visible !important;
+  }
   body.is-guide-interactive .site-main { margin-top: -4rem; }
 
   // The page-level palette tint bleeds behind the hero, so the hero
@@ -583,6 +588,8 @@
     // theme's scroll-hide brings it back.
     .ix-nav.is-rail {
       position: sticky; position: -webkit-sticky;
+      // Driven by the site header's own visibility. Fixed at 4rem it
+      // left a gap of body above itself whenever the header had hidden.
       top: var(--ix-rail-top, 4rem); bottom: auto;
       transform: none !important;
       border-top: 0; border-bottom: 1px solid var(--gray-200, #2a2a2a);
