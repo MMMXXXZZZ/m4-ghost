@@ -40,8 +40,8 @@
     // were set separately and drifted apart, leaving 88px items holding
     // 64px faces and throwing every width calculation off.
     --ix-rail: 4rem;
-    --ix-pad: clamp(.75rem, 1.2vw, 1.5rem);
-    padding: 0 var(--ix-pad) var(--ix-pad);
+    --ix-pad: clamp(1.25rem, 2.2vw, 3rem);
+    padding: var(--ix-pad);
     margin: 0 0 4rem;
     width: min(calc(100vw - var(--m4-sbw, 0px)), var(--ix-max));
     max-width: none;
@@ -55,7 +55,7 @@
   // The app owns the screen once you are past the hero.
   .ix-stack {
     display: flex; align-items: stretch; gap: 2px;
-    height: calc(100svh - var(--ix-pad)); overflow: hidden;
+    height: calc(100svh - var(--ix-pad) * 2); overflow: hidden;
     border-radius: 1rem;
     background: var(--gray-200, #2a2a2a);
   }
@@ -302,22 +302,35 @@
     --gray-100: #0d0f11;
   }
 
-  // Hero -> stack snapping.
+  // Hero -> stack -> outro snapping.
   //
-  // `proximity`, not `mandatory`. Measured on the live page: the stack's
-  // bottom sits past the maximum scroll offset, so with mandatory the
-  // only snap points are the hero and the stack and the tags/footer below
-  // them become unreachable -- every scroll down snaps back to the stack.
-  // Proximity snaps when you are near and releases otherwise.
+  // mandatory, as PBS uses. It can do that because its shell hides the
+  // template header and footer, so everything that scrolls is a panel.
+  // Proximity was my workaround for our trailing content, and it left
+  // the wheel free to park the page between panels, which is what made
+  // the whole thing feel loose rather than taken over. With the outro
+  // promoted to a full-height panel there is a snap point everywhere, so
+  // mandatory can no longer strand anything.
   //
-  // Only the stack is a target. Snapping the hero as well made
-  // scrollTo(0) land at the hero's own offset (174px here), burying the
-  // announcement bar above it.
-  html:has(body.is-guide-interactive) { scroll-snap-type: y proximity; }
+  // scroll-snap-stop keeps one gesture to one panel.
+  html:has(body.is-guide-interactive) { scroll-snap-type: y mandatory; }
   @media (prefers-reduced-motion: no-preference) {
     html:has(body.is-guide-interactive) { scroll-behavior: smooth; }
   }
-  .ix-stack { scroll-snap-align: start; scroll-snap-stop: always; }
+  @media (prefers-reduced-motion: reduce) {
+    html:has(body.is-guide-interactive) { scroll-behavior: auto; }
+  }
+  .ix-hero,
+  .ix-stack,
+  .ix-outro { scroll-snap-align: start; scroll-snap-stop: always; }
+
+  // The outro is a panel, not a tail: as a short block it sat past the
+  // document's maximum scroll offset and was unreachable under mandatory.
+  .ix-outro {
+    min-height: 100svh;
+    display: flex; flex-direction: column; justify-content: center;
+    gap: 2rem; padding-block: 3rem;
+  }
 
   // Page-level palette cross-fade, lifted from PBS's [data-section]
   // treatment. The open column writes its tokens onto <html>, and these

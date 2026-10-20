@@ -44,32 +44,36 @@
             {{content}}
         </div>
 
-        {{!-- Tags sit in the page chrome, not the prose flow. Keeping them
-              inside .post-body (as article-body.hbs does) left them orphaned
-              under a hidden article once the component mounted. The bottom
-              padding clears the fixed .ix-nav row. --}}
+    </section>
+
+    {{!-- The outro is a panel, not a tail.
+
+          PBS can run scroll-snap-type:mandatory because its shell hides
+          the template's header and footer, so everything that scrolls IS
+          a panel and snapping can never strand you. Our page still has
+          tags, comments and related reading, and as a short block after
+          the stack they sat past the document's maximum scroll offset --
+          unreachable under mandatory. Giving them one full-height panel
+          of their own is the same answer PBS reaches by deletion. --}}
+    <div class="ix-outro">
         {{#if tags}}
-        <div class="post-tags mt-8 mb-24 buttons justify-center lg:justify-start max-w-3xl mx-auto">
+        <div class="post-tags buttons justify-center max-w-3xl mx-auto">
             {{#foreach tags}}<a href="{{url}}" title="{{name}}" class="button is-black is-outlined is-small uppercase">{{name}}</a>{{/foreach}}
         </div>
         {{/if}}
 
-    </section>
-
-    {{!-- Past the stack. Scrolling down from the foot of a column
-          releases the page to here, so there has to be something worth
-          landing on: related reading and the comment thread, the same
-          two blocks article-body.hbs gives an ordinary post. --}}
-    <div class="post-footer container mx-auto max-w-3xl">
-        {{#if comments}}
-        <div class="gh-comments gh-canvas">
-            {{comments}}
+        <div class="post-footer container mx-auto max-w-3xl">
+            {{#if comments}}
+            <div class="gh-comments gh-canvas">
+                {{comments}}
+            </div>
+            {{/if}}
         </div>
-        {{/if}}
+
+        {{> "article/article-related"}}
     </div>
 </article>
 
-{{> "article/article-related"}}
 {{/post}}
 
 {{!-- All behaviour for this template lives in one bundle: the column
