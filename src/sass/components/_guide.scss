@@ -86,6 +86,23 @@
 
   // Entry state: nothing open, every column equal, each showing a large
   // symbol and its heading. The rail labels are for when a column opens.
+  // Seven rails at 4rem take 37% of a 1208px viewport and squeeze the
+  // prose to the body's edges, so they narrow as the screen does.
+  @media (max-width: 1500px) { .ix { --ix-rail: 3.25rem; } .ix-face .lbl { font-size: .66rem; } }
+  @media (max-width: 1200px) { .ix { --ix-rail: 2.75rem; } }
+
+  // With one child, space-between parks the label at the top on columns
+  // without an icon and at the bottom on the one with it.
+  @media (min-width: 64.01rem) {
+    .ix-stack:not([data-all-collapsed="true"]) .ix-face {
+      justify-content: flex-end; gap: 1rem;
+    }
+    .ix-face .lbl { max-height: calc(100% - 3.5rem); }
+    .ix-body { padding-top: 3rem; }
+    // The rail IS the navigation here; the fixed bar only repeats it.
+    .ix-nav { display: none; }
+  }
+
   .ix-stack[data-all-collapsed="true"] {
     .ix-item { cursor: pointer; }
     .ix-face {
@@ -137,18 +154,27 @@
     padding: 2rem 1.5rem 6rem;
   }
 
-  // Mobile: a horizontal rail of 8 vertical labels is unusable on a
-  // phone, so the same DOM stacks vertically until the drawer paging
-  // lands.
-  @media (max-width: 48rem) {
+  // Tablet and phone. A tablet in portrait is 820-834px, which sat just
+  // above the old 48rem breakpoint and got seven rails in ~37% of the
+  // screen, so the vertical layout now covers everything under 64rem.
+  @media (max-width: 64rem) {
     .ix-stack { flex-direction: column; height: auto; overflow: visible; }
-    .ix-item { flex: none; }
+    // .ix-item is display:flex and defaults to row, so the face and the
+    // body sat side by side: the body went off-screen and the face
+    // stretched to its height, filling the viewport with one colour.
+    .ix-item { flex: none; flex-direction: column; }
     .ix-face {
-      width: 100%; flex-direction: row; justify-content: flex-start;
+      width: 100%; flex-direction: row;
+      justify-content: flex-start; align-items: center;
       gap: .75rem; padding: 1rem 1.15rem;
     }
-    .ix-face .lbl { writing-mode: horizontal-tb; transform: none; white-space: normal; text-align: left; }
+    .ix-face .lbl {
+      writing-mode: horizontal-tb; transform: none; white-space: normal;
+      text-align: left; max-height: none; font-size: .78rem;
+    }
     .ix-body { width: 100%; padding: 1.25rem 1.15rem 2rem; }
+    // The open row already names itself; the fixed marker just repeats it.
+    .ix-marker { display: none; }
   }
 
   // Reading measure. Full bleed is right for the chrome and wrong for
