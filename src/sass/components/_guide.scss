@@ -61,7 +61,7 @@
   }
   .ix-item {
     flex: var(--g, 0) 1 var(--ix-rail); min-width: 0; position: relative;
-    overflow: hidden; display: flex; border-radius: .85rem;
+    overflow: hidden; display: flex;
     background: var(--m4-bg, var(--blank, #110f16));
     color: var(--m4-title, inherit);
   }
@@ -91,18 +91,6 @@
   @media (max-width: 1500px) { .ix { --ix-rail: 3.25rem; } .ix-face .lbl { font-size: .66rem; } }
   @media (max-width: 1200px) { .ix { --ix-rail: 2.75rem; } }
 
-  // With one child, space-between parks the label at the top on columns
-  // without an icon and at the bottom on the one with it.
-  @media (min-width: 64.01rem) {
-    .ix-stack:not([data-all-collapsed="true"]) .ix-face {
-      justify-content: flex-end; gap: 1rem;
-    }
-    .ix-face .lbl { max-height: calc(100% - 3.5rem); }
-    .ix-body { padding-top: 3rem; }
-    // The rail IS the navigation here; the fixed bar only repeats it.
-    .ix-nav { display: none; }
-  }
-
   .ix-stack[data-all-collapsed="true"] {
     .ix-item { cursor: pointer; }
     .ix-face {
@@ -128,7 +116,6 @@
     font: 600 .72rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
     letter-spacing: .06em;
   }
-  .ix-item[data-open="true"] { border-radius: 1rem; }
   .ix-item[data-open="true"] .ix-face {
     background: var(--m4-link, var(--ghost-accent-color, #F73E05));
     color: var(--m4-on-link, #fff);
@@ -173,8 +160,6 @@
       text-align: left; max-height: none; font-size: .78rem;
     }
     .ix-body { width: 100%; padding: 1.25rem 1.15rem 2rem; }
-    // The open row already names itself; the fixed marker just repeats it.
-    .ix-marker { display: none; }
   }
 
   // Reading measure. Full bleed is right for the chrome and wrong for
@@ -201,6 +186,10 @@
 
 
   /* Locked marker: current column's symbol and title, top-left. */
+  // Mobile only. On desktop the rail is permanently on screen and names
+  // the open column itself, so this would just say it twice.
+  .ix-marker { display: none; }
+  @media (max-width: 64rem) { .ix-marker { display: flex; } }
   .ix-marker {
     position: fixed; top: 4.5rem; left: 1rem; z-index: 30;
     display: flex; align-items: center; gap: .55rem;
@@ -405,3 +394,19 @@
   .ix-lab-presets button { flex: 0 0 auto; }
   .ix-lab-note { margin: .7rem 0 0; font-size: .6rem; opacity: .45; }
   @media (max-width: 48rem) { .ix-lab { left: 1rem; right: 1rem; width: auto; } }
+
+  // Desktop. Must come after the base rules: media queries add no
+  // specificity, so sitting earlier in the file left the nav visible and
+  // the body's padding-top ignored.
+  // With one child, space-between parks the label at the top on columns
+  // without an icon and at the bottom on the one with it.
+  @media (min-width: 64.01rem) {
+    .ix-stack:not([data-all-collapsed="true"]) .ix-face {
+      justify-content: flex-end; gap: 1rem;
+    }
+    .ix-face .lbl { max-height: calc(100% - 3.5rem); }
+    .ix-body { padding-top: 3rem; }
+    // The rail IS the navigation here; the fixed bar only repeats it.
+    .ix-nav { display: none; }
+  }
+
