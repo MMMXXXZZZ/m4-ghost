@@ -37,12 +37,15 @@ export default function initMobile (entries, stack, nav, onBack, onReveal) {
 
   const app = stack.parentElement
 
-  // A sticky element only sticks within its own parent's box. The rail
-  // is appended to <body> as its last child, so sticky parked it at the
-  // bottom of the document -- measured at top 12365 of 13123. It has to
-  // live inside the app to stick to the top of the read.
+  // The rail lives INSIDE the site header, hanging below it. The header
+  // is fixed and the theme's scroll-hide translates it away on scroll,
+  // which carries the rail up to the top edge for free -- no scroll
+  // listener measuring the header's position every frame, which is what
+  // was flickering as the two fought to settle.
   function dockRail () {
-    if (nav.parentElement !== app) app.insertBefore(nav, stack)
+    const header = document.querySelector('.header')
+    const host = header || app
+    if (nav.parentElement !== host) host.appendChild(nav)
   }
   function undockRail () {
     if (nav.parentElement !== document.body) document.body.appendChild(nav)
@@ -203,25 +206,6 @@ export default function initMobile (entries, stack, nav, onBack, onReveal) {
     }
   }, { passive: true })
 
-  /**
-   * The rail sits under the site header, which comes and goes on scroll.
-   * Pinned at a constant offset it left a strip of body visible above
-   * itself whenever the header had slid away.
-   */
-  function trackHeader () {
-    const header = document.querySelector('.header')
-    if (!header) return
-    const sync = () => {
-      const r = header.getBoundingClientRect()
-      const visible = r.bottom > 0 && getComputedStyle(header).opacity !== '0'
-      document.documentElement.style.setProperty(
-        '--ix-rail-top', visible ? `${Math.max(0, Math.round(r.bottom))}px` : '0px')
-    }
-    sync()
-    window.addEventListener('scroll', sync, { passive: true })
-    window.addEventListener('resize', sync)
-  }
-  trackHeader()
 
   console.log(`${TAG} ready ${JSON.stringify({ columns: entries.length, lag: LAG })}`)
   return { unwrapAll, wrapAll, goToColumn, centreRail, setActive, get active () { return active } }

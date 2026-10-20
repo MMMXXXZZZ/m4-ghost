@@ -371,7 +371,7 @@
   // It is NOT hidden inside a column any more: hiding it left it
   // revealed-but-unclickable when the theme's scroll-hide brought it
   // back, which is worse than simply leaving it alone.
-  body.is-guide-interactive .header { position: fixed; }
+  body.is-guide-interactive .header { position: fixed; overflow: visible; }
   // Held open at the top of the document, whatever the scroll-hide
   // thinks an iOS rubber-band bounce meant.
   body.is-guide-interactive .header.ix-pinned {
@@ -613,15 +613,19 @@
       display: block; width: 100%;
       padding: 1.5rem 1.15rem 2.5rem;
     }
+    // Clear the rail hanging below the header.
+    .ix-stack[data-mobile-open="true"] { padding-top: var(--ix-rail-h, 3.25rem); }
 
     // The rail: a sticky header of faces, centred on what is being read.
     // It sits below the site header and is pushed down by it when the
     // theme's scroll-hide brings it back.
+    // Hung below the site header, inside it. When the theme's
+    // scroll-hide translates the header away the rail rides up with it
+    // and lands on the top edge, with no JS measuring anything.
     .ix-nav.is-rail {
-      position: sticky; position: -webkit-sticky;
-      // Driven by the site header's own visibility. Fixed at 4rem it
-      // left a gap of body above itself whenever the header had hidden.
-      top: var(--ix-rail-top, 4rem); bottom: auto;
+      position: absolute;
+      top: 100%; left: 0; right: 0; bottom: auto;
+      height: var(--ix-rail-h, 3.25rem);
       transform: none !important;
       border-top: 0; border-bottom: 1px solid var(--gray-200, #2a2a2a);
       scroll-snap-type: x proximity;
