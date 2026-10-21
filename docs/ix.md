@@ -4,7 +4,7 @@
 short on purpose and the parts that look like trivia are the parts that
 have cost the most time.
 
-Updated 2026-10-20.
+Updated 2026-10-21.
 
 ## Done
 
@@ -46,10 +46,29 @@ with `expo.out`, not CSS snap — CSS snap always lets the page drift
 first, which is why PBS feels instant only because every region there is
 a panel.
 
-**Phone.** Three drawers to a page, paged sideways, with the next page
-peeking at the edge. Opening a drawer unwraps every column into one
-document; the rail of faces hangs inside the site header and rides its
-scroll-hide. Rail and document follow each other on a deliberate lag.
+**Phone.** Three drawers to a page, now a carousel in three dimensions:
+the neighbouring sets sit at both edges turned away from the reader,
+53 degrees at a full page of offset, dimmed, perspective and peek held
+proportional (222vw / 14vw) so a 390px phone reads like the 630px
+stage the values were tuned on. One number drives it -- `pos`, the
+position in pages -- and each row answers it on its own response time,
+so a page fans as it comes round rather than pivoting as one board.
+
+GSAP owns the gesture here. The platform could not express it: scroll
+snapping rounds every intermediate position to a snap point, and a
+scroller offers one offset where this needs eight separately lagged
+ones. So Observer with lockAxis does the paging, with a velocity bias
+so a short flick still turns the page, rubber banding at the ends, and
+a focusin handler because tabbing no longer brings a face round by
+itself.
+
+The gyro moves the vanishing point rather than anything on the stage,
+so tilting reads as peering around a solid object; M4Tilt's pointer
+fallback makes the same code mouse parallax on a desktop.
+
+Opening a drawer unwraps every column into one document; the rail of
+faces hangs inside the site header and rides its scroll-hide. Rail and
+document follow each other on a deliberate lag.
 
 **Motion lab** at `?lab=1`: transition presets, dimension sliders, and a
 per-column palette editor with a hue lock that keeps six values on one
@@ -80,33 +99,37 @@ lab closed.
 
 ## To do
 
-### 1. GSAP distance-driven transforms — next
+### 1. Layers: foreground, midground, background — next
+The direction for everything after the carousel. First the UI itself
+reads as layers at different depths, then the explanatory animations
+inside a column's body do (solid particles of CS gas, and so on).
+Passive to begin with and probably constrained per layer; the reader's
+own motion comes in later, either as pure flare or as the thing that
+advances an animation. The carousel is the first instance of this and
+`M4Tilt` already publishes both signals it needs.
+
+### 2. GSAP distance-driven transforms
 The slivers exist but are static rectangles; no GSAP is involved yet.
 What is needed is a continuous per-drawer value — distance from the
 viewport centre — driving `scale`/`opacity`/stagger in 2D, then
 `rotationY` with `transformPerspective` for the 3D pass. The existing
 on-page/sliver test is the boolean version of that value.
 
-### 2. Sticky shrinking face on desktop
+### 3. Sticky shrinking face on desktop
 Drop `.ix-marker`. The current column's `.ix-face` shrinks and sticks to
 the top of the reading area as a header, pushed down by the site header
 when it reappears, handing over to the neighbouring face as the reader
 nears either end. The phone already has its rail equivalent.
 
-### 3. Animate on finger-leave
+### 4. Animate on finger-leave
 Panel animation fires when a drag crosses the threshold; it should wait
 for `touchend`. Instrument when it actually fires — the gyro permission
 prompt is gated on scroll position and is unreliable.
 
-### 4. Pointer and gyro gradients
+### 5. Pointer and gyro gradients
 Gradient outlines and button fills following the pointer on desktop and
 tilt on mobile. Read `window.M4Tilt`, which already publishes a
 smoothed, orientation-compensated signal with a pointer fallback.
-
-### 5. Embers: acceleration, not orientation
-`embers.js` reads `M4Tilt.x`, which is orientation. On a phone it should
-follow acceleration — `devicemotion`, not `deviceorientation`. The
-permission handshake lives in `tilt.js`, so the signal belongs there.
 
 ### 6. Prose stagger tied to scroll
 Currently a one-shot stagger over the first eight blocks when a column
@@ -149,3 +172,17 @@ Arrow keys do not move between columns. The ARIA tabs pattern fits.
   CSS is always stale. Check the deployed stylesheet over HTTP.
 - **State set once goes stale.** Derive at use time, or attach a
   threshold that refreshes it.
+- **Safari flattens a 3D subtree whose root also clips.** perspective
+  plus preserve-3d plus overflow on one element gives a horizontal
+  stretch instead of a turn, on iOS only. Keep the clipper and the 3D
+  container separate.
+- **`getComputedStyle` lies about states you just set.** It returned
+  the un-hovered colour under a synthetic hover, and a colour 1% into
+  a 400ms fade one frame after a class change. Wait out the transition
+  or look at pixels.
+- **Scroll snapping eats a tween.** It rounds every write to
+  scrollLeft, so an animated scroll arrives as four or five jumps.
+  GSAP's ScrollToPlugin already disables snap while it runs; a raw
+  scrollLeft tween does not.
+- **A swipe is never level.** Any handler taking deltaY off a gesture
+  that is mostly sideways will fire on a carousel swipe.
