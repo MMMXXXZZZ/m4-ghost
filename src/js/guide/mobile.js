@@ -77,13 +77,25 @@ export default function initMobile (entries, stack, nav, onBack, onReveal) {
     const target = btn.offsetLeft - (nav.clientWidth - btn.offsetWidth) / 2
     if (immediate) { nav.scrollLeft = target; return }
     railSettling = true
+    // Prefer the platform -- except where it eats the frames. Snapping
+    // is what we want under a finger, but it also rounds every write to
+    // scrollLeft to the nearest face, including the ones GSAP makes
+    // mid-tween. Measured: 99 distinct values requested across the
+    // tween, 6 reaching the screen (28 -> 0, 74 -> 128, 183 -> 235),
+    // so a 550ms glide arrived as five hard steps. Off while we drive,
+    // back on the moment we stop, so the drag keeps its snap.
+    nav.style.scrollSnapType = 'none'
+    const releaseSnap = () => { nav.style.scrollSnapType = ''; railSettling = false }
     gsap.to(nav, {
       scrollLeft: Math.max(0, target),
       duration: FOLLOW,
       delay: LAG,
       ease: 'expo.out',
       overwrite: 'auto',
-      onComplete () { railSettling = false }
+      // overwrite kills onComplete, and a rail left unsnapped would
+      // never settle on a face again.
+      onInterrupt: releaseSnap,
+      onComplete: releaseSnap
     })
   }
 
