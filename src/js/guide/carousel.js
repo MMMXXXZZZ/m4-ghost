@@ -165,11 +165,14 @@ export default function initCarousel (entries, stack) {
     preventDefault: false,
     onDrag (self) {
       if (!on || self.axis !== 'x') return
+      // The face under the finger must not take this as a tap.
+      stack.dataset.dragged = 'true'
       state.pos = limit(state.pos - self.deltaX / STEP)
       tick()
     },
     onDragEnd (self) {
       if (!on || self.axis !== 'x') return
+      gsap.delayedCall(0.25, () => { stack.dataset.dragged = 'false' })
       // Throw with the gesture rather than snapping to whatever is
       // nearest: a short fast flick should still turn the page.
       const bias = gsap.utils.clamp(-1, 1, -(self.velocityX || 0) / 900)
@@ -209,9 +212,14 @@ export default function initCarousel (entries, stack) {
     observer.disable()
     gsap.killTweensOf(state)
     drawers.forEach((d) => {
-      gsap.set(d.item, { clearProps: 'transform,opacity,visibility' })
-      gsap.set(d.shade, { opacity: 0 })
+      // Kill the drawer's own tween FIRST. quickTo keeps a live tween
+      // on the proxy, and a surviving one writes the transform back
+      // the frame after it is cleared -- which left the unwrapped
+      // article translated a page to the left, mid-turn.
+      gsap.killTweensOf(d.proxy)
       d.proxy.off = 0
+      gsap.set(d.item, { clearProps: 'transform,transformOrigin,opacity,visibility,willChange' })
+      gsap.set(d.shade, { opacity: 0 })
     })
   }
 

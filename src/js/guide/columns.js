@@ -601,7 +601,11 @@ export default function initColumns () {
   }
 
   entries.forEach((e) => {
-    e.face.addEventListener('click', () => {
+    e.face.addEventListener('click', (ev) => {
+      // Same trap as the rail: a finger that swiped the carousel is
+      // resting on a face when it lifts, and the browser calls that a
+      // click. Anything that moved the carousel is a drag, not a tap.
+      if (stack.dataset.dragged === 'true') { ev.preventDefault(); return }
       // Clicking the column that is already open returns to the all-
       // collapsed grid, so there is a way back without a nav control.
       open(e.item.dataset.open === 'true' ? null : e.slug, true)
