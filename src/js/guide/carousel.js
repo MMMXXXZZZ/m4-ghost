@@ -51,6 +51,17 @@ const STAGGER = 0.09
 // Past this the page is off stage and not worth drawing.
 const EDGE = 1.6
 
+// How far the vanishing point travels either side of centre, in per
+// cent of the stage, at full tilt. Exposed on window.M4IXTilt so it can
+// be felt and re-tuned on the page without a deploy, the way the lab's
+// dimensions are.
+const TILT = { x: 16, y: 9 }
+// Moving the vanishing point repaints the whole 3D subtree, so it is
+// worth not doing per frame for nothing: writing every frame measured
+// a 20ms p95 against 10ms for a gated one. Below this the move is
+// invisible anyway, and M4Tilt is already low-passed.
+const TILT_EPS = 0.15
+
 export default function initCarousel (entries, stack) {
   if (!entries.length) return null
 
@@ -211,6 +222,33 @@ export default function initCarousel (entries, stack) {
     if (d && Math.round(state.pos) !== d.page) goTo(d.page)
   })
 
+  /**
+   * The gyro moves where you are looking FROM, not what you are looking
+   * at. The drawers keep their own transforms untouched; only the
+   * stage's vanishing point moves, so tilting the phone reads as
+   * peering around a solid object rather than as the object wobbling.
+   * On desktop M4Tilt falls back to the pointer, so the same code gives
+   * mouse parallax without knowing which input it has.
+   *
+   * Lag between linked objects: the trailing is M4Tilt's own low-pass
+   * filter, so the stage arrives a beat after the hand -- which is what
+   * makes it feel like mass rather than a mirror.
+   */
+  let originX = 50
+  let originY = 45
+  function parallax () {
+    const t = window.M4Tilt
+    if (!t) return
+    // Derive at use time: the signal is live and the carousel may have
+    // been activated long before any of it was granted.
+    const nx = 50 + t.x * TILT.x
+    const ny = 45 + t.y * TILT.y
+    if (Math.abs(nx - originX) < TILT_EPS && Math.abs(ny - originY) < TILT_EPS) return
+    originX = nx
+    originY = ny
+    stack.style.perspectiveOrigin = originX.toFixed(1) + '% ' + originY.toFixed(1) + '%'
+  }
+
   function activate () {
     if (on) return
     on = true
@@ -218,6 +256,8 @@ export default function initCarousel (entries, stack) {
     observer.enable()
     measure()
     tick(true)
+    // One ticker callback for the whole stage, not one per drawer.
+    gsap.ticker.add(parallax)
   }
 
   function deactivate () {
@@ -225,6 +265,10 @@ export default function initCarousel (entries, stack) {
     on = false
     stack.removeAttribute('data-carousel')
     observer.disable()
+    gsap.ticker.remove(parallax)
+    stack.style.removeProperty('perspective-origin')
+    originX = 50
+    originY = 45
     gsap.killTweensOf(state)
     drawers.forEach((d) => {
       // Kill the drawer's own tween FIRST. quickTo keeps a live tween
@@ -269,6 +313,10 @@ export default function initCarousel (entries, stack) {
   })
 
   requestAnimationFrame(sync)
+
+  // Tunable on the page, like the lab's dimensions: set
+  // window.M4IXTilt.x / .y and the next frame uses it.
+  window.M4IXTilt = TILT
 
   return {
     goTo,
