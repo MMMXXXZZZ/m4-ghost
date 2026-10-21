@@ -46,9 +46,14 @@ const value = { x: 0, y: 0 }
 // Acceleration is noisier than orientation and has no resting value to
 // return to other than zero, so it gets its own, faster filter.
 const ACCEL_SMOOTH = 0.22
-// A hand moves a phone at a couple of m/s2; a deliberate shake is well
-// past this. Normalising here keeps every consumer in -1..1.
-const ACCEL_FULL = 4
+// Normalising here keeps every consumer in -1..1. Set against the
+// journey this is actually for: metro rolling stock is comfort-limited
+// to about 1.0-1.4 m/s2, and Santiago's own trains sit inside that --
+// the NS-74 pulls 1.0-1.2 depending on how full it is, the NS-93 about
+// 1.35, with service braking in the same band. At 4 a train launch
+// reached a quarter of the scale and read as nothing happening; at 2 a
+// real journey lands mid-range and walking's sharper spikes clamp.
+const ACCEL_FULL = 2
 const aTarget = { x: 0, y: 0 }
 const aValue = { x: 0, y: 0 }
 // Gravity has to come out of the reading on anything that only offers
