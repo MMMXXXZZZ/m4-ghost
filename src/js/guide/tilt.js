@@ -55,6 +55,8 @@ const aValue = { x: 0, y: 0 }
 // accelerationIncludingGravity. A slow low-pass IS the gravity vector.
 const gravity = { x: 0, y: 0 }
 let hasMotion = false
+let gotOrient = false
+let permission = 'unknown'
 let pointerLast = null
 
 let source = 'none'
@@ -72,8 +74,13 @@ function remember (v) {
   try { localStorage.setItem(STORE, v) } catch (e) {}
 }
 
+function forget () {
+  try { localStorage.removeItem(STORE) } catch (e) {}
+}
+
 function onOrient (e) {
   if (e.gamma === null && e.beta === null) return
+  gotOrient = true
   source = 'gyro'
   const g = e.gamma || 0
   const b = e.beta || 0
@@ -152,6 +159,44 @@ function listen () {
   }
 }
 
+/**
+ * Confirm the sensor is actually DELIVERING, not merely allowed.
+ *
+ * A grant is not evidence of events: the permission can be revoked in
+ * iOS Settings, Low Power Mode suspends the sensors, and a reader can
+ * answer the system prompt differently from ours. Derive state, don't
+ * assume it -- if nothing has arrived shortly after we believed we
+ * were listening, drop the remembered grant so the next visit asks
+ * again instead of silently never working.
+ */
+function verify () {
+  setTimeout(() => {
+    if (gotOrient || hasMotion) return
+    console.log(`${TAG} permitted but no readings; forgetting the grant`)
+    permission = 'silent'
+    forget()
+  }, 2500)
+}
+
+function settle (state, which) {
+  console.log(`${TAG} ${which} permission: ${state}`)
+  if (state === 'granted') {
+    permission = 'granted'
+    // Only NOW. Storing this on the click meant a reader who answered
+    // the system prompt with Deny -- or whose grant had been revoked
+    // in Settings since -- was remembered as granted for ever, so the
+    // card never came back and nothing ever listened.
+    remember('granted')
+    listen()
+    verify()
+  } else {
+    permission = state
+    // A stale 'granted' would otherwise outlive the permission it
+    // described and suppress the card on every future visit.
+    forget()
+  }
+}
+
 function arm () {
   if (armed) return
   armed = true
@@ -160,16 +205,25 @@ function arm () {
   // iOS gates orientation and motion behind SEPARATE calls even though
   // the reader sees one "Motion & Orientation" prompt, so both go in
   // the same gesture or the second one is refused for lack of one.
+  // Either grant is enough to start listening: listen() attaches both,
+  // and the one that was refused simply never fires.
+  let asked = false
   if (DME && typeof DME.requestPermission === 'function') {
-    DME.requestPermission().catch(() => {})
+    asked = true
+    DME.requestPermission()
+      .then((state) => settle(state, 'motion'))
+      .catch((err) => console.log(`${TAG} motion request failed`, err))
   }
   if (DOE && typeof DOE.requestPermission === 'function') {
-    DOE.requestPermission().then((state) => {
-      console.log(`${TAG} motion permission: ${state}`)
-      if (state === 'granted') listen()
-    }).catch((err) => console.log(`${TAG} motion permission denied`, err))
-  } else if (DOE) {
+    asked = true
+    DOE.requestPermission()
+      .then((state) => settle(state, 'orientation'))
+      .catch((err) => console.log(`${TAG} orientation request failed`, err))
+  }
+  if (!asked && DOE) {
+    permission = 'not-required'
     listen()
+    verify()
   }
 }
 
@@ -191,8 +245,10 @@ function buildPrompt () {
     '</div>'
 
   box.querySelector('[data-yes]').addEventListener('click', () => {
-    remember('granted')
     box.remove()
+    // Nothing is remembered here. Saying yes to US is not the same as
+    // the system prompt being granted, and conflating the two is what
+    // left readers permanently unable to be asked again.
     arm() // gesture is live: prompt now
   })
 
@@ -262,6 +318,34 @@ export default function initTilt () {
 
   window.addEventListener('pointermove', onPointer, { passive: true })
 
+  // ?motion=1 puts the signal on screen. A phone has no console, and
+  // every failure here is silent by nature: a refused permission, a
+  // revoked one, Low Power Mode suspending the sensors, or Reduce
+  // Motion damping the readings to a quarter all look identical from
+  // the outside -- nothing moves.
+  if (/[?&]motion=1/.test(location.search)) {
+    const box = document.createElement('div')
+    box.style.cssText = 'position:fixed;left:8px;bottom:8px;z-index:99999;' +
+      'background:rgba(0,0,0,.82);color:#fff;font:600 11px/1.45 ui-monospace,Menlo,monospace;' +
+      'padding:8px 10px;border-radius:8px;pointer-events:none;white-space:pre'
+    document.body.appendChild(box)
+    const NL = String.fromCharCode(10)
+    const paint = () => {
+      const st = window.M4Tilt.state
+      box.textContent = [
+        'perm    ' + st.permission,
+        'stored  ' + (st.remembered || '-'),
+        'source  ' + st.source + '  motion ' + window.M4Tilt.motion,
+        'armed   ' + st.armed + '  orient ' + st.gotOrient + '  accel ' + st.hasMotion,
+        'reduced ' + reduced + (reduced ? '  (damped to 0.25)' : ''),
+        'lean    ' + value.x.toFixed(3) + '   ' + value.y.toFixed(3),
+        'ACCEL   ' + aValue.x.toFixed(3) + '   ' + aValue.y.toFixed(3)
+      ].join(NL)
+      requestAnimationFrame(paint)
+    }
+    requestAnimationFrame(paint)
+  }
+
   window.M4Tilt = {
     get x () { return value.x },
     get y () { return value.y },
@@ -269,6 +353,10 @@ export default function initTilt () {
     get ax () { return aValue.x },
     get ay () { return aValue.y },
     get motion () { return hasMotion ? 'accel' : (source === 'pointer' ? 'pointer' : 'none') },
+    // For checking on a device that has no console to hand.
+    get state () {
+      return { permission, armed, gotOrient, hasMotion, source, remembered: remembered() }
+    },
     get source () { return source },
     get reduced () { return reduced },
     arm,
