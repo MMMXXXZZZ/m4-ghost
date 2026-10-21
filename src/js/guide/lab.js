@@ -88,6 +88,14 @@ function save (settings) {
 export function applyDims (settings) {
   const app = document.querySelector('.ix')
   if (!app) return
+  // This function listens for resize AND ends by dispatching one, so
+  // every call re-entered itself: one real resize fanned out into 43
+  // on the draft, and at load it recursed until the stack gave out
+  // (eleven RangeErrors before the guide had finished mounting). The
+  // dispatch is still wanted -- the open body's width is derived from
+  // rail and padding -- so the guard is on re-entry, not on it.
+  if (applyDims._busy) return
+  applyDims._busy = true
   // Re-solve on resize: crossing the phone breakpoint changes which
   // overrides are allowed to apply.
   if (!applyDims._bound) {
@@ -120,6 +128,7 @@ export function applyDims (settings) {
   })
   // Rail and padding change the arithmetic behind the open body's width.
   window.dispatchEvent(new Event('resize'))
+  applyDims._busy = false
 }
 
 export function labEnabled () {
