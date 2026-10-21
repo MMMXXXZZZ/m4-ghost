@@ -98,7 +98,12 @@ export default function initCarousel (entries, stack) {
     const k = gsap.utils.clamp(-EDGE, EDGE, off)
     const far = Math.abs(k)
     gsap.set(d.item, {
-      x: -k * STEP,
+      // The grid has already laid the pages out side by side, so this
+      // translate is the carousel's position, not the drawer's offset
+      // from centre: -k * STEP left the centred page sitting at its
+      // natural 929px, off stage to the right. Unclamped on purpose --
+      // the turn saturates at the edge, the spacing must not.
+      x: -(off + d.page) * STEP,
       rotationY: k * ROT,
       z: -far * DEPTH * W,
       // Hinged on the edge it turns away from, so neighbouring pages

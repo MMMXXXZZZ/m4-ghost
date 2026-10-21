@@ -593,6 +593,11 @@
       // the page -- this is what lets a reader scroll past the app.
       touch-action: pan-y;
     }
+    // The grey that draws the seams between columns shows through the
+    // empty slot on a last page that is not a full three, as a panel
+    // that is not there. The turn and the shade are what separate the
+    // drawers in this mode.
+    .ix-stack[data-carousel="true"] { background: transparent; }
     .ix-stack[data-carousel="true"] .ix-item {
       transform-style: preserve-3d;
       will-change: transform;
