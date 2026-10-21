@@ -7,6 +7,7 @@ import { CustomEase } from 'gsap/CustomEase'
 import { SplitText } from 'gsap/SplitText'
 import { loadSettings, labEnabled, createLab, applyDims } from './lab'
 import initMobile, { isPhone } from './mobile'
+import initCarousel from './carousel'
 
 gsap.registerPlugin(Observer, CustomEase, SplitText, ScrollToPlugin)
 
@@ -653,6 +654,11 @@ export default function initColumns () {
     // stagger has to be handed to it explicitly.
     (entry) => playContent(entry, PRESETS[presetIndex()]))
 
+  // The drawer pages, turned in three dimensions. It owns the sideways
+  // gesture in that mode, so the dots take their page from it rather
+  // than from a scroll offset that no longer moves.
+  const carousel = initCarousel(entries, stack)
+
   /**
    * Pagination dots for the drawer pages. They replace the footer rail
    * entirely in that mode: the grid is the navigation, so the dots only
@@ -676,7 +682,9 @@ export default function initColumns () {
       dots.classList.remove('is-on')
       return
     }
-    const pages = Math.max(1, Math.round(stack.scrollWidth / stack.clientWidth))
+    const pages = carousel
+      ? carousel.pageCount
+      : Math.max(1, Math.round(stack.scrollWidth / stack.clientWidth))
     if (dots.children.length !== pages) {
       dots.innerHTML = ''
       for (let i = 0; i < pages; i++) {
@@ -684,7 +692,9 @@ export default function initColumns () {
         dots.appendChild(d)
       }
     }
-    const here = Math.round(stack.scrollLeft / Math.max(1, stack.clientWidth))
+    const here = carousel
+      ? carousel.page()
+      : Math.round(stack.scrollLeft / Math.max(1, stack.clientWidth))
     Array.from(dots.children).forEach((d, i) => d.classList.toggle('is-here', i === here))
     dots.classList.add('is-on')
   }
@@ -704,19 +714,25 @@ export default function initColumns () {
       entries.forEach((e) => e.item.removeAttribute('data-peek'))
       return
     }
-    const left = stack.scrollLeft
-    const right = left + stack.clientWidth
-    entries.forEach((e) => {
-      const x = e.item.offsetLeft
-      const w = e.item.offsetWidth
-      // On-page means essentially all of it is within the viewport.
-      const onPage = x >= left - 4 && x + w <= right + 4
-      e.item.dataset.peek = onPage ? 'false' : 'true'
+    // scrollLeft stopped moving when the carousel took the gesture, so
+    // page membership comes from the carousel's own position. Still
+    // recomputed every time: the same element is on-page one moment
+    // and a neighbour the next.
+    const here = carousel && carousel.isOn()
+      ? carousel.page()
+      : Math.round(stack.scrollLeft / Math.max(1, stack.clientWidth))
+    entries.forEach((e, i) => {
+      e.item.dataset.peek = Math.floor(i / 3) === here ? 'false' : 'true'
     })
   }
   stack.addEventListener('scroll', syncPeek, { passive: true })
   window.addEventListener('resize', syncPeek)
   requestAnimationFrame(syncPeek)
+  // The stack no longer scrolls in that mode, so the carousel is what
+  // says the page changed.
+  if (carousel) {
+    carousel.onMove(() => { syncDots(); syncPeek() })
+  }
 
   stack.addEventListener('scroll', syncDots, { passive: true })
   window.addEventListener('resize', syncDots)

@@ -577,27 +577,37 @@
       display: grid;
       grid-auto-flow: column;
       grid-template-rows: repeat(3, 1fr);
-      // Short of a full screen, so the next page's edge shows and it is
-      // obvious there is more sideways. --ix-peek is the sliver.
-      --ix-peek: 2.25rem;
-      grid-auto-columns: calc(100% - var(--ix-peek));
-      scroll-padding-inline: 0;
+      // Peek is the neighbouring page, showing at BOTH edges now that
+      // the carousel turns rather than scrolls. Proportional, so a
+      // 390px phone keeps the read the spike was tuned to at 630px.
+      --ix-peek: 14vw;
+      padding-inline: var(--ix-peek);
+      grid-auto-columns: 100%;
       height: calc(100svh - var(--ix-pad) * 2);
-      overflow-x: auto; overflow-y: hidden;
-      scroll-snap-type: x mandatory;
-      overscroll-behavior-x: contain;
-      scrollbar-width: none;
+      overflow: hidden;
+      // One vanishing point for the whole stage, not one per page.
+      perspective: var(--ix-persp, 222vw);
+      perspective-origin: 50% 45%;
+      transform-style: preserve-3d;
+      // Sideways belongs to the carousel, up and down still belongs to
+      // the page -- this is what lets a reader scroll past the app.
+      touch-action: pan-y;
     }
-    .ix-stack[data-all-collapsed="true"]::-webkit-scrollbar { display: none; }
-    .ix-stack[data-all-collapsed="true"] .ix-item { scroll-snap-align: start; }
-    // A drawer on a neighbouring page is a rectangle, not a label: the
-    // sliver is too narrow to read and half a word is worse than none.
-    // Page membership is recomputed on every scroll rather than stored,
-    // since the page changes under the same elements.
-    .ix-stack[data-all-collapsed="true"] .ix-item[data-peek="true"] .ix-face-title,
-    .ix-stack[data-all-collapsed="true"] .ix-item[data-peek="true"] .ix-face-icon {
-      opacity: 0;
+    .ix-stack[data-carousel="true"] .ix-item {
+      transform-style: preserve-3d;
+      will-change: transform;
+      backface-visibility: hidden;
     }
+    // A turned face is dimmed rather than lit: black over whatever the
+    // column already is, so it stays right in both colour modes.
+    .ix-shade {
+      position: absolute; inset: 0; z-index: 2;
+      background: #000; opacity: 0; pointer-events: none;
+    }
+    .ix-stack:not([data-carousel="true"]) .ix-shade { display: none; }
+    // The neighbouring set keeps its labels. Turned away and dimmed,
+    // the slant is what says "next", so the text is an affordance
+    // rather than the half-word it was when these pages only slid.
     .ix-stack[data-all-collapsed="true"] .ix-item .ix-face-title,
     .ix-stack[data-all-collapsed="true"] .ix-item .ix-face-icon {
       transition: opacity .35s ease;
