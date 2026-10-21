@@ -600,6 +600,36 @@ export default function initColumns () {
     if (typeof syncPeek === 'function') requestAnimationFrame(syncPeek)
   }
 
+  /**
+   * The pressed state, driven rather than left to :active.
+   *
+   * iOS keeps :active on an element until some other element is
+   * touched, so a drawer stayed lit long after the finger had gone --
+   * a state that outlived the gesture that set it. Derive state, don't
+   * assume it: this one is released by the events that actually end a
+   * press, including the drag that turns a tap into a swipe.
+   */
+  let pressed = null
+  function releasePress () {
+    if (pressed) pressed.classList.remove('is-press')
+    pressed = null
+  }
+  stack.addEventListener('pointerdown', (ev) => {
+    const face = ev.target.closest && ev.target.closest('.ix-face')
+    if (!face) return
+    releasePress()
+    pressed = face
+    face.classList.add('is-press')
+  }, { passive: true })
+  ;['pointerup', 'pointercancel'].forEach((t) => {
+    window.addEventListener(t, releasePress, { passive: true })
+  })
+  stack.addEventListener('pointermove', (ev) => {
+    // Moving off the face, or moving it, is not a press any more.
+    if (!pressed) return
+    if (stack.dataset.dragged === 'true' || !pressed.contains(ev.target)) releasePress()
+  }, { passive: true })
+
   entries.forEach((e) => {
     e.face.addEventListener('click', (ev) => {
       // Same trap as the rail: a finger that swiped the carousel is

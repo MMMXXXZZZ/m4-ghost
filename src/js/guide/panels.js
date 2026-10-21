@@ -141,6 +141,15 @@ export default function initPanels () {
       // leave for the hero.
       const stk = document.querySelector('.ix-stack')
       if (stk && stk.dataset.mobileOpen === 'true') return
+      // A swipe across the carousel is never level. At a 20 degree
+      // slope there is still enough deltaY to clear the tolerance, and
+      // this anchor read it as "leave the app" and threw the reader
+      // back to the top of the document mid-gesture. The gesture
+      // belongs to whichever axis is actually driving it, so a drag
+      // that is mostly sideways is not ours -- and while the carousel
+      // says it is being dragged, certainly not ours.
+      if (stk && stk.dataset.dragged === 'true') return
+      if (Math.abs(self.deltaX) > Math.abs(self.deltaY)) return
       const dir = gestureDir(self)
       if (innerStillScrolling(self.event, dir)) return
 

@@ -36,8 +36,10 @@ const PER_PAGE = 3
 // same read survives a 390px phone: see ROT/DIM below for the two that
 // are already unitless.
 const ROT = 53 // degrees of turn at one full page of offset
-const DIM = 0.5 // how dark a face goes when fully turned away
 const DEPTH = 0.19 // z pushback as a fraction of the stage width
+// How dark a turned face goes is NOT here: JS publishes --ix-k, the
+// turn as 0..1, and the stylesheet multiplies it by --ix-dim, which is
+// a different number in light mode than in dark.
 
 // The drawer nearest the top leads; each one below answers later. These
 // are the same LAG/FOLLOW idea as the rail, expressed as a response
@@ -110,9 +112,17 @@ export default function initCarousel (entries, stack) {
       // meet at the seam instead of sliding through each other.
       transformOrigin: off > 0 ? '100% 50%' : '0% 50%',
       opacity: far > EDGE - 0.05 ? 0 : 1,
-      visibility: far > EDGE - 0.05 ? 'hidden' : 'visible'
+      visibility: far > EDGE - 0.05 ? 'hidden' : 'visible',
+      // A turned page hinges on its inner edge, so that edge stays at
+      // z 0 and only the rest of it goes back. Depth alone therefore
+      // does not decide what covers what, and the later drawers in the
+      // DOM were painting over the page being read. Nearest the centre
+      // wins, explicitly.
+      zIndex: Math.round(100 - far * 50)
     })
-    gsap.set(d.shade, { opacity: Math.min(1, far) * DIM })
+    // What the drawer is worth as dimming is the stylesheet's call --
+    // see --ix-dim, which differs per colour mode.
+    d.shade.style.setProperty('--ix-k', Math.min(1, far).toFixed(3))
   }
 
   /** Hand every drawer the current position; each answers on its lag. */
@@ -223,8 +233,8 @@ export default function initCarousel (entries, stack) {
       // article translated a page to the left, mid-turn.
       gsap.killTweensOf(d.proxy)
       d.proxy.off = 0
-      gsap.set(d.item, { clearProps: 'transform,transformOrigin,opacity,visibility,willChange' })
-      gsap.set(d.shade, { opacity: 0 })
+      gsap.set(d.item, { clearProps: 'transform,transformOrigin,opacity,visibility,willChange,zIndex' })
+      d.shade.style.setProperty('--ix-k', '0')
     })
   }
 

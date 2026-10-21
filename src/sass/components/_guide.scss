@@ -79,6 +79,27 @@
     background: var(--m4-bg-dark, var(--m4-bg));
     color: var(--m4-title-dark, var(--m4-title));
   }
+  // The pressed/hovered pair, solved TOGETHER. These used to be two
+  // independent fallback chains -- background from --m4-link falling
+  // back to the site accent, foreground from --m4-on-link falling back
+  // to white -- so the two could be satisfied from different places and
+  // land on each other: white text on a white drawer in light mode.
+  // And --m4-on-link has a dark variant while --m4-link did not, so in
+  // dark mode the foreground was solved against --m4-link-dark while
+  // the background painted --m4-link. One token per side, per mode.
+  .ix-face {
+    --ix-press-bg: var(--ghost-accent-color, #F73E05);
+    --ix-press-fg: #fff;
+  }
+  .ix-item[data-m4-styled] .ix-face {
+    --ix-press-bg: var(--m4-link);
+    --ix-press-fg: var(--m4-on-link-light, #fff);
+  }
+  html.dark .ix-item[data-m4-styled] .ix-face {
+    --ix-press-bg: var(--m4-link-dark, var(--m4-link));
+    --ix-press-fg: var(--m4-on-link-dark, #fff);
+  }
+
   .ix-face {
     appearance: none; border: 0; cursor: pointer; background: transparent;
     color: inherit; flex: none; width: var(--ix-rail);
@@ -145,14 +166,18 @@
     // Derive state, don't assume it: when the phone left `data-all
     // -collapsed` stale on open, an .ix-item rule washed the whole
     // article accent under a finger that was only starting a scroll.
-    .ix-face:active {
-      background: var(--m4-link, var(--ghost-accent-color, #F73E05));
-      color: var(--m4-on-link, #fff);
+    // .is-press rather than :active. On iOS :active sticks until some
+    // other element is touched, so a drawer stayed lit long after the
+    // finger left -- the state outlived the gesture that caused it.
+    // columns.js adds and removes this on the pointer events instead.
+    .ix-face.is-press {
+      background: var(--ix-press-bg);
+      color: var(--ix-press-fg);
     }
     @media (hover: hover) {
       .ix-face:hover {
-        background: var(--m4-link, var(--ghost-accent-color, #F73E05));
-        color: var(--m4-on-link, #fff);
+        background: var(--ix-press-bg);
+        color: var(--ix-press-fg);
       }
     }
   }
@@ -178,16 +203,16 @@
   // Hover and open swap the BACKGROUND to --m4-link, so the label has to
   // swap with it. Pinned to --m4-on-bg it stayed white against a bright
   // column colour and became unreadable.
-  .ix-stack[data-all-collapsed="true"] .ix-face:active { color: var(--m4-on-link, #fff); }
+  .ix-stack[data-all-collapsed="true"] .ix-face.is-press { color: var(--ix-press-fg); }
   @media (hover: hover) {
-    .ix-stack[data-all-collapsed="true"] .ix-face:hover { color: var(--m4-on-link, #fff); }
+    .ix-stack[data-all-collapsed="true"] .ix-face:hover { color: var(--ix-press-fg); }
   }
-  .ix-stack[data-all-collapsed="true"] .ix-face:active .ix-face-title,
-  .ix-stack[data-all-collapsed="true"] .ix-face:active .lbl,
-  .ix-stack[data-all-collapsed="true"] .ix-face:active svg,
+  .ix-stack[data-all-collapsed="true"] .ix-face.is-press .ix-face-title,
+  .ix-stack[data-all-collapsed="true"] .ix-face.is-press .lbl,
+  .ix-stack[data-all-collapsed="true"] .ix-face.is-press svg,
   .ix-stack[data-all-collapsed="true"] .ix-face:hover .ix-face-title,
   .ix-stack[data-all-collapsed="true"] .ix-face:hover .lbl,
-  .ix-stack[data-all-collapsed="true"] .ix-face:hover svg,
+  .ix-stack[data-all-collapsed="true"] .ix-face:hover svg { color: var(--ix-press-fg); }
   .ix-item[data-open="true"] .ix-face .ix-face-title,
   .ix-item[data-open="true"] .ix-face .lbl,
   .ix-item[data-open="true"] .ix-face svg { color: var(--m4-on-link, #fff); }
@@ -584,7 +609,12 @@
       padding-inline: var(--ix-peek);
       grid-auto-columns: 100%;
       height: calc(100svh - var(--ix-pad) * 2);
-      overflow: hidden;
+      // NOT overflow:hidden. Safari flattens a 3D subtree whose root
+      // also clips, which is why iOS showed the pages stretching
+      // horizontally instead of turning -- the rotation was there, the
+      // perspective was not being applied to it. The clipping moved up
+      // to .ix, which is not a 3D context, so the turn survives.
+      overflow: visible;
       // One vanishing point for the whole stage, not one per page.
       perspective: var(--ix-persp, 222vw);
       perspective-origin: 50% 45%;
@@ -598,6 +628,10 @@
     // that is not there. The turn and the shade are what separate the
     // drawers in this mode.
     .ix-stack[data-carousel="true"] { background: transparent; }
+    // The clip the stack can no longer do for itself. overflow:clip
+    // rather than hidden: it never makes a scroll container, so it
+    // cannot be scrolled sideways by a stray gesture.
+    .ix:has(.ix-stack[data-carousel="true"]) { overflow-x: clip; }
     .ix-stack[data-carousel="true"] .ix-item {
       transform-style: preserve-3d;
       will-change: transform;
@@ -605,10 +639,20 @@
     }
     // A turned face is dimmed rather than lit: black over whatever the
     // column already is, so it stays right in both colour modes.
+    //
+    // JS publishes --ix-k, how far this drawer is turned (0..1), and
+    // the stylesheet decides what that is worth per mode. Half-black
+    // is right against the dark theme and far too heavy against the
+    // light one, where it fought the white the design is built on --
+    // and an inline opacity written by JS could never be overridden
+    // per mode anyway.
     .ix-shade {
       position: absolute; inset: 0; z-index: 2;
-      background: #000; opacity: 0; pointer-events: none;
+      background: #000; pointer-events: none;
+      opacity: calc(var(--ix-k, 0) * var(--ix-dim, .5));
     }
+    .ix { --ix-dim: .12; }
+    html.dark .ix { --ix-dim: .5; }
     .ix-stack:not([data-carousel="true"]) .ix-shade { display: none; }
     // The neighbouring set keeps its labels. Turned away and dimmed,
     // the slant is what says "next", so the text is an affordance
@@ -716,24 +760,35 @@
     // screen the drawers need.
     .ix { --ix-pad: clamp(.6rem, 3vw, 1.1rem); }
 
+    // Symbol and title are one object, centred together. A fixed 7rem
+    // icon slot and flex-start pushed the title to the right of a
+    // drawer that the carousel's peek had already narrowed to 259px on
+    // a 393px phone, so "Lacrimógenas" ran out of the face. The slot is
+    // sized from the viewport now and the title may shrink and wrap.
     .ix-stack .ix-face,
     .ix-stack[data-all-collapsed="true"] .ix-face {
       width: 100%; height: 100%; flex-direction: row;
-      justify-content: flex-start; align-items: center;
-      gap: .8rem; padding: .95rem 1.1rem; text-align: left;
+      justify-content: center; align-items: center;
+      gap: .7rem; padding: .95rem .9rem; text-align: left;
     }
     .ix-stack .ix-face-icon,
     .ix-stack[data-all-collapsed="true"] .ix-face-icon {
-      inline-size: 7rem; block-size: 7rem;
+      inline-size: auto; block-size: auto; flex: none;
     }
     .ix-stack .ix-face svg,
-    .ix-stack[data-all-collapsed="true"] .ix-face svg { width: 3rem; height: 3rem; }
+    .ix-stack[data-all-collapsed="true"] .ix-face svg {
+      width: clamp(2rem, 11vw, 3rem); height: clamp(2rem, 11vw, 3rem);
+    }
     // There are no rails on a phone, so the rail label has nothing to say
     // and the title is always the thing to show.
     .ix-stack .ix-face-title,
     .ix-stack[data-all-collapsed="true"] .ix-face-title {
       display: block; opacity: 1; max-width: none;
       font-size: clamp(1rem, 4.2vw, 1.3rem); line-height: 1.2;
+      // Without this a flex item refuses to shrink below its longest
+      // word, which is what pushed the title through the right edge
+      // instead of wrapping inside it.
+      min-width: 0; flex: 0 1 auto; overflow-wrap: anywhere;
     }
     .ix-stack .ix-face .lbl { display: none; }
     .ix-face .lbl {
