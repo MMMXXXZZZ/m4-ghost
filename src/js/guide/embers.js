@@ -50,10 +50,24 @@ const MAX = 420
 // moved under 1% of the hero's width, which is not flare, it is a
 // rounding error. Mutable and published on window.M4Embers so the
 // numbers can be found on a real device without a deploy.
+// Terminal drift is throw * ax / (1 - friction), so the two numbers are
+// not independent: at friction .94 the field reached its lag velocity
+// in a quarter second and sat there, which read as "only moves while
+// you shake it". Drag belongs to the air, not to the event stream --
+// once the sparks have been left behind they keep going and only air
+// takes it back. .99 coasts for about 1.7s, which amplifies the gain
+// 100x rather than 16x, so the gain comes down to match: a steady
+// 2.6 m/s2 drifts the field about 20% of the hero's width per second.
 const FIELD = {
-  throw: 0.00025, // acceleration -> field velocity
-  friction: 0.94 // how fast a throw bleeds off
+  throw: 0.00005, // acceleration -> field velocity
+  friction: 0.99 // air drag only; this is what makes it coast
 }
+
+// How far outside the view a spark may be born, in field widths.
+const EDGE = 0.08
+// The drift at which half of all new sparks arrive from the upwind
+// edge rather than from the floor.
+const SPAWN_REF = 0.0012
 
 let renderer = null
 
@@ -85,14 +99,46 @@ export default function initEmbers (canvas) {
   const life = new Float32Array(MAX)
   const sizes = new Float32Array(MAX)
 
+  // Declared before seed() uses them: the field's own momentum decides
+  // where a spark is born, not just where it goes.
+  let throwX = 0
+  let throwY = 0
+
+  /**
+   * Where a spark comes from.
+   *
+   * The emitter used to be a line along the bottom exactly as wide as
+   * the screen, which is right for a field sitting on the vehicle and
+   * wrong for a field being moved through: any sustained drift carried
+   * the sparks to one side and nothing replaced them, so the windward
+   * half emptied. The floor is wider than the view now, and while the
+   * field is drifting a share of new sparks arrive from the UPWIND
+   * edge instead -- the side being moved into -- so the hero reads as
+   * passing through embers rather than carrying them.
+   */
   function seed (i, fresh) {
-    pos[i * 3] = Math.random()
-    pos[i * 3 + 1] = fresh ? Math.random() : -0.02 - Math.random() * 0.05
+    const drift = throwX
+    const fromSide = !fresh &&
+      Math.random() < Math.abs(drift) / (Math.abs(drift) + SPAWN_REF)
+    if (fromSide) {
+      // Born off-screen on the side the field is moving away from, at
+      // any height, so it streams in rather than popping into view.
+      pos[i * 3] = drift < 0 ? 1 + Math.random() * EDGE : -Math.random() * EDGE
+      pos[i * 3 + 1] = Math.random()
+      // Life has to outlast the height it started at or it would be
+      // recycled on its first frame.
+      life[i] = pos[i * 3 + 1] + 0.35 + Math.random() * 0.65
+    } else {
+      pos[i * 3] = fresh
+        ? Math.random()
+        : -EDGE + Math.random() * (1 + EDGE * 2)
+      pos[i * 3 + 1] = fresh ? Math.random() : -0.02 - Math.random() * 0.05
+      life[i] = 0.35 + Math.random() * 0.65
+    }
     pos[i * 3 + 2] = 0
     vel[i * 2] = (Math.random() - 0.5) * 0.00018
     vel[i * 2 + 1] = (0.0009 + Math.random() * 0.0016) * (reduced ? 0.35 : 1)
     sizes[i] = 1.2 + Math.random() * 3.4
-    life[i] = 0.35 + Math.random() * 0.65
     alpha[i] = 0
   }
   for (let i = 0; i < MAX; i++) seed(i, true)
@@ -136,10 +182,6 @@ export default function initEmbers (canvas) {
   let fpsMark = 0
   let degraded = 0
 
-  // The field's own momentum, shared by every spark.
-  let throwX = 0
-  let throwY = 0
-
   function step (now) {
     if (!running) return
     const tilt = window.M4Tilt
@@ -164,6 +206,12 @@ export default function initEmbers (canvas) {
       const mass = 0.6 + sizes[i] * 0.18
       pos[i * 3] += throwX / mass
       pos[i * 3 + 1] += throwY / mass
+
+      // A spark carried out of the view sideways is dead weight: it
+      // would never come back on its own, and the field would quietly
+      // thin out. Recycle it, which now puts it back upwind.
+      const x = pos[i * 3]
+      if (x < -EDGE || x > 1 + EDGE) { seed(i, false); alpha[i] = 0; continue }
 
       const y = pos[i * 3 + 1]
       alpha[i] = y < 0 ? 0 : Math.min(1, y * 4) * (1 - y / life[i]) * 0.9
