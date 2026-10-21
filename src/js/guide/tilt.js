@@ -23,6 +23,18 @@
  *   unlike the ambient ember field, so this is where restraint belongs.
  * - Desktop has no gyro: pointer position drives the same signal, so a
  *   scene never needs to know which input it is reading.
+ *
+ * TWO signals, not one. Orientation ({ x, y }) says which way the
+ * device is LEANING and is what parallax wants. Acceleration
+ * ({ ax, ay }) says how it is being MOVED, and is what anything with
+ * mass wants -- loose particles in a jar do not care which way the jar
+ * is tipped half as much as they care about it being swung. iOS ships
+ * the same idea as Vehicle Motion Cues; here it is for flare rather
+ * than for comfort.
+ *
+ * Acceleration is a separate event (devicemotion) and a separate
+ * permission from orientation, though one prompt covers both, so it is
+ * requested in the same gesture.
  */
 
 const TAG = '[m4-tilt]'
@@ -31,6 +43,19 @@ const SMOOTH = 0.12
 
 const target = { x: 0, y: 0 }
 const value = { x: 0, y: 0 }
+// Acceleration is noisier than orientation and has no resting value to
+// return to other than zero, so it gets its own, faster filter.
+const ACCEL_SMOOTH = 0.22
+// A hand moves a phone at a couple of m/s2; a deliberate shake is well
+// past this. Normalising here keeps every consumer in -1..1.
+const ACCEL_FULL = 4
+const aTarget = { x: 0, y: 0 }
+const aValue = { x: 0, y: 0 }
+// Gravity has to come out of the reading on anything that only offers
+// accelerationIncludingGravity. A slow low-pass IS the gravity vector.
+const gravity = { x: 0, y: 0 }
+let hasMotion = false
+let pointerLast = null
 
 let source = 'none'
 let armed = false
@@ -60,27 +85,84 @@ function onOrient (e) {
   target.y = clamp((y - 45) / 35) * damp // 45° is a natural holding angle
 }
 
+/** Rotate a device-space pair into screen space. Same compensation the
+ *  orientation path does, and just as necessary: a phone held in
+ *  landscape accelerates sideways along its own y. */
+function toScreen (x, y) {
+  const angle = (screen.orientation && screen.orientation.angle) || window.orientation || 0
+  if (angle === 90) return [y, -x]
+  if (angle === -90 || angle === 270) return [-y, x]
+  if (angle === 180) return [-x, -y]
+  return [x, y]
+}
+
+function onMotion (e) {
+  let a = e.acceleration
+  // Some Androids only populate accelerationIncludingGravity. Subtract
+  // the low-passed vector, which by then is gravity.
+  if (!a || (a.x === null && a.y === null)) {
+    const g = e.accelerationIncludingGravity
+    if (!g || (g.x === null && g.y === null)) return
+    gravity.x += ((g.x || 0) - gravity.x) * 0.02
+    gravity.y += ((g.y || 0) - gravity.y) * 0.02
+    a = { x: (g.x || 0) - gravity.x, y: (g.y || 0) - gravity.y }
+  }
+  hasMotion = true
+  const [sx, sy] = toScreen(a.x || 0, a.y || 0)
+  aTarget.x = clamp(sx / ACCEL_FULL) * damp
+  aTarget.y = clamp(-sy / ACCEL_FULL) * damp
+}
+
 function onPointer (e) {
   if (source === 'gyro') return // gyro wins once it is live
   source = 'pointer'
   target.x = clamp((e.clientX / window.innerWidth) * 2 - 1) * damp
   target.y = clamp((e.clientY / window.innerHeight) * 2 - 1) * damp
+  // A mouse has no accelerometer, but it has velocity, and flicking it
+  // is the desktop equivalent of swinging the phone. Consumers of
+  // ax/ay therefore work on a desktop without knowing it.
+  if (!hasMotion) {
+    const now = performance.now()
+    if (pointerLast) {
+      const dt = Math.max(8, now - pointerLast.t)
+      aTarget.x = clamp((e.clientX - pointerLast.x) / dt * 0.6) * damp
+      aTarget.y = clamp((e.clientY - pointerLast.y) / dt * 0.6) * damp
+    }
+    pointerLast = { x: e.clientX, y: e.clientY, t: now }
+  }
 }
 
 function tick () {
   value.x += (target.x - value.x) * SMOOTH
   value.y += (target.y - value.y) * SMOOTH
+  aValue.x += (aTarget.x - aValue.x) * ACCEL_SMOOTH
+  aValue.y += (aTarget.y - aValue.y) * ACCEL_SMOOTH
+  // Nothing re-zeroes a stale reading: devicemotion stops firing when
+  // the device is still, and a pointer that stopped moving sends no
+  // events at all, so the last flick would otherwise push forever.
+  aTarget.x *= 0.9
+  aTarget.y *= 0.9
   requestAnimationFrame(tick)
 }
 
 function listen () {
   window.addEventListener('deviceorientation', onOrient, { passive: true })
+  if (window.DeviceMotionEvent) {
+    window.addEventListener('devicemotion', onMotion, { passive: true })
+  }
 }
 
 function arm () {
   if (armed) return
   armed = true
   const DOE = window.DeviceOrientationEvent
+  const DME = window.DeviceMotionEvent
+  // iOS gates orientation and motion behind SEPARATE calls even though
+  // the reader sees one "Motion & Orientation" prompt, so both go in
+  // the same gesture or the second one is refused for lack of one.
+  if (DME && typeof DME.requestPermission === 'function') {
+    DME.requestPermission().catch(() => {})
+  }
   if (DOE && typeof DOE.requestPermission === 'function') {
     DOE.requestPermission().then((state) => {
       console.log(`${TAG} motion permission: ${state}`)
@@ -183,6 +265,10 @@ export default function initTilt () {
   window.M4Tilt = {
     get x () { return value.x },
     get y () { return value.y },
+    // How the device is being MOVED, not which way it leans.
+    get ax () { return aValue.x },
+    get ay () { return aValue.y },
+    get motion () { return hasMotion ? 'accel' : (source === 'pointer' ? 'pointer' : 'none') },
     get source () { return source },
     get reduced () { return reduced },
     arm,

@@ -3,7 +3,8 @@
  * HERO EMBERS — ember field behind the guide hero.
  *
  * Points only for now; the material is a placeholder for the real spark
- * shader. Sparks rise, drift laterally with device tilt, and fade out.
+ * shader. Sparks rise, get thrown about by how the device is MOVED,
+ * and fade out.
  *
  * Built on three.js rather than raw WebGL because of the single-context
  * rule below: three's WebGLRenderer owns and caches GL state, and raw
@@ -33,12 +34,35 @@ import {
 const TAG = '[m4-gl]'
 const MAX = 420
 
+// Embers answer acceleration, not lean. A field of sparks has mass:
+// what it should care about is the jar being swung, not the jar being
+// tipped -- the same idea as iOS's Vehicle Motion Cues, used here for
+// flare rather than for comfort. Reading orientation made the field
+// slide whenever the phone simply rested at an angle, which is the one
+// moment nothing should be moving.
+//
+// The field carries a shared velocity rather than being displaced
+// directly: acceleration feeds it, friction removes it, so a flick
+// throws the embers and they coast back. Displacement is OPPOSITE the
+// acceleration, because that is what loose things do inside a box that
+// is being moved.
+// Measured against a synthetic 3.2 m/s2 flick: at 0.00007 the field
+// moved under 1% of the hero's width, which is not flare, it is a
+// rounding error. Mutable and published on window.M4Embers so the
+// numbers can be found on a real device without a deploy.
+const FIELD = {
+  throw: 0.00025, // acceleration -> field velocity
+  friction: 0.94 // how fast a throw bleeds off
+}
+
 let renderer = null
 
 export function getRenderer () { return renderer }
 
 export default function initEmbers (canvas) {
   if (!canvas) return null
+
+  window.M4Embers = FIELD
 
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
@@ -112,15 +136,34 @@ export default function initEmbers (canvas) {
   let fpsMark = 0
   let degraded = 0
 
+  // The field's own momentum, shared by every spark.
+  let throwX = 0
+  let throwY = 0
+
   function step (now) {
     if (!running) return
     const tilt = window.M4Tilt
+
+    // Derive at use time: motion permission may be granted long after
+    // the field started, and M4Tilt switches from pointer to gyro the
+    // moment it does.
+    if (tilt) {
+      throwX = (throwX - tilt.ax * FIELD.throw) * FIELD.friction
+      throwY = (throwY - tilt.ay * FIELD.throw * 0.6) * FIELD.friction
+    } else {
+      throwX *= FIELD.friction
+      throwY *= FIELD.friction
+    }
 
     for (let i = 0; i < count; i++) {
       pos[i * 3] += vel[i * 2]
       pos[i * 3 + 1] += vel[i * 2 + 1]
       pos[i * 3] += Math.sin(now * 0.0004 + i) * 0.00012 // lateral drift
-      if (tilt) pos[i * 3] += tilt.x * 0.0006 // device lean
+      // Heavier sparks are thrown less. sizes[] stands in for mass
+      // until the real spark shader carries one.
+      const mass = 0.6 + sizes[i] * 0.18
+      pos[i * 3] += throwX / mass
+      pos[i * 3 + 1] += throwY / mass
 
       const y = pos[i * 3 + 1]
       alpha[i] = y < 0 ? 0 : Math.min(1, y * 4) * (1 - y / life[i]) * 0.9
